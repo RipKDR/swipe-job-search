@@ -1,0 +1,14 @@
+{
+  "recommendations": [
+    "expo.vscode-expo-tools",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    "Supabase.vscode-supabase-extension",
+    "redhat.vscode-yaml",
+    "yzhang.markdown-all-in-one",
+    "vitest.explorer",
+    "editorconfig.editorconfig",
+    "ms-playwright.playwright"
+  ]
+}

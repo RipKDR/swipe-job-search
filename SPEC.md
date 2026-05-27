@@ -1,5 +1,7 @@
 # Technical Specification - Swipe Job Search
 
+> ⚠️ **Superseded (stack & schema):** This doc reflects the original Next.js + Capacitor direction. **Canonical stack:** [`STACK.md`](STACK.md). **Canonical backend:** [`docs/BACKEND.md`][def]. Product scope remains valid in [`foundational-docs/02-mvp-definition.md`](foundational-docs/02-mvp-definition.md). Kept for historical reference — do not scaffold from §1–§6 without reconciling against canonical docs.
+
 ## 1. Tech Stack
 - **Framework:** Next.js 14+ (App Router).
 - **Language:** TypeScript.
@@ -138,3 +140,6 @@ type ApiError = {
 - **Job card photos:** max 5MB per image, JPEG/PNG/WEBP, min 800x600px, max 4 per job
 - **Storage buckets:** `profile-photos` (public), `job-photos` (public), `compliance-reports` (private, provider-only RLS)
 - **Transformations:** Supabase Image Transformation used for thumbnails — `?width=400&quality=75` for deck cards
+
+
+[def]: docs/BACKEND.md

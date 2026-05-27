@@ -25,9 +25,15 @@ The check-match logic reads "does a reciprocal swipe exist?" then separately ins
 ALTER TABLE matches ADD CONSTRAINT matches_unique UNIQUE (candidate_id, job_id);
 ```
 ```typescript
-// Atomic upsert in check-match Edge Function
-await supabase.from('matches')
-  .upsert({ candidate_id, job_id }, { onConflict: 'candidate_id,job_id', ignoreDuplicates: true })
+// Atomic insert in check-match Edge Function with conflict handling
+const { error } = await supabase.from('matches')
+  .insert({ candidate_id, job_id })
+  .select()
+  .single();
+
+if (error && error.code !== '23505') { // 23505 is unique_violation in Postgres
+  throw error; // handle other errors, but ignore duplicate entry
+}
 ```
 
 ---
@@ -121,7 +127,7 @@ Add consent toggle to onboarding flow.
 ### 🟡 MEDIUM 1 — Streak Edge Function Write Amplification
 **Source:** `SPEC.md` §6 — `update-streak`
 
-Every swipe fires a DB trigger → Edge Function invocation. 20 rapid swipes = 20 cold-start invocations. 
+Every swipe fires a DB trigger → Edge Function invocation. 20 rapid swipes = 20 cold-start invocations.
 
 **Fix:** Debounce in trigger: only fire if `updated_at` on `streaks` row is > 1 hour ago.
 

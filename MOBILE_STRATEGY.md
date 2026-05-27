@@ -1,5 +1,7 @@
 # Mobile Strategy — Swipe Job Search
 
+> ⚠️ **Superseded:** The web-first + Capacitor approach is abandoned. **Hi-Hired is Expo + React Native mobile-first.** See canonical stack: [`STACK.md`](STACK.md). Push, haptics, and camera sections below reference Capacitor APIs — use Expo equivalents (`expo-notifications`, `expo-haptics`, `expo-image-picker`) per STACK.md.
+
 ## 1. Approach: Web-First, Capacitor for Native
 
 Start with a responsive Next.js web app optimised for mobile browsers. Once the web MVP is validated, wrap it with **Capacitor** for native iOS/Android builds. This avoids maintaining two codebases while still delivering native device features (haptics, push notifications, camera).
