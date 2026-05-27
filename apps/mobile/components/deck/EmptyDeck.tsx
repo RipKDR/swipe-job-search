@@ -1,10 +1,14 @@
-import { View, Text } from 'react-native';
+import { View, Text, Pressable } from 'react-native';
+
+interface EmptyDeckProps {
+  onRefresh?: () => void;
+}
 
 /**
- * Empty state for candidate deck (copy inspired by 02-mvp + "you are the algorithm").
- * No overbuild: simple, a11y, high contrast.
+ * Empty state for candidate deck.
+ * Aligned with 02-mvp + GUARDRAILS (a11y, high contrast, inclusive language).
  */
-export function EmptyDeck() {
+export function EmptyDeck({ onRefresh }: EmptyDeckProps) {
   return (
     <View className="flex-1 items-center justify-center bg-slate-950 px-8">
       <Text className="text-6xl mb-4">📭</Text>
@@ -12,7 +16,18 @@ export function EmptyDeck() {
       <Text className="text-slate-400 text-center mt-3 text-base leading-6">
         New casual roles are posted daily in your circle.{'\n'}Check back soon or talk to your provider about expanding circles.
       </Text>
-      <Text className="text-[#4ade80] mt-6 text-sm">You are the algorithm.</Text>
+
+      {onRefresh && (
+        <Pressable
+          onPress={onRefresh}
+          accessibilityRole="button"
+          className="mt-8 px-6 py-3 rounded-full border border-[#4ade80] active:opacity-80"
+        >
+          <Text className="text-[#4ade80] font-medium">Check for new jobs</Text>
+        </Pressable>
+      )}
+
+      <Text className="text-[#4ade80] mt-6 text-sm tracking-wide">You are the algorithm.</Text>
     </View>
   );
 }

@@ -103,3 +103,8 @@ begin
   end if;
 end;
 $$;
+
+-- RPC grants for authenticated clients
+grant execute on function public.create_match(uuid, uuid) to authenticated;
+grant execute on function public.confirm_hire(uuid) to authenticated;
+grant execute on function public.unmatch(uuid) to authenticated;

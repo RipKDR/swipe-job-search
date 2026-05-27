@@ -18,7 +18,7 @@ enabled = false
 
 [realtime]
 enabled = true
-ip_version = "ipv4"
+ip_version = "IPv4"
 
 [studio]
 enabled = true
@@ -53,5 +53,8 @@ enable_confirmations = false
 enabled = true
 policy = "per_worker"
 
-[functions]
-enabled = true
+[functions.notification-processor]
+verify_jwt = false
+
+[functions.expire-jobs]
+verify_jwt = false

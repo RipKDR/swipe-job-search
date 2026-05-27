@@ -3,8 +3,9 @@
  * Uses SwipeDeck + useJobDeck + optimistic swipes + a11y + haptics
  */
 import { useRouter } from 'expo-router';
-import { View, Text, Alert } from 'react-native';
+import { View, Text, Alert, Pressable } from 'react-native';
 import { SwipeDeck } from '@/components/deck/SwipeDeck';
+import { EmptyDeck } from '@/components/deck/EmptyDeck';
 import { useJobDeck } from '@/hooks/useJobDeck';
 
 export default function DeckScreen() {
@@ -27,12 +28,16 @@ export default function DeckScreen() {
     router.push(`/job/${job.id}` as any);
   };
 
-  if (isEmpty) {
+  if (isLoading) {
     return (
-      <View className="flex-1 bg-slate-950">
-        <SwipeDeck jobs={[]} onSwipe={handleSwipe} onCardPress={handleCardPress} />
+      <View className="flex-1 items-center justify-center bg-slate-950">
+        <Text className="text-white text-base">Loading jobs near you…</Text>
       </View>
     );
+  }
+
+  if (isEmpty) {
+    return <EmptyDeck onRefresh={reset} />;
   }
 
   return (
@@ -43,8 +48,16 @@ export default function DeckScreen() {
         onCardPress={handleCardPress}
         isLoading={isLoading}
       />
+
       {error && (
-        <Text className="text-red-400 text-center p-2 text-xs">Last action failed — changes rolled back.</Text>
+        <View className="absolute bottom-24 left-4 right-4 bg-red-950/90 rounded-xl px-4 py-3">
+          <Text className="text-red-400 text-sm text-center">
+            Something went wrong. Your last swipe was rolled back.
+          </Text>
+          <Pressable onPress={reset} className="mt-2">
+            <Text className="text-white text-center font-medium underline">Try again</Text>
+          </Pressable>
+        </View>
       )}
     </View>
   );

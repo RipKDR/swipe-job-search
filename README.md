@@ -14,8 +14,9 @@ Job seekers swipe local jobs with transparent pay and hours. Employers review wh
 |-------|-------|
 | Product direction | ✅ Locked |
 | Canonical planning docs | ✅ Complete |
-| Repo scaffold (Expo monorepo) | ⬜ Not started |
-| Supabase migrations | ⬜ Not started |
+| Repo scaffold (Expo monorepo) | ✅ Complete (U1 — `apps/mobile`, `packages/shared`, pnpm workspaces, CI) |
+| Supabase migrations | ✅ Complete (U2 — migrations 001–016, Edge Functions, RLS/SQL tests) |
+| Auth + onboarding (U3–U4) | ✅ Complete |
 | App Store submission | ⬜ Future |
 
 **Beachhead:** Tullamarine, Gladstone Park, Airport West and surrounding northern Melbourne suburbs.

@@ -34,3 +34,36 @@ create index notification_queue_pending_idx on notification_queue (status, creat
   where status = 'pending';
 
 -- No RLS on notification_queue - service role only
+
+-- Complete handle_new_user (notification_preferences table now exists)
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email, created_at, updated_at)
+  values (new.id, new.email, now(), now())
+  on conflict (id) do nothing;
+
+  insert into public.notification_preferences (profile_id)
+  values (new.id)
+  on conflict (profile_id) do nothing;
+
+  return new;
+end;
+$$;
+
+-- Notification triggers (queue table must exist first)
+create trigger on_swipe_right_notify
+  after insert on swipes
+  for each row execute function public.enqueue_interest_notification();
+
+create trigger on_match_created_notify
+  after insert on matches
+  for each row execute function public.enqueue_match_notification();
+
+create trigger on_message_created_notify
+  after insert on messages
+  for each row execute function public.enqueue_message_notification();
