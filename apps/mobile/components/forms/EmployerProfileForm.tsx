@@ -127,7 +127,7 @@ export function EmployerProfileForm({ onSubmit, initialData }: EmployerProfileFo
                 className="bg-slate-900 text-white px-4 py-3 rounded-lg border border-slate-800"
                 placeholder="Your name"
                 placeholderTextColor="#64748b"
-                value={value}
+                value={value ?? ''}
                 onChangeText={onChange}
                 autoCapitalize="words"
               />
@@ -149,7 +149,7 @@ export function EmployerProfileForm({ onSubmit, initialData }: EmployerProfileFo
                 className="bg-slate-900 text-white px-4 py-3 rounded-lg border border-slate-800"
                 placeholder="Tell candidates about your business..."
                 placeholderTextColor="#64748b"
-                value={value}
+                value={value ?? ''}
                 onChangeText={onChange}
                 multiline
                 numberOfLines={4}
