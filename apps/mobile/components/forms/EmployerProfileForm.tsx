@@ -4,65 +4,22 @@
  */
 
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native'
-import { Controller, useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { EmployerOnboardingSchema, type EmployerOnboarding } from '@hi-hired/shared'
-import { Button } from '../ui/Button'
-import { useState } from 'react'
+import { Controller, type UseFormReturn } from 'react-hook-form'
+import { type EmployerOnboarding, BEACHHEAD_SUBURBS } from '@hi-hired/shared'
 
 interface EmployerProfileFormProps {
-  onSubmit: (data: EmployerOnboarding) => Promise<void>
-  initialData?: Partial<EmployerOnboarding>
+  form: UseFormReturn<EmployerOnboarding>
 }
 
-const MELBOURNE_SUBURBS = [
-  'Melbourne CBD',
-  'Carlton',
-  'Fitzroy',
-  'Collingwood',
-  'Richmond',
-  'South Yarra',
-  'Prahran',
-  'St Kilda',
-  'Port Melbourne',
-  'Brunswick',
-  'Coburg',
-  'Preston',
-  'Footscray',
-  'Yarraville',
-  'Hawthorn',
-  'Camberwell',
-]
-
-export function EmployerProfileForm({ onSubmit, initialData }: EmployerProfileFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
+export function EmployerProfileForm({ form }: EmployerProfileFormProps) {
   const {
     control,
-    handleSubmit,
     formState: { errors },
-  } = useForm<EmployerOnboarding>({
-    resolver: zodResolver(EmployerOnboardingSchema),
-    defaultValues: {
-      business_name: initialData?.business_name || '',
-      suburb: initialData?.suburb || undefined,
-      contact_name: initialData?.contact_name || '',
-      about_text: initialData?.about_text || '',
-    },
-  })
-
-  const handleFormSubmit = async (data: EmployerOnboarding) => {
-    setIsSubmitting(true)
-    try {
-      await onSubmit(data)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  } = form
 
   return (
-    <ScrollView className="flex-1 bg-slate-950 px-6">
-      <View className="py-8 space-y-6">
+    <View className="flex-1">
+      <View className="space-y-6">
         {/* Business Name */}
         <View>
           <Text className="text-white text-sm font-medium mb-2">Business Name *</Text>
@@ -94,7 +51,7 @@ export function EmployerProfileForm({ onSubmit, initialData }: EmployerProfileFo
             render={({ field: { onChange, value } }) => (
               <View className="bg-slate-900 rounded-lg border border-slate-800 max-h-40">
                 <ScrollView>
-                  {MELBOURNE_SUBURBS.map((suburb) => (
+                  {BEACHHEAD_SUBURBS.map((suburb) => (
                     <TouchableOpacity
                       key={suburb}
                       onPress={() => onChange(suburb)}
@@ -162,14 +119,7 @@ export function EmployerProfileForm({ onSubmit, initialData }: EmployerProfileFo
           )}
         </View>
 
-        {/* Submit */}
-        <Button
-          title="Complete Profile"
-          onPress={handleSubmit(handleFormSubmit)}
-          loading={isSubmitting}
-          fullWidth
-        />
       </View>
-    </ScrollView>
+    </View>
   )
 }

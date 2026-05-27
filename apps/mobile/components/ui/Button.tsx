@@ -2,7 +2,7 @@
  * Button component for Hi-Hired
  */
 
-import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native'
+import { TouchableOpacity, Text, ActivityIndicator } from 'react-native'
 import type { TouchableOpacityProps } from 'react-native'
 
 interface ButtonProps extends TouchableOpacityProps {

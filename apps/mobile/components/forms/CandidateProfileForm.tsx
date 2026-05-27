@@ -4,65 +4,32 @@
  */
 
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native'
-import { Controller, useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { CandidateOnboardingSchema, type CandidateOnboarding } from '@hi-hired/shared'
+import { Controller, type UseFormReturn } from 'react-hook-form'
+import { type CandidateOnboarding, BEACHHEAD_SUBURBS, WORK_RIGHTS_LABELS, type WorkRights } from '@hi-hired/shared'
 import { Button } from '../ui/Button'
 import { useState } from 'react'
 
 interface CandidateProfileFormProps {
-  onSubmit: (data: CandidateOnboarding) => Promise<void>
-  initialData?: Partial<CandidateOnboarding>
+  form: UseFormReturn<CandidateOnboarding>
 }
 
-const MELBOURNE_SUBURBS = [
-  'Melbourne CBD',
-  'Carlton',
-  'Fitzroy',
-  'Collingwood',
-  'Richmond',
-  'South Yarra',
-  'Prahran',
-  'St Kilda',
-  'Port Melbourne',
-  'Brunswick',
-  'Coburg',
-  'Preston',
-  'Footscray',
-  'Yarraville',
-  'Hawthorn',
-  'Camberwell',
+const WORK_RIGHTS_OPTIONS: { value: WorkRights; label: string }[] = [
+  { value: 'citizen', label: WORK_RIGHTS_LABELS.citizen },
+  { value: 'pr', label: WORK_RIGHTS_LABELS.pr },
+  { value: 'visa_student_20hr', label: WORK_RIGHTS_LABELS.visa_student_20hr },
+  { value: 'visa_working_holiday', label: WORK_RIGHTS_LABELS.visa_working_holiday },
+  { value: 'visa_skilled', label: WORK_RIGHTS_LABELS.visa_skilled },
 ]
 
-const WORK_RIGHTS = [
-  { value: 'australian_citizen', label: 'Australian Citizen' },
-  { value: 'permanent_resident', label: 'Permanent Resident' },
-  { value: 'student_visa', label: 'Student Visa (20h/week limit)' },
-  { value: 'working_holiday', label: 'Working Holiday Visa' },
-  { value: 'other', label: 'Other' },
-]
-
-export function CandidateProfileForm({ onSubmit, initialData }: CandidateProfileFormProps) {
+export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
   const [skillInput, setSkillInput] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
     control,
-    handleSubmit,
     formState: { errors },
     watch,
     setValue,
-  } = useForm<CandidateOnboarding>({
-    resolver: zodResolver(CandidateOnboardingSchema),
-    defaultValues: {
-      full_name: initialData?.full_name || '',
-      suburb: initialData?.suburb || undefined,
-      experience_text: initialData?.experience_text || '',
-      skills: initialData?.skills || [],
-      availability_text: initialData?.availability_text || '',
-      work_rights: initialData?.work_rights || undefined,
-    },
-  })
+  } = form
 
   const skills = watch('skills')
 
@@ -80,18 +47,9 @@ export function CandidateProfileForm({ onSubmit, initialData }: CandidateProfile
     )
   }
 
-  const handleFormSubmit = async (data: CandidateOnboarding) => {
-    setIsSubmitting(true)
-    try {
-      await onSubmit(data)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   return (
-    <ScrollView className="flex-1 bg-slate-950 px-6">
-      <View className="py-8 space-y-6">
+    <View className="flex-1">
+      <View className="space-y-6">
         {/* Full Name */}
         <View>
           <Text className="text-white text-sm font-medium mb-2">Full Name *</Text>
@@ -123,7 +81,7 @@ export function CandidateProfileForm({ onSubmit, initialData }: CandidateProfile
             render={({ field: { onChange, value } }) => (
               <View className="bg-slate-900 rounded-lg border border-slate-800 max-h-40">
                 <ScrollView>
-                  {MELBOURNE_SUBURBS.map((suburb) => (
+                  {BEACHHEAD_SUBURBS.map((suburb) => (
                     <TouchableOpacity
                       key={suburb}
                       onPress={() => onChange(suburb)}
@@ -234,7 +192,7 @@ export function CandidateProfileForm({ onSubmit, initialData }: CandidateProfile
             name="work_rights"
             render={({ field: { onChange, value } }) => (
               <View>
-                {WORK_RIGHTS.map((right) => (
+                {WORK_RIGHTS_OPTIONS.map((right) => (
                   <TouchableOpacity
                     key={right.value}
                     onPress={() => onChange(right.value)}
@@ -257,14 +215,7 @@ export function CandidateProfileForm({ onSubmit, initialData }: CandidateProfile
           )}
         </View>
 
-        {/* Submit */}
-        <Button
-          title="Complete Profile"
-          onPress={handleSubmit(handleFormSubmit)}
-          loading={isSubmitting}
-          fullWidth
-        />
       </View>
-    </ScrollView>
+    </View>
   )
 }

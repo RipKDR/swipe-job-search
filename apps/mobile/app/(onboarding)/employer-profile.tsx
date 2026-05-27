@@ -1,7 +1,6 @@
 // Employer profile onboarding form
 // Per 02-mvp-definition.md §4: business_name, suburb, contact_name
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,14 +10,12 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function EmployerProfile() {
-  const router = useRouter();
   const { user, refreshProfile } = useAuth();
   const [submitting, setSubmitting] = useState(false);
 
   const form = useForm<EmployerOnboardingInput>({
     resolver: zodResolver(EmployerOnboardingSchema),
     defaultValues: {
-      full_name: '',
       suburb: undefined,
       business_name: '',
       // @ts-ignore - optional field can be null
@@ -40,7 +37,6 @@ export default function EmployerProfile() {
       // @ts-ignore - Database types incomplete for Update
       const { error: profileError } = await supabase.from('profiles').update({
         role: 'employer',
-        full_name: data.full_name,
         suburb: data.suburb,
         avatar_url: data.avatar_url,
         onboarding_completed_at: new Date().toISOString(),
@@ -81,12 +77,10 @@ export default function EmployerProfile() {
         </View>
 
         {/* Form */}
-        {/* @ts-ignore - form prop type mismatch */}
         <EmployerProfileForm form={form} />
 
         {/* Submit Button */}
         <Pressable
-          // @ts-ignore - handleSubmit type mismatch
           onPress={form.handleSubmit(onSubmit)}
           disabled={submitting}
           className={`mt-8 py-4 rounded-xl ${

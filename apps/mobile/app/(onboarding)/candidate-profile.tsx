@@ -1,7 +1,6 @@
 // Candidate profile onboarding form
 // Per 02-mvp-definition.md §4: name, suburb, experience, skills (max 5), availability, work rights
 import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,7 +10,6 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function CandidateProfile() {
-  const router = useRouter();
   const { user, refreshProfile } = useAuth();
   const [submitting, setSubmitting] = useState(false);
 
@@ -76,12 +74,10 @@ export default function CandidateProfile() {
         </View>
 
         {/* Form */}
-        {/* @ts-ignore - form prop type mismatch */}
         <CandidateProfileForm form={form} />
 
         {/* Submit Button */}
         <Pressable
-          // @ts-ignore - handleSubmit type mismatch
           onPress={form.handleSubmit(onSubmit)}
           disabled={submitting}
           className={`mt-8 py-4 rounded-xl ${
