@@ -27,6 +27,13 @@ export default function EmployerLayout() {
         }}
       />
       <Tabs.Screen
+        name="post-job"
+        options={{
+          title: 'Post Job',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 24 }}>➕</Text>,
+        }}
+      />
+      <Tabs.Screen
         name="matches"
         options={{
           title: 'Matches',
@@ -38,6 +45,12 @@ export default function EmployerLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 24 }}>👤</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="jobs/[id]/interested"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

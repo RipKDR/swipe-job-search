@@ -22,7 +22,7 @@ export async function performSwipe(
 ): Promise<SwipeResult> {
   await Haptics.selectionAsync();
 
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from('swipes')
     .upsert(
       [{ candidate_id: candidateId, job_id: jobId, direction }],
