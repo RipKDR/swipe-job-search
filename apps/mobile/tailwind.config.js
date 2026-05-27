@@ -1,11 +1,11 @@
-/** @type {import('tailwindcss').Config} */
+import nativewind from "nativewind/preset";
 module.exports = {
   content: [
-    "./app/**/*.{js,jsx,ts,tsx}",
-    "./components/**/*.{js,jsx,ts,tsx}",
-    "./lib/**/*.{js,jsx,ts,tsx}"
+    "./app/**/*.(js|jsx|ts|tsx)",
+    "./components/**/*.(js|jsx|ts|tsx)",
+    "./lib/**/*.(js|jsx|ts|tsx)"
   ],
-  presets: [require("nativewind/preset")],
+  presets: [nativewind],
   theme: {
     extend: {
       colors: {
@@ -14,6 +14,6 @@ module.exports = {
         accent: "#22c55e"
       }
     }
-  },
+  },  
   plugins: []
 };
