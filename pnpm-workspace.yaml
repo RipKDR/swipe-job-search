@@ -1,0 +1,7 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Hi-Hired monorepo (post 2026-05-28 pre-scaffold docs complete)
+# See STACK.md § Monorepo Structure and docs/plans/2026-05-27-001... U1 for layout
+# No Turborepo until apps/admin ships (per locked decisions)

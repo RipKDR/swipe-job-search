@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hi-Hired global styles (NativeWind v4 + Expo Router)
+   Add swipe card, haptics feedback, a11y focus rings per GUARDRAILS + EXPO_2026
+*/
+body {
+  /* for web fallback */
+}

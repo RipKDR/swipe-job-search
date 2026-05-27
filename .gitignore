@@ -1,0 +1,99 @@
+# Hi-Hired monorepo .gitignore (scaffold Phase 1, 2026-05-28)
+# See docs/ops/ for retention, SECURITY.md for PII, STACK.md for env
+
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+.yarn/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.xcworkspace/
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files (never commit secrets)
+.env
+.env*.local
+.env.development
+.env.staging
+.env.production
+
+# typescript
+*.tsbuildinfo
+
+# pnpm
+.pnpm-debug.log
+
+# Supabase local (when running supabase start)
+supabase/.branches
+supabase/.temp
+supabase/seed.sql  # only if generated; committed seed in migrations/016
+
+# EAS / builds (local)
+*.apk
+*.aab
+*.ipa
+*.zip
+eas.json  # committed? no, keep in repo for now per plan but secrets not
+
+# IDE / editor
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+.cursor/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Misc
+coverage/
+*.tgz
+.DS_Store
+Thumbs.db
+
+# Keep package-lock? no (pnpm)
+package-lock.json
+yarn.lock
+
+# Sentry / source maps (local)
+.sentryclirc
+
+# PostHog / analytics local
+posthog*.json
+
+# Temporary
+tmp/
+temp/
