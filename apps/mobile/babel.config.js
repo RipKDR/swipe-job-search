@@ -10,10 +10,10 @@ module.exports = function (api) {
       [
         "module-resolver",
         {
-          root: ["./src"],
+          root: ["."],
           alias: {
-            "@": "./src",
-            "@hi-hired/shared": "../packages/shared/src"
+            "@": "./",
+            "@hi-hired/shared": "../../packages/shared/src"
           }
         }
       ]
