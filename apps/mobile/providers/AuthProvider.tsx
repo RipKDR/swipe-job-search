@@ -1,19 +1,12 @@
 // AuthProvider with session management and profile fetch
 // Per AUTH_FLOWS.md adapted for Expo + STACK.md mobile conventions
+// Updated in U4 with full profile type from BACKEND.md
 import React, { createContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import type { Database } from '@hi-hired/shared';
 
-export type Profile = {
-  user_id: string;
-  email: string | null;
-  role: 'candidate' | 'employer' | null;
-  onboarding_completed_at: string | null;
-  full_name: string | null;
-  suburb: string | null;
-  created_at: string;
-  updated_at: string;
-};
+export type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export type AuthContextType = {
   session: Session | null;
@@ -44,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('user_id', userId)
+        .eq('id', userId)
         .single();
 
       if (error) {

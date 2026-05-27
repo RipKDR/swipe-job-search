@@ -6,7 +6,7 @@
   - Show a green "APPLY" indicator on the right during a drag.
   - Show a red "PASS" indicator on the left during a drag.
   - Scale the card slightly (1.05x) when dragged.
-- **Haptics:** If targeting mobile via Capacitor or Expo, trigger a light haptic tap on swipe completion.
+- **Haptics 2026 (Expo RN):** Use `expo-haptics` (MCP Context7 /websites/expo_dev 86.3 2026-05-28 exact): `import * as Haptics from 'expo-haptics';` on swipe right `Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)`, left `Error/Warning`, deck scroll `selectionAsync()`. See docs/stack/EXPO_ROUTER_AUTH_NOTIFS_HAPTICS_2026.md for full integration with reanimated/gesture + GUARDRAILS weight/feedback. Physical device only for full haptics (ties to EAS checklist). Cross docs/a11y/ for motor-impairment alternatives (tap buttons + VoiceOver).
 
 ## 2. Technical Guardrails
 - **Data Privacy:** Use Supabase RLS policies. A user should never be able to see who swiped on them unless it's a "Match" (business logic decision).

@@ -1,36 +1,83 @@
-// Supabase Database types (stub for U3 - will be generated from schema in later units)
-// Per BACKEND.md schema - minimal types needed for auth
+// Supabase Database types matching BACKEND.md schema
+// Updated in U4 with full profiles + employer_profiles columns
 export type Database = {
   public: {
     Tables: {
       profiles: {
         Row: {
-          user_id: string;
-          email: string | null;
+          id: string;
           role: 'candidate' | 'employer' | null;
-          onboarding_completed_at: string | null;
           full_name: string | null;
+          email: string | null;
+          phone: string | null;
           suburb: string | null;
+          avatar_url: string | null;
+          experience_text: string | null;
+          skills: string[];
+          availability_text: string | null;
+          work_rights: string | null;
+          onboarding_completed_at: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
-          user_id: string;
-          email?: string | null;
+          id: string;
           role?: 'candidate' | 'employer' | null;
-          onboarding_completed_at?: string | null;
           full_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
           suburb?: string | null;
+          avatar_url?: string | null;
+          experience_text?: string | null;
+          skills?: string[];
+          availability_text?: string | null;
+          work_rights?: string | null;
+          onboarding_completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
-          user_id?: string;
-          email?: string | null;
+          id?: string;
           role?: 'candidate' | 'employer' | null;
-          onboarding_completed_at?: string | null;
           full_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
           suburb?: string | null;
+          avatar_url?: string | null;
+          experience_text?: string | null;
+          skills?: string[];
+          availability_text?: string | null;
+          work_rights?: string | null;
+          onboarding_completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      employer_profiles: {
+        Row: {
+          profile_id: string;
+          business_name: string;
+          about_text: string | null;
+          contact_name: string | null;
+          verified: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          profile_id: string;
+          business_name: string;
+          about_text?: string | null;
+          contact_name?: string | null;
+          verified?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          profile_id?: string;
+          business_name?: string;
+          about_text?: string | null;
+          contact_name?: string | null;
+          verified?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -38,6 +85,12 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
-    Enums: Record<string, never>;
+    Enums: {
+      user_role: 'candidate' | 'employer';
+      job_type: 'casual' | 'part_time' | 'permanent';
+      job_status: 'active' | 'hired' | 'expired' | 'paused';
+      swipe_direction: 'right' | 'left';
+      match_status: 'chatting' | 'hire_pending' | 'hired' | 'unmatched' | 'archived';
+    };
   };
 };

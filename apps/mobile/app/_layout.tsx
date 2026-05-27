@@ -51,9 +51,9 @@ function RootLayoutNav() {
       // Onboarded - redirect to appropriate home based on role
       if (profile.onboarding_completed_at && inAuth) {
         if (profile.role === 'candidate') {
-          router.replace('/(candidate)/swipe');
+          router.replace('/(candidate)/(tabs)/deck' as any);
         } else if (profile.role === 'employer') {
-          router.replace('/(employer)/jobs');
+          router.replace('/(employer)/(tabs)/jobs' as any);
         } else {
           // Role not set (shouldn't happen) - send to onboarding
           router.replace('/(onboarding)/role' as any);
@@ -64,9 +64,9 @@ function RootLayoutNav() {
       // Already onboarded but in onboarding routes - redirect to home
       if (profile.onboarding_completed_at && inOnboarding) {
         if (profile.role === 'candidate') {
-          router.replace('/(candidate)/swipe');
+          router.replace('/(candidate)/(tabs)/deck' as any);
         } else if (profile.role === 'employer') {
-          router.replace('/(employer)/jobs');
+          router.replace('/(employer)/(tabs)/jobs' as any);
         }
         return;
       }

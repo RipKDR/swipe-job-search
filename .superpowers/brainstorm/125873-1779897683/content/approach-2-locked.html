@@ -1,0 +1,41 @@
+<h2>Locked: Approach 2 — Parallel Swarm (fastest)</h2>
+<p class="subtitle">You chose the parallel swarm path for authoring the remaining MUST-tier documentation.</p>
+
+<div class="section" style="margin: 16px 0;">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+    <div style="background:#f0f9ff; border:1px solid #0ea5e9; border-radius:8px; padding:12px;">
+      <strong style="color:#0369a1;">What "Parallel Swarm" means here</strong>
+      <ul style="font-size:12px; margin:8px 0 0 16px; line-height:1.5;">
+        <li>Spin up a small coordinated swarm (ruflo/claude-flow or OpenClaw multi-agent with worktree isolation)</li>
+        <li>Feed it the 8 detailed outlines the research agent already wrote</li>
+        <li>Members author concurrently (one per major concern: Expo stack-deep, Supabase RLS/queues/Edge, Fair Work
+          legal, Privacy legal, migration runbook, API contracts, etc.)</li>
+        <li>All agents <strong>must</strong> log to the Supabase <code>agent_logs</code> table (mandatory gate per
+          workspace rules)</li>
+        <li>One final human/integration pass at the end</li>
+      </ul>
+    </div>
+    <div style="background:#ecfdf5; border:1px solid #22c55e; border-radius:8px; padding:12px;">
+      <strong style="color:#166534;">Already prepared for this</strong>
+      <ul style="font-size:12px; margin:8px 0 0 16px; line-height:1.5;">
+        <li>Full mini swarm execution plan in <code>docs/research/gap-analysis-2026-05-28.md</code> §7 (task breakdown,
+          specialist mapping, logging gate)</li>
+        <li>8 ready-to-use outlines with 2026 citations (Expo v55/56, Supabase 2026 RLS/Edge patterns, live Fair Work
+          data, Privacy Act notes)</li>
+        <li>Structure B skeleton already on disk (stubs + dirs + indexes)</li>
+        <li>Workspace has OpenClaw specialists (alex/maya/jordan/dev/sam) + ruflo/claude-flow skills in cache</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section"
+  style="background:#fefce8; border:1px solid #fde047; border-radius:6px; padding:10px; font-size:12px;">
+  <strong>Current locked state</strong><br>
+  Structure: <strong>B — Layered by concern</strong> (root hygiene + docs/{research,stack,legal,ops,api,...})<br>
+  Execution: <strong>Approach 2 — Parallel Swarm (fastest)</strong><br>
+  <span style="color:#854d0e;">Next: Confirm scope (how much must be complete before any scaffold/code)</span>
+</div>
+
+<p style="font-size:11px; color:#94a3b8; margin-top:12px;">Browser will update with scope options on the next push.
+  Reply in terminal with your scope preference (Tight / Full / custom) or any adjustments to the swarm approach.</p>

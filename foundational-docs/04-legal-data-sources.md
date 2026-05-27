@@ -184,3 +184,19 @@ Display rules:
 - `api_partner` jobs: show "via [Partner]" attribution
 
 Never display third-party-sourced jobs as "verified" or "direct."
+
+---
+
+## 2026-05-28 Update — AU Legal Obligations for Pay Transparency & Recruitment Data (Hi-Hired Swarm)
+
+**Added by:** alex (research/legal) via swarm DOC-003 + DOC-004.
+
+**New canonical references (read these for all 2026 compliance work):**
+- [docs/legal/AU_FAIR_WORK_PAY_TRANSPARENCY_CASUAL_2026.md](../docs/legal/AU_FAIR_WORK_PAY_TRANSPARENCY_CASUAL_2026.md) — Full 2026 Fair Work pay transparency, casual rules, site structure (e9/e10/e12/e52 etc from 2026-05-27 cursor-ide-browser snapshot), app UI implications for every swipe card and employer post (specific pay/hours/suburb required per 02-mvp; no vague "competitive"), employer obligations, Asuria/DES/visa hooks, v1 checklist. **Supersedes** the 2024-25 award rates and general Fair Work table in GUARDRAILS.md §8 for Hi-Hired beachhead implementation.
+- [docs/legal/PRIVACY_ACT_RECRUITMENT_JOBSEEKER_DATA_2026.md](../docs/legal/PRIVACY_ACT_RECRUITMENT_JOBSEEKER_DATA_2026.md) — Privacy Act 1988 / APPs for recruitment platforms, jobseeker PII in profiles/swipes/matches (experience/skills/availability/work rights/avatars), platform vs employer vs provider responsibility, **ARCHITECTURE_AUDIT 2026-05-27 CRITICAL gap** (add `bulk_swipe_consent` flag to profiles or risk violation at launch for Asuria/DES bulk), deletion/purge, UI consent in <60s onboarding (02-mvp), notifiable breaches, retention. **Supersedes** the baseline Privacy table in GUARDRAILS.md §7 for recruitment-specific collection/disclosure events.
+
+**What remains authoritative here:** The overall job data sourcing strategy (direct employer safest, no scraping, attribution rules, source_type tracking). The 2026 legal docs focus on *obligations once data is on the platform* (pay display, consent for swipes/PII, provider bulk).
+
+**Action for future authors:** When refreshing this file, keep the sourcing tables; point all Fair Work / Privacy Act / DDA / DES questions to the two 2026 docs in docs/legal/. Update the pointer date on any material change.
+
+See gap-analysis-2026-05-28.md §6 Outlines 3 & 4 + dispatch package 2026-05-28 for full research citations (cursor-ide-browser 2026-05-27 with 117 interactive refs; ARCH CRITICAL consent flag quote).

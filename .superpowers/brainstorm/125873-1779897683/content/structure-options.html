@@ -1,0 +1,77 @@
+<h2>Which documentation structure feels right?</h2>
+<p class="subtitle">Current flat sprawl (20+ root MDs) vs the clean layered target the research agent just built vs
+  stricter centralisation. Click to select — this choice locks scope for the rest of the design.</p>
+
+<div class="options" style="margin-top: 16px;">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Minimal change + hygiene</h3>
+      <p style="font-size:13px; color:#64748b;">Keep most things at root. Add only the missing OSS files (.github/,
+        LICENSE, CONTRIBUTING, SECURITY, CHANGELOG, CODE_OF_CONDUCT) + one docs/research/ folder for the gap + manifest.
+        Update existing indexes. Lowest migration cost.</p>
+      <div
+        style="margin-top:8px; font-size:11px; background:#f1f5f9; padding:4px 6px; border-radius:4px; font-family:monospace;">
+        root/ (20 MDs + 6 new hygiene)<br>
+        docs/ (BACKEND + plans/ + research/)<br>
+        foundational-docs/ (unchanged)
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter" style="background:#22c55e; color:white;">B</div>
+    <div class="content">
+      <h3>Layered by concern (recommended by research)</h3>
+      <p style="font-size:13px; color:#64748b;">Root = hygiene + canonical pointers only. All living depth moves into
+        docs/ with clear subdirs (research/, stack/, legal/, ops/, api/, testing/). foundational-docs/ stays as
+        immutable history. This is exactly what the parallel agent just scaffolded (8+ new files + dirs + updated
+        indexes already on disk).</p>
+      <div
+        style="margin-top:8px; font-size:11px; background:#ecfdf5; padding:4px 6px; border-radius:4px; font-family:monospace;">
+        root/ (README, STACK, LICENSE… ~8 files)<br>
+        docs/<br>
+        &nbsp;&nbsp;research/ (gap, manifest, notes)<br>
+        &nbsp;&nbsp;stack/ (EXPO_2026, SUPABASE_2026…)<br>
+        &nbsp;&nbsp;legal/ (FAIR_WORK_2026, PRIVACY…)<br>
+        &nbsp;&nbsp;ops/ (MIGRATION_RUNBOOK…)<br>
+        &nbsp;&nbsp;api/ (EDGE_CONTRACTS…)<br>
+        &nbsp;&nbsp;testing/ …<br>
+        foundational-docs/ (history only)
+      </div>
+      <div style="margin-top:4px; font-size:10px; color:#16a34a;">✓ 6 stubs + full outlines + 3 indexes already written
+        for this structure</div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Strict centralised docs/</h3>
+      <p style="font-size:13px; color:#64748b;">Everything non-root-hygiene moves under docs/. Even the big canonicals
+        (STACK, BACKEND) get symlinked or moved. Maximum discoverability for new agents/humans. Highest one-time
+        migration.</p>
+      <div
+        style="margin-top:8px; font-size:11px; background:#f1f5f9; padding:4px 6px; border-radius:4px; font-family:monospace;">
+        root/ (only hygiene + tiny README pointer)<br>
+        docs/<br>
+        &nbsp;&nbsp;canonical/ (STACK.md, BACKEND.md, 02-mvp…)<br>
+        &nbsp;&nbsp;research/ …<br>
+        &nbsp;&nbsp;stack/ …<br>
+        &nbsp;&nbsp;legal/ …<br>
+        &nbsp;&nbsp;foundational/ (moved from root)<br>
+        &nbsp;&nbsp;plans/ …
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:20px; font-size:12px; color:#64748b;">
+  Full details, trade-offs, and the exact 48-file manifest are in
+  <strong>docs/research/gap-analysis-2026-05-28.md</strong> (section 4) and <strong>required-docs-manifest.md</strong>.
+  The agent already created the B structure on disk so you can see it live.
+</div>
+
+<p style="font-size:11px; color:#94a3b8; margin-top:12px;">Select one above, then reply in terminal with your choice (or
+  remix) + any scope feedback from the earlier A/B/C/D question. This locks the target state for the approaches screen
+  next.</p>
