@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PlaceholderSchema } from '../schemas/placeholder';
+import { PlaceholderSchema } from '../placeholder';
 
 describe('placeholder schema (Phase 1)', () => {
   it('validates basic shape', () => {

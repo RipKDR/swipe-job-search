@@ -1,13 +1,13 @@
 import { Slot } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 import { useEffect } from 'react';
-import { useRouter, useSegments } from 'expo-router';
+import { useSegments } from 'expo-router';
 
 // Phase 1 stub: full AuthProvider + useAuth in U3 per plan
 // For now, simple loading + placeholder gate (will be replaced in Phase 2)
 export default function RootLayout() {
   const segments = useSegments();
-  const router = useRouter();
+  // const router = useRouter(); // TODO U3: enable for auth redirect
   const loading = false; // TODO U3: from useAuth()
   const session = null; // TODO U3
 
@@ -15,7 +15,7 @@ export default function RootLayout() {
     if (loading) return;
     const inAuth = segments[0] === '(auth)';
     if (!session && !inAuth) {
-      // router.replace('/(auth)/login'); // enable in U3
+      // TODO U3: router.replace('/(auth)/login');
     }
   }, [session, loading, segments]);
 
