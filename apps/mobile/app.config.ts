@@ -31,6 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundler: 'metro'
   },
   plugins: [
+    'expo-dev-client',
     'expo-router',
     'expo-secure-store',
     [
