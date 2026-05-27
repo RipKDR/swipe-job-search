@@ -2,16 +2,27 @@
  * Candidate profile screen (placeholder)
  */
 
-import { View, Text, TouchableOpacity } from 'react-native'
+import { View, Text, TouchableOpacity, Alert } from 'react-native'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'expo-router'
+import { signOutAndRedirect } from '@/lib/auth/signOutAndRedirect'
 
 export default function CandidateProfileScreen() {
   const router = useRouter()
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.replace('/(auth)/login')
+    try {
+      await signOutAndRedirect({
+        signOut: async () => {
+          const { error } = await supabase.auth.signOut()
+          if (error) throw error
+        },
+        replace: (route) => router.replace(route as any),
+      })
+    } catch (error) {
+      console.error('[profile] sign out failed', error)
+      Alert.alert('Sign out failed', 'Please try again.')
+    }
   }
 
   return (

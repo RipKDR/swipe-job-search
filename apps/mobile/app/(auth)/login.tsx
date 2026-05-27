@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
+import { APPLE_AUTH_DISABLED_COPY, APPLE_AUTH_ENABLED } from './login-config';
 
 // Required for OAuth to work properly
 WebBrowser.maybeCompleteAuthSession();
@@ -163,14 +164,18 @@ export default function Login() {
         </Pressable>
 
         <Pressable
+          testID="apple-login-button"
           onPress={() => handleOAuth('apple')}
-          disabled={loading}
+          disabled={loading || !APPLE_AUTH_ENABLED}
           className="bg-slate-900 border border-slate-700 px-6 py-4 rounded-xl active:bg-slate-800 disabled:opacity-50"
         >
           <Text className="text-white font-semibold text-center text-base">
             Continue with Apple
           </Text>
         </Pressable>
+        {!APPLE_AUTH_ENABLED && (
+          <Text className="text-slate-500 text-xs text-center mt-2">{APPLE_AUTH_DISABLED_COPY}</Text>
+        )}
 
         <Text className="text-slate-500 text-xs text-center mt-8">
           By continuing, you agree to our Terms of Service and Privacy Policy

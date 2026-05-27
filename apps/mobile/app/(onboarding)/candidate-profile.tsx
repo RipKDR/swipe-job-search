@@ -8,10 +8,14 @@ import { CandidateOnboardingSchema, type CandidateOnboardingInput } from '@hi-hi
 import { CandidateProfileForm } from '@/components/forms/CandidateProfileForm';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import * as ImagePicker from 'expo-image-picker';
+import { buildCandidateProfileUpdate } from './onboarding-submit';
+import { pickAndUploadAvatar } from './avatar-upload';
 
 export default function CandidateProfile() {
   const { user, refreshProfile } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const form = useForm<CandidateOnboardingInput>({
     resolver: zodResolver(CandidateOnboardingSchema),
@@ -35,19 +39,13 @@ export default function CandidateProfile() {
 
     setSubmitting(true);
     try {
+      const nowIso = new Date().toISOString();
+
       // Update profile with candidate data and mark onboarding complete
       // @ts-ignore - Database types incomplete for Update
-      const { error: profileError } = await supabase.from('profiles').update({
-        role: 'candidate',
-        full_name: data.full_name,
-        suburb: data.suburb,
-        experience_text: data.experience_text,
-        skills: data.skills,
-        availability_text: data.availability_text,
-        work_rights: data.work_rights,
-        avatar_url: data.avatar_url,
-        onboarding_completed_at: new Date().toISOString(),
-      } as any).eq('id', user.id);
+      const { error: profileError } = await (supabase.from('profiles') as any)
+        .update(buildCandidateProfileUpdate(data, nowIso) as any)
+        .eq('id', user.id);
 
       if (profileError) throw profileError;
 
@@ -59,6 +57,29 @@ export default function CandidateProfile() {
       console.error('[onboarding] Candidate profile error:', error);
       Alert.alert('Error', 'Failed to save profile. Please try again.');
       setSubmitting(false);
+    }
+  };
+
+  const handleAvatarPick = async () => {
+    if (!user) return;
+
+    setAvatarUploading(true);
+    try {
+      const uploadedUrl = await pickAndUploadAvatar({
+        userId: user.id,
+        imagePicker: ImagePicker,
+        supabaseStorage: supabase.storage.from('avatars'),
+        fetchImpl: fetch,
+      });
+
+      if (uploadedUrl) {
+        form.setValue('avatar_url', uploadedUrl, { shouldValidate: true });
+      }
+    } catch (error) {
+      console.error('[onboarding] Avatar upload error:', error);
+      Alert.alert('Upload failed', 'Could not upload avatar. Please try again.');
+    } finally {
+      setAvatarUploading(false);
     }
   };
 
@@ -74,7 +95,11 @@ export default function CandidateProfile() {
         </View>
 
         {/* Form */}
-        <CandidateProfileForm form={form} />
+        <CandidateProfileForm
+          form={form}
+          avatarUploading={avatarUploading}
+          onAvatarPick={handleAvatarPick}
+        />
 
         {/* Submit Button */}
         <Pressable

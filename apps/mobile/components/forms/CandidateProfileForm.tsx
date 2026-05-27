@@ -11,6 +11,8 @@ import { useState } from 'react'
 
 interface CandidateProfileFormProps {
   form: UseFormReturn<CandidateOnboarding>
+  onAvatarPick?: () => void
+  avatarUploading?: boolean
 }
 
 const WORK_RIGHTS_OPTIONS: { value: WorkRights; label: string }[] = [
@@ -21,7 +23,11 @@ const WORK_RIGHTS_OPTIONS: { value: WorkRights; label: string }[] = [
   { value: 'visa_skilled', label: WORK_RIGHTS_LABELS.visa_skilled },
 ]
 
-export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
+export function CandidateProfileForm({
+  form,
+  onAvatarPick,
+  avatarUploading = false,
+}: CandidateProfileFormProps) {
   const [skillInput, setSkillInput] = useState('')
 
   const {
@@ -32,6 +38,7 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
   } = form
 
   const skills = watch('skills')
+  const avatarUrl = watch('avatar_url')
 
   const addSkill = () => {
     if (skillInput.trim() && skills.length < 5) {
@@ -69,6 +76,25 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
           />
           {errors.full_name && (
             <Text className="text-red-400 text-xs mt-1">{errors.full_name.message}</Text>
+          )}
+        </View>
+
+        {/* Avatar */}
+        <View>
+          <Text className="text-white text-sm font-medium mb-2">Avatar (optional)</Text>
+          <TouchableOpacity
+            onPress={onAvatarPick}
+            disabled={!onAvatarPick || avatarUploading}
+            className={`px-4 py-3 rounded-lg border ${
+              avatarUploading ? 'bg-slate-800 border-slate-700' : 'bg-slate-900 border-slate-800'
+            }`}
+          >
+            <Text className="text-white">
+              {avatarUploading ? 'Uploading avatar...' : avatarUrl ? 'Change avatar' : 'Upload avatar'}
+            </Text>
+          </TouchableOpacity>
+          {avatarUrl && (
+            <Text className="text-emerald-400 text-xs mt-1">Avatar uploaded and ready</Text>
           )}
         </View>
 

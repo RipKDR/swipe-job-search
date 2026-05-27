@@ -8,6 +8,10 @@ import { EmployerOnboardingSchema, type EmployerOnboardingInput } from '@hi-hire
 import { EmployerProfileForm } from '@/components/forms/EmployerProfileForm';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  buildEmployerProfileInsert,
+  buildEmployerProfileUpdate,
+} from './onboarding-submit';
 
 export default function EmployerProfile() {
   const { user, refreshProfile } = useAuth();
@@ -33,24 +37,21 @@ export default function EmployerProfile() {
 
     setSubmitting(true);
     try {
+      const nowIso = new Date().toISOString();
+
       // Update profile with employer data and mark onboarding complete
       // @ts-ignore - Database types incomplete for Update
-      const { error: profileError } = await supabase.from('profiles').update({
-        role: 'employer',
-        suburb: data.suburb,
-        avatar_url: data.avatar_url,
-        onboarding_completed_at: new Date().toISOString(),
-      } as any).eq('id', user.id);
+      const { error: profileError } = await (supabase.from('profiles') as any)
+        .update(buildEmployerProfileUpdate(data, nowIso) as any)
+        .eq('id', user.id);
 
       if (profileError) throw profileError;
 
       // Create employer_profiles row
       // @ts-ignore - Database types incomplete for Insert
-      const { error: employerError } = await supabase.from('employer_profiles').insert({
-        profile_id: user.id,
-        business_name: data.business_name,
-        contact_name: data.contact_name || null,
-      } as any);
+      const { error: employerError } = await supabase
+        .from('employer_profiles')
+        .insert(buildEmployerProfileInsert(user.id, data) as any);
 
       if (employerError) throw employerError;
 

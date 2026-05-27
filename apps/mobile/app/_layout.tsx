@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
+import { resolveAuthRedirect } from './auth-gate';
 import '../global.css';
 
 const queryClient = new QueryClient({
@@ -23,53 +24,20 @@ function RootLayoutNav() {
   const router = useRouter();
 
   useEffect(() => {
-    if (loading) return;
+    const nextRoute = resolveAuthRedirect({
+      loading,
+      session: session ? ({ user: { id: session.user.id } } as any) : null,
+      profile: profile
+        ? {
+            role: profile.role ?? null,
+            onboarding_completed_at: profile.onboarding_completed_at,
+          }
+        : null,
+      segments: segments as string[],
+    });
 
-    const inAuth = segments[0] === '(auth)';
-    // Cast needed since onboarding routes not in generated types yet
-    const inOnboarding = (segments as string[])[0] === '(onboarding)';
-
-    // Not authenticated - must be in auth routes
-    if (!session && !inAuth) {
-      router.replace('/(auth)/login');
-      return;
-    }
-
-    // Authenticated but not loaded profile yet - wait
-    if (session && !profile && !inAuth) {
-      return;
-    }
-
-    // Authenticated with profile
-    if (session && profile) {
-      // Not onboarded - must be in onboarding
-      if (!profile.onboarding_completed_at && !inOnboarding && !inAuth) {
-        router.replace('/(onboarding)/role' as any);
-        return;
-      }
-
-      // Onboarded - redirect to appropriate home based on role
-      if (profile.onboarding_completed_at && inAuth) {
-        if (profile.role === 'candidate') {
-          router.replace('/(candidate)/(tabs)/deck' as any);
-        } else if (profile.role === 'employer') {
-          router.replace('/(employer)/(tabs)/jobs' as any);
-        } else {
-          // Role not set (shouldn't happen) - send to onboarding
-          router.replace('/(onboarding)/role' as any);
-        }
-        return;
-      }
-
-      // Already onboarded but in onboarding routes - redirect to home
-      if (profile.onboarding_completed_at && inOnboarding) {
-        if (profile.role === 'candidate') {
-          router.replace('/(candidate)/(tabs)/deck' as any);
-        } else if (profile.role === 'employer') {
-          router.replace('/(employer)/(tabs)/jobs' as any);
-        }
-        return;
-      }
+    if (nextRoute) {
+      router.replace(nextRoute as any);
     }
   }, [session, profile, loading, segments, router]);
 

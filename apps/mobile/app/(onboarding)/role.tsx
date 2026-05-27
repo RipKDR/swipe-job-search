@@ -3,6 +3,7 @@
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { getOnboardingRouteForRole } from './onboarding-submit';
 
 export default function RoleSelection() {
   const router = useRouter();
@@ -10,12 +11,8 @@ export default function RoleSelection() {
 
   const handleContinue = () => {
     if (!selected) return;
-    
-    if (selected === 'candidate') {
-      router.push('/(onboarding)/candidate-profile' as any);
-    } else {
-      router.push('/(onboarding)/employer-profile' as any);
-    }
+
+    router.push(getOnboardingRouteForRole(selected) as any);
   };
 
   return (
