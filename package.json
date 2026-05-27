@@ -8,7 +8,8 @@
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
-    "build:mobile": "pnpm --filter @hi-hired/mobile build"
+    "build:mobile": "pnpm --filter @hi-hired/mobile build",
+    "db:reset": "supabase db reset"
   },
   "keywords": [
     "expo",
