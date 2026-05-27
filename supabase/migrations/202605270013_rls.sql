@@ -50,6 +50,12 @@ create policy "swipes_select_employer" on swipes for select using (
     where j.id = swipes.job_id
       and j.employer_id = auth.uid()
   )
+  and not exists (
+    select 1
+    from blocks b
+    where (b.blocker_id = auth.uid() and b.blocked_id = swipes.candidate_id)
+       or (b.blocker_id = swipes.candidate_id and b.blocked_id = auth.uid())
+  )
 );
 
 -- Matches: match participants
@@ -102,3 +108,8 @@ create policy "blocks_insert_own" on blocks for insert
   with check (blocker_id = auth.uid());
 create policy "blocks_delete_own" on blocks for delete
   using (blocker_id = auth.uid());
+
+-- Realtime: required for chat (messages), inbox (matches), employer interest (swipes)
+alter publication supabase_realtime add table messages;
+alter publication supabase_realtime add table matches;
+alter publication supabase_realtime add table swipes;

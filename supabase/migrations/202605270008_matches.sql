@@ -56,6 +56,15 @@ begin
     raise exception 'CANDIDATE_NOT_INTERESTED';
   end if;
 
+  if exists (
+    select 1
+    from blocks b
+    where (b.blocker_id = auth.uid() and b.blocked_id = p_candidate_id)
+       or (b.blocker_id = p_candidate_id and b.blocked_id = auth.uid())
+  ) then
+    raise exception 'BLOCKED_PAIR';
+  end if;
+
   insert into matches (job_id, candidate_id, employer_id, initiated_by)
   values (p_job_id, p_candidate_id, v_job.employer_id, auth.uid())
   on conflict (job_id, candidate_id) do update
@@ -89,6 +98,4 @@ begin
 end;
 $$;
 
-create trigger on_match_created_notify
-  after insert on matches
-  for each row execute function public.enqueue_match_notification();
+-- Trigger attached in 011 after notification_queue exists
