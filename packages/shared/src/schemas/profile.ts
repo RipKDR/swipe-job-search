@@ -4,10 +4,9 @@
  */
 
 import { z } from 'zod'
-import { MELBOURNE_SUBURBS } from '../constants/suburbs'
+import { BEACHHEAD_SUBURBS } from '../constants/suburbs'
 import { WORK_RIGHTS } from '../constants/work-rights'
 
-// Base profile schema
 export const ProfileSchema = z.object({
   id: z.string().uuid(),
   role: z.enum(['candidate', 'employer']),
@@ -27,10 +26,9 @@ export const ProfileSchema = z.object({
 
 export type Profile = z.infer<typeof ProfileSchema>
 
-// Candidate onboarding form schema
 export const CandidateOnboardingSchema = z.object({
   full_name: z.string().min(1, 'Full name is required').max(100),
-  suburb: z.enum(MELBOURNE_SUBURBS as unknown as readonly [string, ...string[]], {
+  suburb: z.enum(BEACHHEAD_SUBURBS, {
     errorMap: () => ({ message: 'Please select a suburb' }),
   }),
   experience_text: z
@@ -52,21 +50,15 @@ export const CandidateOnboardingSchema = z.object({
 })
 
 export type CandidateOnboarding = z.infer<typeof CandidateOnboardingSchema>
-// Alias for backward compatibility
-export type CandidateOnboardingInput = CandidateOnboarding
 
-// Employer onboarding form schema
 export const EmployerOnboardingSchema = z.object({
   business_name: z.string().min(1, 'Business name is required').max(100),
-  suburb: z.enum(MELBOURNE_SUBURBS as unknown as readonly [string, ...string[]], {
+  suburb: z.enum(BEACHHEAD_SUBURBS, {
     errorMap: () => ({ message: 'Please select a suburb' }),
   }),
-  contact_name: z.string().min(1, 'Contact name is required').max(100).nullable(),
-  full_name: z.string().optional(), // For backward compatibility with U3
+  contact_name: z.string().min(1, 'Contact name is required').max(100),
   about_text: z.string().max(500, 'About text too long (max 500 characters)').optional(),
   avatar_url: z.string().url().nullish(),
 })
 
 export type EmployerOnboarding = z.infer<typeof EmployerOnboardingSchema>
-// Alias for backward compatibility
-export type EmployerOnboardingInput = EmployerOnboarding

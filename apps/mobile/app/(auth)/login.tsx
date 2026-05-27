@@ -1,13 +1,13 @@
-// Login screen with magic link, Google, and Apple sign-in
-// Per AUTH_FLOWS.md adapted for Expo + STACK.md OAuth via WebBrowser
-import { View, Text, Pressable, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Alert } from 'react-native';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
-import Constants from 'expo-constants';
+import { getAuthRedirectUrl } from '@/lib/routing';
+import { Button } from '@/components/ui/Button';
 
-// Required for OAuth to work properly
 WebBrowser.maybeCompleteAuthSession();
+
+const redirectUrl = getAuthRedirectUrl();
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -22,10 +22,6 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const redirectUrl = Constants.expoConfig?.scheme
-        ? `${Constants.expoConfig.scheme}://auth/callback`
-        : 'hi-hired://auth/callback';
-
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
         options: {
@@ -53,10 +49,6 @@ export default function Login() {
   const handleOAuth = async (provider: 'google' | 'apple') => {
     setLoading(true);
     try {
-      const redirectUrl = Constants.expoConfig?.scheme
-        ? `${Constants.expoConfig.scheme}://auth/callback`
-        : 'hi-hired://auth/callback';
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
@@ -96,15 +88,14 @@ export default function Login() {
           We sent a magic link to {email}.{'\n'}
           Click it to sign in.
         </Text>
-        <Pressable
+        <Button
+          title="Try different email"
+          variant="outline"
           onPress={() => {
             setMagicLinkSent(false);
             setEmail('');
           }}
-          className="border border-slate-700 px-6 py-3 rounded-xl active:bg-slate-900"
-        >
-          <Text className="text-white font-semibold">Try different email</Text>
-        </Pressable>
+        />
       </View>
     );
   }
@@ -132,19 +123,14 @@ export default function Login() {
           />
         </View>
 
-        <Pressable
-          onPress={handleMagicLink}
+        <Button
+          title="Continue with Email"
+          fullWidth
+          loading={loading}
           disabled={loading}
-          className="bg-indigo-600 px-6 py-4 rounded-xl active:bg-indigo-500 mb-4 disabled:opacity-50"
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text className="text-white font-semibold text-center text-base">
-              Continue with Email
-            </Text>
-          )}
-        </Pressable>
+          onPress={handleMagicLink}
+          className="mb-4"
+        />
 
         <View className="flex-row items-center mb-4">
           <View className="flex-1 h-px bg-slate-700" />
@@ -152,25 +138,22 @@ export default function Login() {
           <View className="flex-1 h-px bg-slate-700" />
         </View>
 
-        <Pressable
+        <Button
+          title="Continue with Google"
+          variant="inverse"
+          fullWidth
+          disabled={loading}
           onPress={() => handleOAuth('google')}
-          disabled={loading}
-          className="bg-white px-6 py-4 rounded-xl active:bg-slate-100 mb-3 disabled:opacity-50"
-        >
-          <Text className="text-slate-900 font-semibold text-center text-base">
-            Continue with Google
-          </Text>
-        </Pressable>
+          className="mb-3"
+        />
 
-        <Pressable
-          onPress={() => handleOAuth('apple')}
+        <Button
+          title="Continue with Apple"
+          variant="outline"
+          fullWidth
           disabled={loading}
-          className="bg-slate-900 border border-slate-700 px-6 py-4 rounded-xl active:bg-slate-800 disabled:opacity-50"
-        >
-          <Text className="text-white font-semibold text-center text-base">
-            Continue with Apple
-          </Text>
-        </Pressable>
+          onPress={() => handleOAuth('apple')}
+        />
 
         <Text className="text-slate-500 text-xs text-center mt-8">
           By continuing, you agree to our Terms of Service and Privacy Policy

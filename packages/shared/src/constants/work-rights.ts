@@ -18,6 +18,7 @@ export const WORK_RIGHTS_LABELS: Record<WorkRights, string> = {
   visa_skilled: 'Skilled Work Visa',
 };
 
-export function isValidWorkRights(rights: string): rights is WorkRights {
-  return WORK_RIGHTS.includes(rights as WorkRights);
-}
+export const WORK_RIGHTS_OPTIONS = WORK_RIGHTS.map((value) => ({
+  value,
+  label: WORK_RIGHTS_LABELS[value],
+}));

@@ -1,25 +1,13 @@
-/**
- * Candidate profile form component
- * Used in onboarding/candidate-profile.tsx
- */
-
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native'
+import { View, Text, TextInput, TouchableOpacity } from 'react-native'
 import { Controller, type UseFormReturn } from 'react-hook-form'
-import { type CandidateOnboarding, BEACHHEAD_SUBURBS, WORK_RIGHTS_LABELS, type WorkRights } from '@hi-hired/shared'
+import { type CandidateOnboarding, WORK_RIGHTS_OPTIONS } from '@hi-hired/shared'
 import { Button } from '../ui/Button'
+import { SuburbPicker } from './SuburbPicker'
 import { useState } from 'react'
 
 interface CandidateProfileFormProps {
   form: UseFormReturn<CandidateOnboarding>
 }
-
-const WORK_RIGHTS_OPTIONS: { value: WorkRights; label: string }[] = [
-  { value: 'citizen', label: WORK_RIGHTS_LABELS.citizen },
-  { value: 'pr', label: WORK_RIGHTS_LABELS.pr },
-  { value: 'visa_student_20hr', label: WORK_RIGHTS_LABELS.visa_student_20hr },
-  { value: 'visa_working_holiday', label: WORK_RIGHTS_LABELS.visa_working_holiday },
-  { value: 'visa_skilled', label: WORK_RIGHTS_LABELS.visa_skilled },
-]
 
 export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
   const [skillInput, setSkillInput] = useState('')
@@ -50,7 +38,6 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
   return (
     <View className="flex-1">
       <View className="space-y-6">
-        {/* Full Name */}
         <View>
           <Text className="text-white text-sm font-medium mb-2">Full Name *</Text>
           <Controller
@@ -72,38 +59,18 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
           )}
         </View>
 
-        {/* Suburb */}
-        <View>
-          <Text className="text-white text-sm font-medium mb-2">Suburb *</Text>
-          <Controller
-            control={control}
-            name="suburb"
-            render={({ field: { onChange, value } }) => (
-              <View className="bg-slate-900 rounded-lg border border-slate-800 max-h-40">
-                <ScrollView>
-                  {BEACHHEAD_SUBURBS.map((suburb) => (
-                    <TouchableOpacity
-                      key={suburb}
-                      onPress={() => onChange(suburb)}
-                      className={`px-4 py-3 border-b border-slate-800 ${
-                        value === suburb ? 'bg-blue-600/20' : ''
-                      }`}
-                    >
-                      <Text className={value === suburb ? 'text-blue-400' : 'text-white'}>
-                        {suburb}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-          />
-          {errors.suburb && (
-            <Text className="text-red-400 text-xs mt-1">{errors.suburb.message}</Text>
+        <Controller
+          control={control}
+          name="suburb"
+          render={({ field: { onChange, value } }) => (
+            <SuburbPicker
+              value={value}
+              onChange={onChange}
+              error={errors.suburb?.message}
+            />
           )}
-        </View>
+        />
 
-        {/* Experience */}
         <View>
           <Text className="text-white text-sm font-medium mb-2">Experience *</Text>
           <Controller
@@ -127,7 +94,6 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
           )}
         </View>
 
-        {/* Skills */}
         <View>
           <Text className="text-white text-sm font-medium mb-2">Skills * (max 5)</Text>
           <View className="flex-row mb-2">
@@ -149,7 +115,7 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
             {skills.map((skill, index) => (
               <View
                 key={index}
-                className="bg-blue-600 px-3 py-2 rounded-full mr-2 mb-2 flex-row items-center"
+                className="bg-indigo-600 px-3 py-2 rounded-full mr-2 mb-2 flex-row items-center"
               >
                 <Text className="text-white text-sm mr-2">{skill}</Text>
                 <TouchableOpacity onPress={() => removeSkill(index)}>
@@ -163,7 +129,6 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
           )}
         </View>
 
-        {/* Availability */}
         <View>
           <Text className="text-white text-sm font-medium mb-2">Availability *</Text>
           <Controller
@@ -184,7 +149,6 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
           )}
         </View>
 
-        {/* Work Rights */}
         <View>
           <Text className="text-white text-sm font-medium mb-2">Work Rights *</Text>
           <Controller
@@ -198,11 +162,11 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
                     onPress={() => onChange(right.value)}
                     className={`px-4 py-3 mb-2 rounded-lg border ${
                       value === right.value
-                        ? 'bg-blue-600/20 border-blue-600'
+                        ? 'bg-indigo-600/20 border-indigo-600'
                         : 'bg-slate-900 border-slate-800'
                     }`}
                   >
-                    <Text className={value === right.value ? 'text-blue-400' : 'text-white'}>
+                    <Text className={value === right.value ? 'text-indigo-400' : 'text-white'}>
                       {right.label}
                     </Text>
                   </TouchableOpacity>
@@ -214,7 +178,6 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
             <Text className="text-red-400 text-xs mt-1">{errors.work_rights.message}</Text>
           )}
         </View>
-
       </View>
     </View>
   )

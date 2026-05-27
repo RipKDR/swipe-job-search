@@ -1,11 +1,11 @@
 // Root layout with AuthProvider and auth gate
 // Per AUTH_FLOWS.md routing: unauthenticated → login, authenticated → role-based routing
 import { Slot, useRouter, useSegments } from 'expo-router';
-import { View, ActivityIndicator } from 'react-native';
 import { useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import '../global.css';
 
 const queryClient = new QueryClient({
@@ -74,11 +74,7 @@ function RootLayoutNav() {
   }, [session, profile, loading, segments, router]);
 
   if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-slate-950">
-        <ActivityIndicator size="large" color="#6366f1" />
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   return <Slot />;

@@ -1,8 +1,7 @@
-// Role selection screen for onboarding
-// Per U4 task: new users choose candidate or employer role
 import { View, Text, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { Button } from '@/components/ui/Button';
 
 export default function RoleSelection() {
   const router = useRouter();
@@ -10,17 +9,16 @@ export default function RoleSelection() {
 
   const handleContinue = () => {
     if (!selected) return;
-    
+
     if (selected === 'candidate') {
-      router.push('/(onboarding)/candidate-profile' as any);
+      router.push('/(onboarding)/candidate-profile');
     } else {
-      router.push('/(onboarding)/employer-profile' as any);
+      router.push('/(onboarding)/employer-profile');
     }
   };
 
   return (
     <View className="flex-1 bg-slate-950 px-6 pt-16">
-      {/* Header */}
       <View className="mb-12">
         <Text className="text-white text-3xl font-bold mb-2">Welcome to Hi-Hired</Text>
         <Text className="text-slate-400 text-base">
@@ -28,9 +26,7 @@ export default function RoleSelection() {
         </Text>
       </View>
 
-      {/* Role Cards */}
       <View className="gap-4 mb-8">
-        {/* Candidate Role */}
         <Pressable
           onPress={() => setSelected('candidate')}
           className={`p-6 rounded-2xl border-2 ${
@@ -45,7 +41,6 @@ export default function RoleSelection() {
           </Text>
         </Pressable>
 
-        {/* Employer Role */}
         <Pressable
           onPress={() => setSelected('employer')}
           className={`p-6 rounded-2xl border-2 ${
@@ -61,22 +56,12 @@ export default function RoleSelection() {
         </Pressable>
       </View>
 
-      {/* Continue Button */}
-      <Pressable
-        onPress={handleContinue}
+      <Button
+        title="Continue"
+        fullWidth
         disabled={!selected}
-        className={`py-4 rounded-xl ${
-          selected ? 'bg-indigo-600' : 'bg-slate-800'
-        }`}
-      >
-        <Text
-          className={`text-center font-semibold text-base ${
-            selected ? 'text-white' : 'text-slate-500'
-          }`}
-        >
-          Continue
-        </Text>
-      </Pressable>
+        onPress={handleContinue}
+      />
     </View>
   );
 }

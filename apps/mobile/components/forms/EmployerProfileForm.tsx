@@ -1,11 +1,7 @@
-/**
- * Employer profile form component
- * Used in onboarding/employer-profile.tsx
- */
-
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native'
+import { View, Text, TextInput } from 'react-native'
 import { Controller, type UseFormReturn } from 'react-hook-form'
-import { type EmployerOnboarding, BEACHHEAD_SUBURBS } from '@hi-hired/shared'
+import { type EmployerOnboarding } from '@hi-hired/shared'
+import { SuburbPicker } from './SuburbPicker'
 
 interface EmployerProfileFormProps {
   form: UseFormReturn<EmployerOnboarding>
@@ -20,7 +16,6 @@ export function EmployerProfileForm({ form }: EmployerProfileFormProps) {
   return (
     <View className="flex-1">
       <View className="space-y-6">
-        {/* Business Name */}
         <View>
           <Text className="text-white text-sm font-medium mb-2">Business Name *</Text>
           <Controller
@@ -42,38 +37,18 @@ export function EmployerProfileForm({ form }: EmployerProfileFormProps) {
           )}
         </View>
 
-        {/* Suburb */}
-        <View>
-          <Text className="text-white text-sm font-medium mb-2">Suburb *</Text>
-          <Controller
-            control={control}
-            name="suburb"
-            render={({ field: { onChange, value } }) => (
-              <View className="bg-slate-900 rounded-lg border border-slate-800 max-h-40">
-                <ScrollView>
-                  {BEACHHEAD_SUBURBS.map((suburb) => (
-                    <TouchableOpacity
-                      key={suburb}
-                      onPress={() => onChange(suburb)}
-                      className={`px-4 py-3 border-b border-slate-800 ${
-                        value === suburb ? 'bg-blue-600/20' : ''
-                      }`}
-                    >
-                      <Text className={value === suburb ? 'text-blue-400' : 'text-white'}>
-                        {suburb}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-          />
-          {errors.suburb && (
-            <Text className="text-red-400 text-xs mt-1">{errors.suburb.message}</Text>
+        <Controller
+          control={control}
+          name="suburb"
+          render={({ field: { onChange, value } }) => (
+            <SuburbPicker
+              value={value}
+              onChange={onChange}
+              error={errors.suburb?.message}
+            />
           )}
-        </View>
+        />
 
-        {/* Contact Name */}
         <View>
           <Text className="text-white text-sm font-medium mb-2">Contact Name *</Text>
           <Controller
@@ -84,7 +59,7 @@ export function EmployerProfileForm({ form }: EmployerProfileFormProps) {
                 className="bg-slate-900 text-white px-4 py-3 rounded-lg border border-slate-800"
                 placeholder="Your name"
                 placeholderTextColor="#64748b"
-                value={value ?? ''}
+                value={value}
                 onChangeText={onChange}
                 autoCapitalize="words"
               />
@@ -95,7 +70,6 @@ export function EmployerProfileForm({ form }: EmployerProfileFormProps) {
           )}
         </View>
 
-        {/* About (optional) */}
         <View>
           <Text className="text-white text-sm font-medium mb-2">About Business (optional)</Text>
           <Controller
@@ -118,7 +92,6 @@ export function EmployerProfileForm({ form }: EmployerProfileFormProps) {
             <Text className="text-red-400 text-xs mt-1">{errors.about_text.message}</Text>
           )}
         </View>
-
       </View>
     </View>
   )
