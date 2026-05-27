@@ -4,8 +4,8 @@
     "strict": true,
     "paths": {
       "@/*": ["./*"],
-      "@hi-hired/shared": ["../packages/shared/src"],
-      "@hi-hired/shared/*": ["../packages/shared/src/*"]
+      "@hi-hired/shared": ["../../packages/shared/src"],
+      "@hi-hired/shared/*": ["../../packages/shared/src/*"]
     },
     "module": "esnext",
     "moduleResolution": "bundler",

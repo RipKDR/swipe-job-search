@@ -1,4 +1,4 @@
-import nativewind from "nativewind/preset";
+const nativewind = require("nativewind/preset");
 module.exports = {
   content: [
     "./app/**/*.(js|jsx|ts|tsx)",
