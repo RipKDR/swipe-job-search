@@ -7,10 +7,9 @@ import { EmployerProfileForm } from '@/components/forms/EmployerProfileForm';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import { PROFILE_SELECT } from '@/providers/AuthProvider';
 
 export default function EmployerProfile() {
-  const { user, applyProfile } = useAuth();
+  const { applyProfile } = useAuth();
   const [submitting, setSubmitting] = useState(false);
 
   const form = useForm<EmployerOnboarding>({
@@ -22,47 +21,18 @@ export default function EmployerProfile() {
   });
 
   const onSubmit = async (data: EmployerOnboarding) => {
-    if (!user) {
-      Alert.alert('Error', 'No authenticated user');
-      return;
-    }
-
     setSubmitting(true);
     try {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          role: 'employer',
-          suburb: data.suburb,
-          avatar_url: data.avatar_url ?? null,
-        })
-        .eq('id', user.id);
+      const { data: updatedProfile, error } = await supabase.rpc('complete_employer_onboarding', {
+        p_suburb: data.suburb,
+        p_avatar_url: data.avatar_url ?? null,
+        p_business_name: data.business_name,
+        p_contact_name: data.contact_name,
+        p_about_text: data.about_text ?? null,
+      });
 
-      if (profileError) throw profileError;
-
-      const { error: employerError } = await supabase.from('employer_profiles').upsert(
-        {
-          profile_id: user.id,
-          business_name: data.business_name,
-          contact_name: data.contact_name,
-          about_text: data.about_text ?? null,
-        },
-        { onConflict: 'profile_id' }
-      );
-
-      if (employerError) throw employerError;
-
-      const { data: updatedProfile, error: completeError } = await supabase
-        .from('profiles')
-        .update({
-          onboarding_completed_at: new Date().toISOString(),
-        })
-        .eq('id', user.id)
-        .select(PROFILE_SELECT)
-        .single();
-
-      if (completeError) throw completeError;
-      if (!updatedProfile) throw new Error('Profile update returned no row');
+      if (error) throw error;
+      if (!updatedProfile) throw new Error('Employer onboarding returned no profile');
 
       applyProfile(updatedProfile);
     } catch (error) {

@@ -11,10 +11,6 @@ export const ROUTES = {
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
 
-export function asRoute(path: string): AppRoute {
-  return path as AppRoute;
-}
-
 export function routerHref(route: AppRoute): Href {
   return route as Href;
 }

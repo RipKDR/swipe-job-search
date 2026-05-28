@@ -86,7 +86,18 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      complete_employer_onboarding: {
+        Args: {
+          p_suburb: string;
+          p_avatar_url: string | null;
+          p_business_name: string;
+          p_contact_name: string;
+          p_about_text?: string | null;
+        };
+        Returns: Database['public']['Tables']['profiles']['Row'];
+      };
+    };
     Enums: {
       user_role: 'candidate' | 'employer';
       job_type: 'casual' | 'part_time' | 'permanent';

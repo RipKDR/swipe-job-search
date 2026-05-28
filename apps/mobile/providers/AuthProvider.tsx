@@ -21,8 +21,10 @@ export type AuthContextType = {
   user: Session['user'] | null;
   profile: Profile | null;
   loading: boolean;
+  profileLoadFailed: boolean;
   signOut: () => Promise<void>;
   applyProfile: (profile: Profile) => void;
+  retryProfileFetch: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextType>({
@@ -30,14 +32,17 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   loading: true,
+  profileLoadFailed: false,
   signOut: async () => {},
   applyProfile: () => {},
+  retryProfileFetch: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoadFailed, setProfileLoadFailed] = useState(false);
   const profileEpochRef = useRef(0);
 
   const user = session?.user ?? null;
@@ -65,7 +70,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const applyProfile = useCallback((next: Profile) => {
     profileEpochRef.current += 1;
     setProfile(next);
+    setProfileLoadFailed(false);
   }, []);
+
+  const loadProfile = useCallback(
+    async (userId: string, epochAtStart: number) => {
+      const freshProfile = await fetchProfile(userId);
+      if (epochAtStart !== profileEpochRef.current) return;
+      if (freshProfile) {
+        setProfile(freshProfile);
+        setProfileLoadFailed(false);
+      } else {
+        setProfileLoadFailed(true);
+      }
+    },
+    [fetchProfile]
+  );
+
+  const retryProfileFetch = useCallback(async () => {
+    if (!session?.user) return;
+    setProfileLoadFailed(false);
+    const epochAtStart = profileEpochRef.current;
+    await loadProfile(session.user.id, epochAtStart);
+  }, [session?.user, loadProfile]);
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
@@ -75,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setSession(null);
     setProfile(null);
+    setProfileLoadFailed(false);
   }, []);
 
   useEffect(() => {
@@ -90,16 +118,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!nextSession?.user) {
         setProfile(null);
+        setProfileLoadFailed(false);
         setLoading(false);
         return;
       }
 
       if (PROFILE_FETCH_EVENTS.has(event)) {
         const epochAtStart = profileEpochRef.current;
-        void fetchProfile(nextSession.user.id).then((freshProfile) => {
-          if (epochAtStart !== profileEpochRef.current) return;
-          setProfile(freshProfile);
-        });
+        void loadProfile(nextSession.user.id, epochAtStart);
       }
 
       setLoading(false);
@@ -108,7 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [fetchProfile]);
+  }, [loadProfile]);
 
   const value = useMemo(
     () => ({
@@ -116,10 +142,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       profile,
       loading,
+      profileLoadFailed,
       signOut,
       applyProfile,
+      retryProfileFetch,
     }),
-    [session, user, profile, loading, signOut, applyProfile]
+    [session, user, profile, loading, profileLoadFailed, signOut, applyProfile, retryProfileFetch]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

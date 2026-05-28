@@ -149,4 +149,27 @@ describe('AuthProvider', () => {
 
     expect(screen.getByTestId('profile-state').textContent).toBe('2026-01-02T00:00:00Z')
   })
+
+  it('marks profile load as failed when fetch returns null', async () => {
+    function FailureProbe() {
+      const { profileLoadFailed } = useAuth()
+      return <span data-testid="load-failed">{profileLoadFailed ? 'failed' : 'ok'}</span>
+    }
+
+    render(
+      <AuthProvider>
+        <FailureProbe />
+      </AuthProvider>
+    )
+
+    emitAuth('SIGNED_IN')
+
+    await act(async () => {
+      profileFetchResolver?.(null)
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('load-failed').textContent).toBe('failed')
+    })
+  })
 })

@@ -18,8 +18,10 @@ const baseAuth: AuthContextType = {
   user: null,
   profile: null,
   loading: false,
+  profileLoadFailed: false,
   signOut: async () => {},
   applyProfile: () => {},
+  retryProfileFetch: async () => {},
 }
 
 describe('useAuth', () => {

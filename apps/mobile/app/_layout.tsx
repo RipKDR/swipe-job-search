@@ -1,11 +1,12 @@
 // Root layout with AuthProvider and auth gate
 // Per AUTH_FLOWS.md routing: unauthenticated → login, authenticated → role-based routing
 import { Slot, useRouter, useSegments } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { ProfileLoadError } from '@/components/ui/ProfileLoadError';
 import { getRoleHomeRoute, ROUTES, routerHref } from '@/lib/routing';
 import '../global.css';
 
@@ -19,9 +20,10 @@ const queryClient = new QueryClient({
 });
 
 function RootLayoutNav() {
-  const { session, profile, loading } = useAuth();
+  const { session, profile, loading, profileLoadFailed, retryProfileFetch } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const [retryingProfile, setRetryingProfile] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -64,6 +66,26 @@ function RootLayoutNav() {
 
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  if (session && !profile && profileLoadFailed) {
+    return (
+      <ProfileLoadError
+        loading={retryingProfile}
+        onRetry={async () => {
+          setRetryingProfile(true);
+          try {
+            await retryProfileFetch();
+          } finally {
+            setRetryingProfile(false);
+          }
+        }}
+      />
+    );
+  }
+
+  if (session && !profile) {
+    return <LoadingScreen message="Loading your profile…" />;
   }
 
   return <Slot />;
