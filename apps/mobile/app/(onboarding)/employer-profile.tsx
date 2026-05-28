@@ -24,7 +24,7 @@ export default function EmployerProfile() {
   const onSubmit = async (data: EmployerOnboarding) => {
     setSubmitting(true);
     try {
-      const { data: updatedProfile, error } = await supabase.rpc('complete_employer_onboarding', {
+      const { data: updatedProfile, error } = await (supabase as any).rpc('complete_employer_onboarding', {
         p_suburb: data.suburb,
         p_avatar_url: data.avatar_url ?? null,
         p_business_name: data.business_name,
@@ -52,7 +52,14 @@ export default function EmployerProfile() {
           <Text className="text-slate-400 text-sm">Tell candidates about your business (under 60 seconds)</Text>
         </View>
         <EmployerProfileForm form={form} />
-        <Button title="Complete Profile" fullWidth loading={submitting} disabled={submitting} onPress={form.handleSubmit(onSubmit)} className="mt-8" />
+        <Button
+          title="Complete Profile"
+          fullWidth
+          loading={submitting}
+          disabled={submitting}
+          onPress={form.handleSubmit(onSubmit)}
+          className="mt-8"
+        />
       </ScrollView>
     </View>
   );

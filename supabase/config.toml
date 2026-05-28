@@ -80,10 +80,7 @@ allowed_cidrs_v6 = ["::/0"]
 
 [realtime]
 enabled = true
-# Bind realtime via either IPv4 or IPv6. (default: IPv4)
-# ip_version = "IPv6"
-# The maximum length in bytes of HTTP request headers. (default: 4096)
-# max_header_length = 4096
+ip_version = "IPv4"
 
 [studio]
 enabled = true
@@ -376,6 +373,12 @@ policy = "per_worker"
 inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
+
+[functions.notification-processor]
+verify_jwt = false
+
+[functions.expire-jobs]
+verify_jwt = false
 
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"

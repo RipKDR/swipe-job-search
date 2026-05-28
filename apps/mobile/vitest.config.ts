@@ -2,9 +2,6 @@ import { defineConfig } from 'vitest/config';
 import path from 'path';
 
 export default defineConfig({
-  esbuild: {
-    jsx: 'automatic',
-  },
   test: {
     environment: 'jsdom',
     globals: true,
@@ -17,9 +14,10 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './'),
-      'react-native': 'react-native-web',
-    },
+    alias: [
+      { find: '@/components/tw', replacement: path.resolve(__dirname, 'vitest-tw-shim.ts') },
+      { find: '@', replacement: path.resolve(__dirname, './') },
+      { find: 'react-native', replacement: 'react-native-web' },
+    ],
   },
 });

@@ -2,6 +2,7 @@ import { View, Text, Pressable } from '@/components/tw';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { getOnboardingRouteForRole } from './onboarding-submit';
 
 export default function RoleSelection() {
   const router = useRouter();
@@ -9,11 +10,7 @@ export default function RoleSelection() {
 
   const handleContinue = () => {
     if (!selected) return;
-    if (selected === 'candidate') {
-      router.push('/(onboarding)/candidate-profile');
-    } else {
-      router.push('/(onboarding)/employer-profile');
-    }
+    router.push(getOnboardingRouteForRole(selected) as any);
   };
 
   return (

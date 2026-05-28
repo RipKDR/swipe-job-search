@@ -9,12 +9,19 @@ import { useState } from 'react';
 
 interface CandidateProfileFormProps {
   form: UseFormReturn<CandidateOnboarding>;
+  onAvatarPick?: () => void;
+  avatarUploading?: boolean;
 }
 
-export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
+export function CandidateProfileForm({
+  form,
+  onAvatarPick,
+  avatarUploading = false,
+}: CandidateProfileFormProps) {
   const [skillInput, setSkillInput] = useState('');
   const { control, formState: { errors }, watch, setValue } = form;
   const skills = watch('skills');
+  const avatarUrl = watch('avatar_url');
 
   const addSkill = () => {
     if (skillInput.trim() && skills.length < 5) {
@@ -31,6 +38,24 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
     <View className="flex-1">
       <View className="space-y-6">
         <FormField control={control} name="full_name" label="Full Name *" placeholder="Your full name" autoCapitalize="words" />
+
+        <View>
+          <Text className="text-white text-sm font-medium mb-2">Avatar (optional)</Text>
+          <Pressable
+            onPress={onAvatarPick}
+            disabled={!onAvatarPick || avatarUploading}
+            className={`px-4 py-3 rounded-lg border ${
+              avatarUploading ? 'bg-slate-800 border-slate-700' : 'bg-slate-900 border-slate-800'
+            }`}
+          >
+            <Text className="text-white">
+              {avatarUploading ? 'Uploading avatar...' : avatarUrl ? 'Change avatar' : 'Upload avatar'}
+            </Text>
+          </Pressable>
+          {avatarUrl && (
+            <Text className="text-emerald-400 text-xs mt-1">Avatar uploaded and ready</Text>
+          )}
+        </View>
 
         <Controller
           control={control}

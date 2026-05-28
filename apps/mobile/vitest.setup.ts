@@ -21,6 +21,17 @@ vi.mock('expo-constants', () => ({
 
 vi.mock('react-native-url-polyfill/auto', () => ({}))
 
+vi.mock('react-native-css', () => {
+  const React = require('react')
+  return {
+    useCssElement: (Component: React.ComponentType<any>, props: Record<string, unknown>) =>
+      React.createElement(Component, props),
+    useNativeVariable: () => undefined,
+  }
+})
+
+vi.mock('@/components/tw', () => require('react-native'))
+
 afterEach(() => {
   cleanup()
 })

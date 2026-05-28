@@ -128,6 +128,7 @@ export default function Login() {
         <Button title="Continue with Google" variant="inverse" fullWidth disabled={loading} onPress={() => handleOAuth('google')} className="mb-3" />
 
         <Button
+          testID="apple-login-button"
           title={APPLE_SIGN_IN_ENABLED ? 'Continue with Apple' : 'Apple Sign-In (coming soon)'}
           variant="outline"
           fullWidth

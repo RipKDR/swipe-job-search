@@ -9,10 +9,14 @@ import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { PROFILE_SELECT } from '@/providers/AuthProvider';
+import * as ImagePicker from 'expo-image-picker';
+import { buildCandidateProfileUpdate } from './onboarding-submit';
+import { pickAndUploadAvatar } from './avatar-upload';
 
 export default function CandidateProfile() {
   const { user, applyProfile } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const form = useForm<CandidateOnboarding>({
     resolver: zodResolver(CandidateOnboardingSchema),
@@ -32,19 +36,9 @@ export default function CandidateProfile() {
 
     setSubmitting(true);
     try {
-      const { data: updatedProfile, error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          role: 'candidate',
-          full_name: data.full_name,
-          suburb: data.suburb,
-          experience_text: data.experience_text,
-          skills: data.skills,
-          availability_text: data.availability_text,
-          work_rights: data.work_rights,
-          avatar_url: data.avatar_url ?? null,
-          onboarding_completed_at: new Date().toISOString(),
-        })
+      const nowIso = new Date().toISOString();
+      const { data: updatedProfile, error: profileError } = await (supabase.from('profiles') as any)
+        .update(buildCandidateProfileUpdate(data, nowIso))
         .eq('id', user.id)
         .select(PROFILE_SELECT)
         .single();
@@ -61,6 +55,29 @@ export default function CandidateProfile() {
     }
   };
 
+  const handleAvatarPick = async () => {
+    if (!user) return;
+
+    setAvatarUploading(true);
+    try {
+      const uploadedUrl = await pickAndUploadAvatar({
+        userId: user.id,
+        imagePicker: ImagePicker,
+        supabaseStorage: supabase.storage.from('avatars'),
+        fetchImpl: fetch,
+      });
+
+      if (uploadedUrl) {
+        form.setValue('avatar_url', uploadedUrl, { shouldValidate: true });
+      }
+    } catch (error) {
+      console.error('[onboarding] Avatar upload error:', error);
+      Alert.alert('Upload failed', 'Could not upload avatar. Please try again.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   return (
     <View className="flex-1 bg-slate-950">
       <ScrollView className="flex-1" contentContainerClassName="px-6 pt-12 pb-8">
@@ -68,8 +85,19 @@ export default function CandidateProfile() {
           <Text className="text-white text-2xl font-bold mb-2">Create your profile</Text>
           <Text className="text-slate-400 text-sm">Tell employers about yourself (under 60 seconds)</Text>
         </View>
-        <CandidateProfileForm form={form} />
-        <Button title="Complete Profile" fullWidth loading={submitting} disabled={submitting} onPress={form.handleSubmit(onSubmit)} className="mt-8" />
+        <CandidateProfileForm
+          form={form}
+          avatarUploading={avatarUploading}
+          onAvatarPick={handleAvatarPick}
+        />
+        <Button
+          title="Complete Profile"
+          fullWidth
+          loading={submitting}
+          disabled={submitting}
+          onPress={form.handleSubmit(onSubmit)}
+          className="mt-8"
+        />
       </ScrollView>
     </View>
   );
