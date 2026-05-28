@@ -1,12 +1,16 @@
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 
 export default function AuthLayout() {
-  const { loading } = useAuth();
+  const { session, loading } = useAuth();
 
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  if (session) {
+    return <Redirect href={'/' as any} />;
   }
 
   return (

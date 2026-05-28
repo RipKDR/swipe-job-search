@@ -70,6 +70,16 @@ function RootLayoutNav() {
         }
         return;
       }
+
+      // Onboarded but at root '/' (e.g. after callback) - redirect to role home
+      if (profile.onboarding_completed_at && !inAuth && !inOnboarding && !segments[0]) {
+        if (profile.role === 'candidate') {
+          router.replace('/(candidate)/(tabs)/deck' as any);
+        } else if (profile.role === 'employer') {
+          router.replace('/(employer)/(tabs)/jobs' as any);
+        }
+        return;
+      }
     }
   }, [session, profile, loading, segments, router]);
 
