@@ -1,4 +1,4 @@
-import * as Haptics from 'expo-haptics';
+import { Platform } from 'react-native';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@hi-hired/shared';
 
@@ -20,6 +20,23 @@ export function mapSwipeError(error: { message?: string } | null): string {
   return message || 'Unable to save swipe right now';
 }
 
+// Haptics — no-op on web, native on device
+async function triggerHaptic(type?: 'selection' | 'success' | 'warning') {
+  if (Platform.OS === 'web') return;
+  try {
+    const Haptics = require('expo-haptics');
+    if (type === 'selection') {
+      await Haptics.selectionAsync();
+    } else if (type === 'success') {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else if (type === 'warning') {
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    }
+  } catch {
+    // Haptics not available
+  }
+}
+
 /**
  * Core swipe persistence + haptics (pure, injectable deps for TDD).
  * Used by useSwipe hook. Tested without React renderer.
@@ -28,7 +45,7 @@ export async function performSwipe(
   supabase: SupabaseClient<Database>,
   { candidateId, jobId, direction }: SwipeInput
 ): Promise<SwipeResult> {
-  await Haptics.selectionAsync();
+  await triggerHaptic('selection');
 
   const { error } = await (supabase as any)
     .from('swipes')
@@ -42,9 +59,9 @@ export async function performSwipe(
   }
 
   if (direction === 'right') {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await triggerHaptic('success');
   } else {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    await triggerHaptic('warning');
   }
 
   return { success: true };

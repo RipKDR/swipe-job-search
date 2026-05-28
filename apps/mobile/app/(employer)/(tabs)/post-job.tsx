@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
-import { usePostHog } from 'posthog-react-native'
+import { usePostHog } from '@/hooks/usePostHog'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { JobForm, type JobFormValues } from '@/components/employer/JobForm'

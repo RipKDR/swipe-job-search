@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { usePostHog } from 'posthog-react-native';
+import { usePostHog } from '@/hooks/usePostHog';
 import { useSwipe } from './useSwipe';
 import { mockJobs } from '@/lib/mocks/jobs';
 import type { Job } from '@hi-hired/shared';

@@ -1,18 +1,23 @@
 import { View, Text, ScrollView } from '@/components/tw';
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CandidateOnboardingSchema, type CandidateOnboarding } from '@hi-hired/shared';
-import { usePostHog } from 'posthog-react-native';
+import { usePostHog } from '@/hooks/usePostHog';
 import { CandidateProfileForm } from '@/components/forms/CandidateProfileForm';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { PROFILE_SELECT } from '@/providers/AuthProvider';
-import * as ImagePicker from 'expo-image-picker';
 import { buildCandidateProfileUpdate } from './onboarding-submit';
 import { pickAndUploadAvatar } from './avatar-upload';
+
+// Lazy import expo-image-picker on native only (no web impl)
+let ImagePicker: typeof import('expo-image-picker') | null = null;
+if (Platform.OS !== 'web') {
+  try { ImagePicker = require('expo-image-picker'); } catch {}
+}
 
 export default function CandidateProfile() {
   const { user, applyProfile } = useAuth();
@@ -64,12 +69,16 @@ export default function CandidateProfile() {
 
   const handleAvatarPick = async () => {
     if (!user) return;
+    if (!ImagePicker) {
+      Alert.alert('Not available', 'Avatar upload is not available on web yet.');
+      return;
+    }
 
     setAvatarUploading(true);
     try {
       const uploadedUrl = await pickAndUploadAvatar({
         userId: user.id,
-        imagePicker: ImagePicker,
+        imagePicker: ImagePicker as typeof import('expo-image-picker'),
         supabaseStorage: supabase.storage.from('avatars'),
         fetchImpl: fetch,
       });

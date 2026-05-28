@@ -1,16 +1,15 @@
 // Root layout with AuthProvider and auth gate
 // Per AUTH_FLOWS.md routing: unauthenticated → login, authenticated → role-based routing
 import { Slot, useRouter, useSegments, usePathname, useGlobalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Platform } from 'react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { PostHogProvider } from 'posthog-react-native';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ProfileLoadError } from '@/components/ui/ProfileLoadError';
 import { getRoleHomeRoute, ROUTES, routerHref, shouldRedirectForRoleMismatch } from '@/lib/routing';
-import { initSentry } from '@/lib/sentry';
-import * as Sentry from '@sentry/react-native';
+import { initSentry, wrapApp } from '@/lib/sentry';
 import { initAnalytics } from '@/lib/analytics';
 import { usePushRegistration, useNotificationObserver } from '@/hooks/usePushRegistration';
 import { posthog } from '@/lib/posthog';
@@ -27,6 +26,31 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Web-safe PostHogProvider — renders children directly on web
+function SafePostHogProvider({ children }: { children: ReactNode }) {
+  if (Platform.OS === 'web') {
+    return <>{children}</>;
+  }
+  try {
+    const { PostHogProvider } = require('posthog-react-native');
+    return (
+      <PostHogProvider
+        client={posthog}
+        autocapture={{
+          captureScreens: false,
+          captureTouches: true,
+          propsToCapture: ['testID'],
+          maxElementsCaptured: 20,
+        }}
+      >
+        {children}
+      </PostHogProvider>
+    );
+  } catch {
+    return <>{children}</>;
+  }
+}
 
 function RootLayoutNav() {
   const { session, profile, loading, profileLoadFailed, retryProfileFetch } = useAuth();
@@ -125,23 +149,15 @@ function RootLayoutNav() {
 function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
-      <PostHogProvider
-        client={posthog}
-        autocapture={{
-          captureScreens: false,
-          captureTouches: true,
-          propsToCapture: ['testID'],
-          maxElementsCaptured: 20,
-        }}
-      >
+      <SafePostHogProvider>
         <AuthProvider>
           <RootLayoutNav />
         </AuthProvider>
-      </PostHogProvider>
+      </SafePostHogProvider>
     </QueryClientProvider>
   );
 }
 
-// Expo Router apps use app/_layout.tsx as root entry (no App.tsx export to wrap).
-// If a custom entry with an App component is introduced later, wrap that export instead.
-export default Sentry.wrap(RootLayout);
+// Expo Router apps use app/_layout.tsx as root entry.
+// Sentry.wrap is web-safe (no-op on web).
+export default wrapApp(RootLayout);

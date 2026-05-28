@@ -28,7 +28,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   web: {
     favicon: './assets/favicon.png',
-    bundler: 'metro'
+    bundler: 'metro',
+    output: 'single',
   },
   plugins: [
     'expo-dev-client',

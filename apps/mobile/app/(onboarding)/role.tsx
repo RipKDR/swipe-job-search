@@ -1,7 +1,7 @@
 import { View, Text, Pressable } from '@/components/tw';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { usePostHog } from 'posthog-react-native';
+import { usePostHog } from '@/hooks/usePostHog';
 import { Button } from '@/components/ui/Button';
 import { getOnboardingRouteForRole } from './onboarding-submit';
 

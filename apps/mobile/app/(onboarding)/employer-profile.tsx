@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EmployerOnboardingSchema, type EmployerOnboarding } from '@hi-hired/shared';
-import { usePostHog } from 'posthog-react-native';
+import { usePostHog } from '@/hooks/usePostHog';
 import { EmployerProfileForm } from '@/components/forms/EmployerProfileForm';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';

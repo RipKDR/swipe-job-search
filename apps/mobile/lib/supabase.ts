@@ -2,7 +2,7 @@
 // Context7 expo_dev 86.3 2026-05-28: SecureStore session persistence
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import type { Database } from '@hi-hired/shared';
 
@@ -13,28 +13,41 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('[supabase] Missing EXPO_PUBLIC_SUPABASE_* in app.config extra (see .env.example)');
 }
 
-// SecureStore adapter for session persistence (expo-secure-store)
-const ExpoSecureStoreAdapter = {
+// Web-compatible storage adapter — localStorage on web, SecureStore on native
+const WebStorageAdapter = {
   getItem: async (key: string): Promise<string | null> => {
-    return await SecureStore.getItemAsync(key);
+    try { return localStorage.getItem(key); } catch { return null; }
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    await SecureStore.setItemAsync(key, value);
+    try { localStorage.setItem(key, value); } catch {}
   },
   removeItem: async (key: string): Promise<void> => {
-    await SecureStore.deleteItemAsync(key);
+    try { localStorage.removeItem(key); } catch {}
   },
 };
+
+function getStorageAdapter() {
+  if (Platform.OS === 'web') {
+    return WebStorageAdapter;
+  }
+  // Lazy import SecureStore on native only
+  const SecureStore = require('expo-secure-store');
+  return {
+    getItem: async (key: string): Promise<string | null> => SecureStore.getItemAsync(key),
+    setItem: async (key: string, value: string): Promise<void> => SecureStore.setItemAsync(key, value),
+    removeItem: async (key: string): Promise<void> => SecureStore.deleteItemAsync(key),
+  };
+}
 
 export const supabase = createClient<Database>(
   supabaseUrl || '',
   supabaseAnonKey || '',
   {
     auth: {
-      storage: ExpoSecureStoreAdapter,
+      storage: getStorageAdapter(),
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: false, // Expo uses deep links, not web URLs
+      detectSessionInUrl: Platform.OS === 'web', // Web uses URL-based auth callbacks
     },
   }
 );

@@ -1,16 +1,39 @@
+/**
+ * Sentry error tracking — web-safe version.
+ * On native: uses @sentry/react-native.
+ * On web: no-op stub (@sentry/react can be added later).
+ */
 import Constants from 'expo-constants';
-import * as Sentry from '@sentry/react-native';
+import { Platform } from 'react-native';
 
 let initialized = false;
 let sdkReady = false;
 
-function getOptionalIntegration(name: 'mobileReplayIntegration' | 'feedbackIntegration') {
-  const factory = (Sentry as Record<string, unknown>)[name];
-  if (typeof factory !== 'function') {
-    return null;
-  }
+// Web stub — Sentry React Native doesn't bundle for web
+const sentryStub = {
+  init: () => {},
+  wrap: (component: unknown) => component,
+  captureException: () => '',
+  withScope: (fn: (scope: unknown) => void) => fn({ setContext: () => {} }),
+};
 
+function getSentryModule() {
+  if (Platform.OS === 'web') {
+    return sentryStub;
+  }
   try {
+    return require('@sentry/react-native');
+  } catch {
+    return sentryStub;
+  }
+}
+
+function getOptionalIntegration(name: string) {
+  if (Platform.OS === 'web') return null;
+  try {
+    const Sentry = require('@sentry/react-native');
+    const factory = (Sentry as Record<string, unknown>)[name];
+    if (typeof factory !== 'function') return null;
     return (factory as () => unknown)();
   } catch {
     return null;
@@ -25,6 +48,8 @@ export function initSentry(): void {
     return;
   }
 
+  const Sentry = getSentryModule();
+
   const integrations = [
     getOptionalIntegration('mobileReplayIntegration'),
     getOptionalIntegration('feedbackIntegration'),
@@ -36,23 +61,39 @@ export function initSentry(): void {
     enableLogs: true,
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
-    integrations: integrations as NonNullable<Parameters<typeof Sentry.init>[0]>['integrations'],
+    integrations,
   });
 
   initialized = true;
   sdkReady = true;
 }
 
+export function wrapApp(AppComponent: React.ComponentType): React.ComponentType {
+  if (Platform.OS === 'web') return AppComponent;
+  try {
+    const Sentry = require('@sentry/react-native');
+    return Sentry.wrap(AppComponent);
+  } catch {
+    return AppComponent;
+  }
+}
+
 export function captureException(error: unknown, context?: Record<string, string>): void {
   if (!sdkReady) return;
 
-  if (context) {
-    Sentry.withScope((scope) => {
-      scope.setContext('extra', context);
-      Sentry.captureException(error);
-    });
-    return;
-  }
+  if (Platform.OS === 'web') return;
 
-  Sentry.captureException(error);
+  try {
+    const Sentry = require('@sentry/react-native');
+    if (context) {
+      Sentry.withScope((scope: { setContext: (key: string, value: unknown) => void }) => {
+        scope.setContext('extra', context);
+        Sentry.captureException(error);
+      });
+      return;
+    }
+    Sentry.captureException(error);
+  } catch {
+    // Silently fail on web
+  }
 }

@@ -21,6 +21,16 @@
   }
 }
 
+/* Web fallback fonts */
+@media (prefers-color-scheme: light), (prefers-color-scheme: dark) {
+  :root {
+    --font-mono: ui-monospace, monospace;
+    --font-serif: ui-serif, serif;
+    --font-sans: system-ui, -apple-system, sans-serif;
+    --font-rounded: ui-rounded, system-ui, sans-serif;
+  }
+}
+
 @layer theme {
   @theme {
     /* Hi-Hired design tokens */

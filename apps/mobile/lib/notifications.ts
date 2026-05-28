@@ -1,8 +1,8 @@
 /**
  * Push notification registration, routing, and in-app handling.
  * Per EXPO_ROUTER_AUTH_NOTIFS_HAPTICS_2026.md §3 + BACKEND.md device_tokens.
+ * Web-safe: all native notification APIs are gated behind Platform.OS.
  */
-import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
@@ -33,7 +33,7 @@ export async function registerDeviceToken(
   expoPushToken: string,
   platform: 'ios' | 'android'
 ): Promise<void> {
-  const { error } = await supabase.from('device_tokens').upsert(
+  const { error } = await (supabase.from('device_tokens') as any).upsert(
     {
       profile_id: profileId,
       expo_push_token: expoPushToken,
@@ -49,6 +49,8 @@ export async function registerDeviceToken(
 }
 
 export function configureNotificationHandler(): void {
+  if (Platform.OS === 'web') return;
+  const Notifications = require('expo-notifications');
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowAlert: true,
@@ -59,6 +61,9 @@ export function configureNotificationHandler(): void {
 }
 
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
+
+  const Notifications = require('expo-notifications');
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 
@@ -99,7 +104,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 }
 
 export function extractNotificationData(
-  notification: Notifications.Notification
+  notification: { request: { content: { data: unknown } } }
 ): NotificationData {
   const raw = notification.request.content.data;
   if (!raw || typeof raw !== 'object') {

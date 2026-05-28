@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
-import { usePostHog } from 'posthog-react-native'
+import { usePostHog } from '@/hooks/usePostHog'
 import { supabase } from '@/lib/supabase'
 
 export type CreateMatchResult = {
