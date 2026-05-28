@@ -9,8 +9,20 @@ export const ROUTES = {
   employerJobs: '/(employer)/(tabs)/jobs',
 } as const;
 
-export function asRoute(path: Href | string): Href {
-  return path as Href;
+export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
+
+export function asRoute(path: string): AppRoute {
+  return path as AppRoute;
+}
+
+export function routerHref(route: AppRoute): Href {
+  return route as Href;
+}
+
+export function getRoleHomeRoute(role: 'candidate' | 'employer' | null | undefined): AppRoute {
+  if (role === 'candidate') return ROUTES.candidateDeck;
+  if (role === 'employer') return ROUTES.employerJobs;
+  return ROUTES.onboardingRole;
 }
 
 export function getAuthRedirectUrl(): string {

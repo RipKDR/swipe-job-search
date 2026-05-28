@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { getRoleHomeRoute, ROUTES, routerHref } from '@/lib/routing';
 import '../global.css';
 
 const queryClient = new QueryClient({
@@ -26,59 +27,37 @@ function RootLayoutNav() {
     if (loading) return;
 
     const inAuth = segments[0] === '(auth)';
-    // Cast needed since onboarding routes not in generated types yet
-    const inOnboarding = (segments as string[])[0] === '(onboarding)';
+    const inOnboarding = segments[0] === '(onboarding)';
 
-    // Not authenticated - must be in auth routes
     if (!session && !inAuth) {
-      router.replace('/(auth)/login');
+      router.replace(routerHref(ROUTES.login));
       return;
     }
 
-    // Authenticated but not loaded profile yet - wait
     if (session && !profile && !inAuth) {
       return;
     }
 
-    // Authenticated with profile
     if (session && profile) {
-      // Not onboarded - must be in onboarding
       if (!profile.onboarding_completed_at && !inOnboarding && !inAuth) {
-        router.replace('/(onboarding)/role' as any);
+        router.replace(routerHref(ROUTES.onboardingRole));
         return;
       }
 
-      // Onboarded - redirect to appropriate home based on role
+      const homeRoute = getRoleHomeRoute(profile.role);
+
       if (profile.onboarding_completed_at && inAuth) {
-        if (profile.role === 'candidate') {
-          router.replace('/(candidate)/(tabs)/deck' as any);
-        } else if (profile.role === 'employer') {
-          router.replace('/(employer)/(tabs)/jobs' as any);
-        } else {
-          // Role not set (shouldn't happen) - send to onboarding
-          router.replace('/(onboarding)/role' as any);
-        }
+        router.replace(routerHref(homeRoute));
         return;
       }
 
-      // Already onboarded but in onboarding routes - redirect to home
       if (profile.onboarding_completed_at && inOnboarding) {
-        if (profile.role === 'candidate') {
-          router.replace('/(candidate)/(tabs)/deck' as any);
-        } else if (profile.role === 'employer') {
-          router.replace('/(employer)/(tabs)/jobs' as any);
-        }
+        router.replace(routerHref(homeRoute));
         return;
       }
 
-      // Onboarded but at root '/' (e.g. after callback) - redirect to role home
       if (profile.onboarding_completed_at && !inAuth && !inOnboarding && !segments[0]) {
-        if (profile.role === 'candidate') {
-          router.replace('/(candidate)/(tabs)/deck' as any);
-        } else if (profile.role === 'employer') {
-          router.replace('/(employer)/(tabs)/jobs' as any);
-        }
-        return;
+        router.replace(routerHref(homeRoute));
       }
     }
   }, [session, profile, loading, segments, router]);

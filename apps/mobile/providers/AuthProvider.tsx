@@ -1,20 +1,28 @@
 // AuthProvider with session management and profile fetch
 // Per AUTH_FLOWS.md adapted for Expo + STACK.md mobile conventions
-// Updated in U4 with full profile type from BACKEND.md
-import React, { createContext, useEffect, useState, useCallback } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import React, { createContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@hi-hired/shared';
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 
+export const PROFILE_SELECT =
+  'id, role, full_name, email, phone, suburb, avatar_url, experience_text, skills, availability_text, work_rights, onboarding_completed_at, created_at, updated_at';
+
+const PROFILE_FETCH_EVENTS = new Set<AuthChangeEvent>([
+  'INITIAL_SESSION',
+  'SIGNED_IN',
+  'USER_UPDATED',
+]);
+
 export type AuthContextType = {
   session: Session | null;
-  user: User | null;
+  user: Session['user'] | null;
   profile: Profile | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  applyProfile: (profile: Profile) => void;
 };
 
 export const AuthContext = createContext<AuthContextType>({
@@ -23,20 +31,22 @@ export const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   signOut: async () => {},
-  refreshProfile: async () => {},
+  applyProfile: () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const profileEpochRef = useRef(0);
+
+  const user = session?.user ?? null;
 
   const fetchProfile = useCallback(async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(PROFILE_SELECT)
         .eq('id', userId)
         .single();
 
@@ -52,11 +62,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const refreshProfile = useCallback(async () => {
-    if (!user) return;
-    const freshProfile = await fetchProfile(user.id);
-    setProfile(freshProfile);
-  }, [user, fetchProfile]);
+  const applyProfile = useCallback((next: Profile) => {
+    profileEpochRef.current += 1;
+    setProfile(next);
+  }, []);
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
@@ -65,35 +74,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
     setSession(null);
-    setUser(null);
     setProfile(null);
   }, []);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id).then(setProfile);
-      }
-      setLoading(false);
-    });
-
-    // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const freshProfile = await fetchProfile(session.user.id);
-        setProfile(freshProfile);
-      } else {
-        setProfile(null);
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      setSession(nextSession);
+
+      if (event === 'TOKEN_REFRESHED') {
+        setLoading(false);
+        return;
       }
-      
+
+      if (!nextSession?.user) {
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      if (PROFILE_FETCH_EVENTS.has(event)) {
+        const epochAtStart = profileEpochRef.current;
+        void fetchProfile(nextSession.user.id).then((freshProfile) => {
+          if (epochAtStart !== profileEpochRef.current) return;
+          setProfile(freshProfile);
+        });
+      }
+
       setLoading(false);
     });
 
@@ -102,18 +110,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [fetchProfile]);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user,
-        profile,
-        loading,
-        signOut,
-        refreshProfile,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      session,
+      user,
+      profile,
+      loading,
+      signOut,
+      applyProfile,
+    }),
+    [session, user, profile, loading, signOut, applyProfile]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

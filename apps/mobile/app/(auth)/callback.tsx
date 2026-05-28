@@ -2,7 +2,7 @@ import { View, Text } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
-import { ROUTES, asRoute } from '@/lib/routing';
+import { ROUTES, routerHref } from '@/lib/routing';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 
 export default function Callback() {
@@ -23,7 +23,7 @@ export default function Callback() {
       try {
         if (type === 'recovery') {
           setError('Password recovery not yet implemented');
-          setTimeout(() => router.replace(asRoute(ROUTES.login)), 2000);
+          setTimeout(() => router.replace(routerHref(ROUTES.login)), 2000);
           return;
         }
 
@@ -36,7 +36,7 @@ export default function Callback() {
           if (sessionError) {
             console.error('[callback] Session error:', sessionError);
             setError(sessionError.message);
-            setTimeout(() => router.replace(asRoute(ROUTES.login)), 2000);
+            setTimeout(() => router.replace(routerHref(ROUTES.login)), 2000);
             return;
           }
         }
@@ -45,15 +45,15 @@ export default function Callback() {
 
         if (!session) {
           setError('No session found. Please try again.');
-          setTimeout(() => router.replace(asRoute(ROUTES.login)), 2000);
+          setTimeout(() => router.replace(routerHref(ROUTES.login)), 2000);
           return;
         }
 
-        router.replace(asRoute(ROUTES.root));
+        router.replace(routerHref(ROUTES.root));
       } catch (err) {
         console.error('[callback] Unexpected error:', err);
         setError('Something went wrong. Please try again.');
-        setTimeout(() => router.replace(asRoute(ROUTES.login)), 2000);
+        setTimeout(() => router.replace(routerHref(ROUTES.login)), 2000);
       }
     };
 

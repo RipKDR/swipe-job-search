@@ -7,9 +7,10 @@ import { CandidateProfileForm } from '@/components/forms/CandidateProfileForm';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { PROFILE_SELECT } from '@/providers/AuthProvider';
 
 export default function CandidateProfile() {
-  const { user, refreshProfile } = useAuth();
+  const { user, applyProfile } = useAuth();
   const [submitting, setSubmitting] = useState(false);
 
   const form = useForm<CandidateOnboarding>({
@@ -30,24 +31,31 @@ export default function CandidateProfile() {
 
     setSubmitting(true);
     try {
-      const { error: profileError } = await supabase.from('profiles').update({
-        role: 'candidate',
-        full_name: data.full_name,
-        suburb: data.suburb,
-        experience_text: data.experience_text,
-        skills: data.skills,
-        availability_text: data.availability_text,
-        work_rights: data.work_rights,
-        avatar_url: data.avatar_url ?? null,
-        onboarding_completed_at: new Date().toISOString(),
-      }).eq('id', user.id);
+      const { data: updatedProfile, error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          role: 'candidate',
+          full_name: data.full_name,
+          suburb: data.suburb,
+          experience_text: data.experience_text,
+          skills: data.skills,
+          availability_text: data.availability_text,
+          work_rights: data.work_rights,
+          avatar_url: data.avatar_url ?? null,
+          onboarding_completed_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+        .select(PROFILE_SELECT)
+        .single();
 
       if (profileError) throw profileError;
+      if (!updatedProfile) throw new Error('Profile update returned no row');
 
-      await refreshProfile();
+      applyProfile(updatedProfile);
     } catch (error) {
       console.error('[onboarding] Candidate profile error:', error);
       Alert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
       setSubmitting(false);
     }
   };

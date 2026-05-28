@@ -1,7 +1,9 @@
-import { View, Text, TextInput, TouchableOpacity } from 'react-native'
+import { View, Text, TouchableOpacity } from 'react-native'
 import { Controller, type UseFormReturn } from 'react-hook-form'
 import { type CandidateOnboarding, WORK_RIGHTS_OPTIONS } from '@hi-hired/shared'
 import { Button } from '../ui/Button'
+import { TextField } from '../ui/TextField'
+import { FormField } from './FormField'
 import { SuburbPicker } from './SuburbPicker'
 import { useState } from 'react'
 
@@ -38,26 +40,13 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
   return (
     <View className="flex-1">
       <View className="space-y-6">
-        <View>
-          <Text className="text-white text-sm font-medium mb-2">Full Name *</Text>
-          <Controller
-            control={control}
-            name="full_name"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                className="bg-slate-900 text-white px-4 py-3 rounded-lg border border-slate-800"
-                placeholder="Your full name"
-                placeholderTextColor="#64748b"
-                value={value}
-                onChangeText={onChange}
-                autoCapitalize="words"
-              />
-            )}
-          />
-          {errors.full_name && (
-            <Text className="text-red-400 text-xs mt-1">{errors.full_name.message}</Text>
-          )}
-        </View>
+        <FormField
+          control={control}
+          name="full_name"
+          label="Full Name *"
+          placeholder="Your full name"
+          autoCapitalize="words"
+        />
 
         <Controller
           control={control}
@@ -71,36 +60,22 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
           )}
         />
 
-        <View>
-          <Text className="text-white text-sm font-medium mb-2">Experience *</Text>
-          <Controller
-            control={control}
-            name="experience_text"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                className="bg-slate-900 text-white px-4 py-3 rounded-lg border border-slate-800"
-                placeholder="Tell employers about your work experience..."
-                placeholderTextColor="#64748b"
-                value={value}
-                onChangeText={onChange}
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
-            )}
-          />
-          {errors.experience_text && (
-            <Text className="text-red-400 text-xs mt-1">{errors.experience_text.message}</Text>
-          )}
-        </View>
+        <FormField
+          control={control}
+          name="experience_text"
+          label="Experience *"
+          placeholder="Tell employers about your work experience..."
+          multiline
+          numberOfLines={4}
+          textAlignVertical="top"
+        />
 
         <View>
           <Text className="text-white text-sm font-medium mb-2">Skills * (max 5)</Text>
           <View className="flex-row mb-2">
-            <TextInput
-              className="flex-1 bg-slate-900 text-white px-4 py-3 rounded-lg border border-slate-800 mr-2"
+            <TextField
+              className="flex-1 mr-2"
               placeholder="Add a skill..."
-              placeholderTextColor="#64748b"
               value={skillInput}
               onChangeText={setSkillInput}
               onSubmitEditing={addSkill}
@@ -129,25 +104,12 @@ export function CandidateProfileForm({ form }: CandidateProfileFormProps) {
           )}
         </View>
 
-        <View>
-          <Text className="text-white text-sm font-medium mb-2">Availability *</Text>
-          <Controller
-            control={control}
-            name="availability_text"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                className="bg-slate-900 text-white px-4 py-3 rounded-lg border border-slate-800"
-                placeholder="E.g., Weekdays after 5pm, weekends anytime..."
-                placeholderTextColor="#64748b"
-                value={value}
-                onChangeText={onChange}
-              />
-            )}
-          />
-          {errors.availability_text && (
-            <Text className="text-red-400 text-xs mt-1">{errors.availability_text.message}</Text>
-          )}
-        </View>
+        <FormField
+          control={control}
+          name="availability_text"
+          label="Availability *"
+          placeholder="E.g., Weekdays after 5pm, weekends anytime..."
+        />
 
         <View>
           <Text className="text-white text-sm font-medium mb-2">Work Rights *</Text>

@@ -1,24 +1,42 @@
-/**
- * Onboarding flow integration test
- * Tests role selection → profile completion flow
- */
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import RoleSelection from '../role'
 
-import { describe, it, expect } from 'vitest'
+const mockPush = vi.fn()
 
-describe('Onboarding Flow', () => {
-  it('should have role selection as first step', () => {
-    // This is a placeholder test for the onboarding flow
-    // Full integration tests would require Expo testing setup
-    expect(true).toBe(true)
+vi.mock('expo-router', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}))
+
+describe('Onboarding role selection', () => {
+  beforeEach(() => {
+    mockPush.mockClear()
   })
 
-  it('should route candidates to deck after completion', () => {
-    // Placeholder - requires navigation testing
-    expect(true).toBe(true)
+  it('starts with Continue disabled until a role is chosen', () => {
+    render(<RoleSelection />)
+
+    fireEvent.click(screen.getByText('Continue'))
+    expect(mockPush).not.toHaveBeenCalled()
   })
 
-  it('should route employers to jobs after completion', () => {
-    // Placeholder - requires navigation testing
-    expect(true).toBe(true)
+  it('routes candidates to candidate profile onboarding', () => {
+    render(<RoleSelection />)
+
+    fireEvent.click(screen.getByText("I'm looking for work"))
+    fireEvent.click(screen.getByText('Continue'))
+
+    expect(mockPush).toHaveBeenCalledWith('/(onboarding)/candidate-profile')
+  })
+
+  it('routes employers to employer profile onboarding', () => {
+    render(<RoleSelection />)
+
+    fireEvent.click(screen.getByText("I'm hiring"))
+    fireEvent.click(screen.getByText('Continue'))
+
+    expect(mockPush).toHaveBeenCalledWith('/(onboarding)/employer-profile')
   })
 })

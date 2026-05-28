@@ -7,9 +7,10 @@ import { EmployerProfileForm } from '@/components/forms/EmployerProfileForm';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { PROFILE_SELECT } from '@/providers/AuthProvider';
 
 export default function EmployerProfile() {
-  const { user, refreshProfile } = useAuth();
+  const { user, applyProfile } = useAuth();
   const [submitting, setSubmitting] = useState(false);
 
   const form = useForm<EmployerOnboarding>({
@@ -28,14 +29,20 @@ export default function EmployerProfile() {
 
     setSubmitting(true);
     try {
-      const { error: profileError } = await supabase.from('profiles').update({
-        role: 'employer',
-        suburb: data.suburb,
-        avatar_url: data.avatar_url ?? null,
-        onboarding_completed_at: new Date().toISOString(),
-      }).eq('id', user.id);
+      const { data: updatedProfile, error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          role: 'employer',
+          suburb: data.suburb,
+          avatar_url: data.avatar_url ?? null,
+          onboarding_completed_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+        .select(PROFILE_SELECT)
+        .single();
 
       if (profileError) throw profileError;
+      if (!updatedProfile) throw new Error('Profile update returned no row');
 
       const { error: employerError } = await supabase.from('employer_profiles').insert({
         profile_id: user.id,
@@ -46,10 +53,11 @@ export default function EmployerProfile() {
 
       if (employerError) throw employerError;
 
-      await refreshProfile();
+      applyProfile(updatedProfile);
     } catch (error) {
       console.error('[onboarding] Employer profile error:', error);
       Alert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
       setSubmitting(false);
     }
   };

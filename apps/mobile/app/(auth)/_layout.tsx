@@ -1,6 +1,7 @@
 import { Redirect, Stack } from 'expo-router';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { ROUTES, routerHref } from '@/lib/routing';
 
 export default function AuthLayout() {
   const { session, loading } = useAuth();
@@ -10,7 +11,7 @@ export default function AuthLayout() {
   }
 
   if (session) {
-    return <Redirect href={'/' as any} />;
+    return <Redirect href={routerHref(ROUTES.root)} />;
   }
 
   return (

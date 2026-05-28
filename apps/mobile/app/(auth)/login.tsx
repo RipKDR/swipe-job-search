@@ -1,9 +1,10 @@
-import { View, Text, TextInput, Alert } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 import { getAuthRedirectUrl } from '@/lib/routing';
 import { Button } from '@/components/ui/Button';
+import { TextField } from '@/components/ui/TextField';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -108,20 +109,17 @@ export default function Login() {
           Find your next job, one swipe at a time
         </Text>
 
-        <View className="mb-6">
-          <Text className="text-white text-sm font-semibold mb-2">Email</Text>
-          <TextInput
-            className="bg-slate-900 text-white px-4 py-3 rounded-xl border border-slate-700"
-            placeholder="your@email.com"
-            placeholderTextColor="#64748b"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            editable={!loading}
-          />
-        </View>
+        <TextField
+          label="Email"
+          className="rounded-xl border-slate-700 mb-6"
+          placeholder="your@email.com"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          editable={!loading}
+        />
 
         <Button
           title="Continue with Email"
