@@ -3,12 +3,16 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 import { getAuthRedirectUrl } from '@/lib/routing';
+import { completeAuthCallback, parseAuthCallbackUrl } from '@/lib/authCallback';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const redirectUrl = getAuthRedirectUrl();
+
+/** Apple Sign-In requires App Store credentials — enable when operator supplies them. */
+const APPLE_SIGN_IN_ENABLED = false;
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -48,13 +52,21 @@ export default function Login() {
   };
 
   const handleOAuth = async (provider: 'google' | 'apple') => {
+    if (provider === 'apple' && !APPLE_SIGN_IN_ENABLED) {
+      Alert.alert(
+        'Coming soon',
+        'Apple Sign-In will be enabled before App Store submission.'
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: redirectUrl,
-          skipBrowserRedirect: false,
+          skipBrowserRedirect: true,
         },
       });
 
@@ -64,13 +76,21 @@ export default function Login() {
       }
 
       if (data?.url) {
-        const result = await WebBrowser.openAuthSessionAsync(
-          data.url,
-          redirectUrl
-        );
+        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
 
         if (result.type === 'cancel') {
           Alert.alert('Cancelled', 'Sign in was cancelled');
+          return;
+        }
+
+        if (result.type === 'success' && result.url) {
+          const { error: authError } = await completeAuthCallback(
+            supabase,
+            parseAuthCallbackUrl(result.url)
+          );
+          if (authError) {
+            Alert.alert('Error', authError);
+          }
         }
       }
     } catch (err) {
@@ -146,10 +166,10 @@ export default function Login() {
         />
 
         <Button
-          title="Continue with Apple"
+          title={APPLE_SIGN_IN_ENABLED ? 'Continue with Apple' : 'Apple Sign-In (coming soon)'}
           variant="outline"
           fullWidth
-          disabled={loading}
+          disabled={loading || !APPLE_SIGN_IN_ENABLED}
           onPress={() => handleOAuth('apple')}
         />
 

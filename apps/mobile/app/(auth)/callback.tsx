@@ -1,19 +1,45 @@
 import { View, Text } from 'react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import * as Linking from 'expo-linking';
 import { supabase } from '@/lib/supabase';
+import {
+  completeAuthCallback,
+  parseAuthCallbackParams,
+  parseAuthCallbackUrl,
+} from '@/lib/authCallback';
 import { ROUTES, routerHref } from '@/lib/routing';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { Button } from '@/components/ui/Button';
 
 export default function Callback() {
   const router = useRouter();
-  const { access_token, refresh_token, type } = useLocalSearchParams<{
+  const searchParams = useLocalSearchParams<{
     access_token?: string;
     refresh_token?: string;
+    code?: string;
+    error?: string;
+    error_description?: string;
     type?: string;
   }>();
   const [error, setError] = useState<string | null>(null);
   const handledRef = useRef(false);
+
+  const runCallback = useCallback(async (params: ReturnType<typeof parseAuthCallbackParams>) => {
+    const { session, error: authError } = await completeAuthCallback(supabase, params);
+
+    if (authError) {
+      setError(authError);
+      return;
+    }
+
+    if (!session) {
+      setError('No session found. Please try again.');
+      return;
+    }
+
+    router.replace(routerHref(ROUTES.root));
+  }, [router]);
 
   useEffect(() => {
     if (handledRef.current) return;
@@ -21,53 +47,39 @@ export default function Callback() {
 
     const handleCallback = async () => {
       try {
-        if (type === 'recovery') {
-          setError('Password recovery not yet implemented');
-          setTimeout(() => router.replace(routerHref(ROUTES.login)), 2000);
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl?.includes('auth/callback')) {
+          await runCallback(parseAuthCallbackUrl(initialUrl));
           return;
         }
 
-        if (access_token && refresh_token) {
-          const { error: sessionError } = await supabase.auth.setSession({
-            access_token,
-            refresh_token,
-          });
-
-          if (sessionError) {
-            console.error('[callback] Session error:', sessionError);
-            setError(sessionError.message);
-            setTimeout(() => router.replace(routerHref(ROUTES.login)), 2000);
-            return;
-          }
-        }
-
-        const { data: { session } } = await supabase.auth.getSession();
-
-        if (!session) {
-          setError('No session found. Please try again.');
-          setTimeout(() => router.replace(routerHref(ROUTES.login)), 2000);
-          return;
-        }
-
-        router.replace(routerHref(ROUTES.root));
+        await runCallback(parseAuthCallbackParams(searchParams));
       } catch (err) {
         console.error('[callback] Unexpected error:', err);
         setError('Something went wrong. Please try again.');
-        setTimeout(() => router.replace(routerHref(ROUTES.login)), 2000);
       }
     };
 
     void handleCallback();
-  }, [access_token, refresh_token, type, router]);
+  }, [runCallback, searchParams]);
 
   if (error) {
     return (
       <View className="flex-1 items-center justify-center bg-slate-950 p-6">
-        <Text className="text-red-500 text-xl font-bold mb-4">Error</Text>
-        <Text className="text-slate-400 text-center">{error}</Text>
-        <Text className="text-slate-500 text-sm text-center mt-4">
-          Redirecting to login...
-        </Text>
+        <Text className="text-red-500 text-xl font-bold mb-4">Sign in failed</Text>
+        <Text className="text-slate-400 text-center mb-8">{error}</Text>
+        <Button
+          title="Try again"
+          fullWidth
+          onPress={() => router.replace(routerHref(ROUTES.login))}
+          className="mb-3"
+        />
+        <Button
+          title="Back to login"
+          variant="outline"
+          fullWidth
+          onPress={() => router.replace(routerHref(ROUTES.login))}
+        />
       </View>
     );
   }

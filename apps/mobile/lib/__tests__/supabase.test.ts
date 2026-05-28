@@ -38,5 +38,6 @@ describe('Supabase client configuration', () => {
     const { supabase } = await import('../supabase');
     expect(supabase.auth.getSession).toBeDefined();
     expect(supabase.auth.onAuthStateChange).toBeDefined();
+    expect(supabase.auth.exchangeCodeForSession).toBeDefined();
   });
 });

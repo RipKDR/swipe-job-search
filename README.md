@@ -15,6 +15,7 @@ Job seekers swipe local jobs with transparent pay and hours. Employers review wh
 | Product direction | ✅ Locked |
 | Canonical planning docs | ✅ Complete |
 | Repo scaffold (Expo monorepo) | ✅ Complete |
+| Auth & session (U3) | ✅ Complete |
 | Supabase migrations | 🟡 Written — pending local verify |
 | App Store submission | ⬜ Future |
 

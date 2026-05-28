@@ -3,6 +3,7 @@ import { render, screen, act, waitFor } from '@testing-library/react'
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
 import { AuthProvider, type Profile } from '@/providers/AuthProvider'
 import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/lib/supabase'
 
 const mockUser = { id: 'user-1' } as User
 const mockSession = { user: mockUser } as Session
@@ -30,8 +31,8 @@ const completedProfile: Profile = {
 }
 
 let authChangeHandler: ((event: AuthChangeEvent, session: Session | null) => void) | null = null
-let profileFetchResolver: ((value: Profile | null) => void) | null = null
-let profileFetchPromise: Promise<Profile | null> | null = null
+let profileFetchResolver: ((value: { data: Profile | null; error: null }) => void) | null = null
+let profileFetchPromise: Promise<{ data: Profile | null; error: null }> | null = null
 const fromMock = vi.fn()
 
 vi.mock('@/lib/supabase', () => ({
@@ -66,7 +67,7 @@ describe('AuthProvider', () => {
   beforeEach(() => {
     authChangeHandler = null
     profileFetchResolver = null
-    profileFetchPromise = new Promise<Profile | null>((resolve) => {
+    profileFetchPromise = new Promise<{ data: Profile | null; error: null }>((resolve) => {
       profileFetchResolver = resolve
     })
 
@@ -79,6 +80,11 @@ describe('AuthProvider', () => {
 
   afterEach(() => {
     vi.clearAllMocks()
+    fromMock.mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn(() => profileFetchPromise),
+    }))
   })
 
   it('skips profile fetch on TOKEN_REFRESHED', async () => {
@@ -108,7 +114,7 @@ describe('AuthProvider', () => {
     expect(fromMock).toHaveBeenCalledWith('profiles')
 
     await act(async () => {
-      profileFetchResolver?.(mockProfile)
+      profileFetchResolver?.({ data: mockProfile, error: null })
     })
 
     await waitFor(() => {
@@ -144,7 +150,7 @@ describe('AuthProvider', () => {
     })
 
     await act(async () => {
-      profileFetchResolver?.(mockProfile)
+      profileFetchResolver?.({ data: mockProfile, error: null })
     })
 
     expect(screen.getByTestId('profile-state').textContent).toBe('2026-01-02T00:00:00Z')
@@ -165,11 +171,79 @@ describe('AuthProvider', () => {
     emitAuth('SIGNED_IN')
 
     await act(async () => {
-      profileFetchResolver?.(null)
+      profileFetchResolver?.({ data: null, error: null })
     })
 
     await waitFor(() => {
       expect(screen.getByTestId('load-failed').textContent).toBe('failed')
+    })
+  })
+
+  it('clears session and profile on signOut', async () => {
+    function SignOutProbe() {
+      const { session, profile, signOut } = useAuth()
+      return (
+        <>
+          <span data-testid="signed-in">{session ? 'yes' : 'no'}</span>
+          <span data-testid="has-profile">{profile ? 'yes' : 'no'}</span>
+          <button type="button" onClick={() => void signOut()}>
+            sign out
+          </button>
+        </>
+      )
+    }
+
+    render(
+      <AuthProvider>
+        <SignOutProbe />
+      </AuthProvider>
+    )
+
+    emitAuth('SIGNED_IN')
+    await act(async () => {
+      profileFetchResolver?.({ data: mockProfile, error: null })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('has-profile').textContent).toBe('yes')
+    })
+
+    await act(async () => {
+      screen.getByText('sign out').click()
+    })
+
+    expect(supabase.auth.signOut).toHaveBeenCalled()
+    await waitFor(() => {
+      expect(screen.getByTestId('signed-in').textContent).toBe('no')
+      expect(screen.getByTestId('has-profile').textContent).toBe('no')
+    })
+  })
+
+  it('clears profile when auth state becomes signed out', async () => {
+    function SessionProbe() {
+      const { profile } = useAuth()
+      return <span data-testid="profile-role">{profile?.role ?? 'none'}</span>
+    }
+
+    render(
+      <AuthProvider>
+        <SessionProbe />
+      </AuthProvider>
+    )
+
+    emitAuth('SIGNED_IN')
+    await act(async () => {
+      profileFetchResolver?.({ data: mockProfile, error: null })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-role').textContent).toBe('candidate')
+    })
+
+    emitAuth('SIGNED_OUT', null)
+
+    await waitFor(() => {
+      expect(screen.getByTestId('profile-role').textContent).toBe('none')
     })
   })
 })

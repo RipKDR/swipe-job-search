@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-05-28 U3 — Auth and session management)
+
+- **PKCE auth callback:** `lib/authCallback.ts` with `exchangeCodeForSession`, token fallback, URL parsing, and retry UI on `(auth)/callback`.
+- **OAuth flow:** Google uses `skipBrowserRedirect` + `WebBrowser.openAuthSessionAsync` with in-session callback completion.
+- **Apple Sign-In stub:** Disabled until App Store credentials (`APPLE_SIGN_IN_ENABLED` flag in login screen).
+- **Tests:** 9 authCallback unit tests; AuthProvider signOut + SIGNED_OUT coverage; corrected profile fetch mock shape.
+
 ### Added (2026-05-28 U1 — Monorepo scaffold)
 
 - **pnpm workspace:** Root `package.json`, `pnpm-workspace.yaml`, `.npmrc` with Expo/RN hoist settings; scripts `dev:mobile`, `test`, `lint`, `typecheck`.
