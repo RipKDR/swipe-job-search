@@ -1,4 +1,5 @@
-import { View, Text, ScrollView, Alert } from 'react-native';
+import { View, Text, ScrollView } from '@/components/tw';
+import { Alert } from 'react-native';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -48,21 +49,10 @@ export default function EmployerProfile() {
       <ScrollView className="flex-1" contentContainerClassName="px-6 pt-12 pb-8">
         <View className="mb-8">
           <Text className="text-white text-2xl font-bold mb-2">Business details</Text>
-          <Text className="text-slate-400 text-sm">
-            Tell candidates about your business (under 60 seconds)
-          </Text>
+          <Text className="text-slate-400 text-sm">Tell candidates about your business (under 60 seconds)</Text>
         </View>
-
         <EmployerProfileForm form={form} />
-
-        <Button
-          title="Complete Profile"
-          fullWidth
-          loading={submitting}
-          disabled={submitting}
-          onPress={form.handleSubmit(onSubmit)}
-          className="mt-8"
-        />
+        <Button title="Complete Profile" fullWidth loading={submitting} disabled={submitting} onPress={form.handleSubmit(onSubmit)} className="mt-8" />
       </ScrollView>
     </View>
   );

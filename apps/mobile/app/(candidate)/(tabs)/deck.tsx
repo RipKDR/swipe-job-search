@@ -1,8 +1,4 @@
-/**
- * Candidate job deck screen (placeholder for U5)
- */
-
-import { View, Text } from 'react-native'
+import { View, Text } from '@/components/tw';
 
 export default function DeckScreen() {
   return (
@@ -10,5 +6,5 @@ export default function DeckScreen() {
       <Text className="text-white text-xl">Swipe Deck</Text>
       <Text className="text-slate-400 mt-2">Coming in U5</Text>
     </View>
-  )
+  );
 }

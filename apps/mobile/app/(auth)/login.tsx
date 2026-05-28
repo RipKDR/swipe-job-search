@@ -1,4 +1,5 @@
-import { View, Text, Alert } from 'react-native';
+import { View, Text } from '@/components/tw';
+import { Alert } from 'react-native';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
@@ -24,24 +25,17 @@ export default function Login() {
       Alert.alert('Error', 'Please enter your email address');
       return;
     }
-
     setLoading(true);
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
-        options: {
-          emailRedirectTo: redirectUrl,
-        },
+        options: { emailRedirectTo: redirectUrl },
       });
-
       if (error) {
         Alert.alert('Error', error.message);
       } else {
         setMagicLinkSent(true);
-        Alert.alert(
-          'Check your email',
-          'We sent you a magic link. Click it to sign in.'
-        );
+        Alert.alert('Check your email', 'We sent you a magic link. Click it to sign in.');
       }
     } catch (err) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
@@ -53,41 +47,27 @@ export default function Login() {
 
   const handleOAuth = async (provider: 'google' | 'apple') => {
     if (provider === 'apple' && !APPLE_SIGN_IN_ENABLED) {
-      Alert.alert(
-        'Coming soon',
-        'Apple Sign-In will be enabled before App Store submission.'
-      );
+      Alert.alert('Coming soon', 'Apple Sign-In will be enabled before App Store submission.');
       return;
     }
-
     setLoading(true);
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: {
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: true,
-        },
+        options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
       });
-
       if (error) {
         Alert.alert('Error', error.message);
         return;
       }
-
       if (data?.url) {
         const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-
         if (result.type === 'cancel') {
           Alert.alert('Cancelled', 'Sign in was cancelled');
           return;
         }
-
         if (result.type === 'success' && result.url) {
-          const { error: authError } = await completeAuthCallback(
-            supabase,
-            parseAuthCallbackUrl(result.url)
-          );
+          const { error: authError } = await completeAuthCallback(supabase, parseAuthCallbackUrl(result.url));
           if (authError) {
             Alert.alert('Error', authError);
           }
@@ -106,16 +86,12 @@ export default function Login() {
       <View className="flex-1 items-center justify-center bg-slate-950 p-6">
         <Text className="text-white text-2xl font-bold mb-4">Check your email</Text>
         <Text className="text-slate-400 text-center mb-8">
-          We sent a magic link to {email}.{'\n'}
-          Click it to sign in.
+          We sent a magic link to {email}.{'\n'}Click it to sign in.
         </Text>
         <Button
           title="Try different email"
           variant="outline"
-          onPress={() => {
-            setMagicLinkSent(false);
-            setEmail('');
-          }}
+          onPress={() => { setMagicLinkSent(false); setEmail(''); }}
         />
       </View>
     );
@@ -141,14 +117,7 @@ export default function Login() {
           editable={!loading}
         />
 
-        <Button
-          title="Continue with Email"
-          fullWidth
-          loading={loading}
-          disabled={loading}
-          onPress={handleMagicLink}
-          className="mb-4"
-        />
+        <Button title="Continue with Email" fullWidth loading={loading} disabled={loading} onPress={handleMagicLink} className="mb-4" />
 
         <View className="flex-row items-center mb-4">
           <View className="flex-1 h-px bg-slate-700" />
@@ -156,14 +125,7 @@ export default function Login() {
           <View className="flex-1 h-px bg-slate-700" />
         </View>
 
-        <Button
-          title="Continue with Google"
-          variant="inverse"
-          fullWidth
-          disabled={loading}
-          onPress={() => handleOAuth('google')}
-          className="mb-3"
-        />
+        <Button title="Continue with Google" variant="inverse" fullWidth disabled={loading} onPress={() => handleOAuth('google')} className="mb-3" />
 
         <Button
           title={APPLE_SIGN_IN_ENABLED ? 'Continue with Apple' : 'Apple Sign-In (coming soon)'}

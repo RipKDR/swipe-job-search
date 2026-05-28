@@ -1,4 +1,4 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable } from '@/components/tw';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -9,7 +9,6 @@ export default function RoleSelection() {
 
   const handleContinue = () => {
     if (!selected) return;
-
     if (selected === 'candidate') {
       router.push('/(onboarding)/candidate-profile');
     } else {
@@ -21,19 +20,13 @@ export default function RoleSelection() {
     <View className="flex-1 bg-slate-950 px-6 pt-16">
       <View className="mb-12">
         <Text className="text-white text-3xl font-bold mb-2">Welcome to Hi-Hired</Text>
-        <Text className="text-slate-400 text-base">
-          Choose how you'd like to use Hi-Hired
-        </Text>
+        <Text className="text-slate-400 text-base">Choose how you'd like to use Hi-Hired</Text>
       </View>
 
       <View className="gap-4 mb-8">
         <Pressable
           onPress={() => setSelected('candidate')}
-          className={`p-6 rounded-2xl border-2 ${
-            selected === 'candidate'
-              ? 'bg-indigo-500/10 border-indigo-500'
-              : 'bg-slate-900 border-slate-800'
-          }`}
+          className={`p-6 rounded-2xl border-2 ${selected === 'candidate' ? 'bg-indigo-500/10 border-indigo-500' : 'bg-slate-900 border-slate-800'}`}
         >
           <Text className="text-white text-xl font-semibold mb-2">I'm looking for work</Text>
           <Text className="text-slate-400 text-sm leading-relaxed">
@@ -43,11 +36,7 @@ export default function RoleSelection() {
 
         <Pressable
           onPress={() => setSelected('employer')}
-          className={`p-6 rounded-2xl border-2 ${
-            selected === 'employer'
-              ? 'bg-indigo-500/10 border-indigo-500'
-              : 'bg-slate-900 border-slate-800'
-          }`}
+          className={`p-6 rounded-2xl border-2 ${selected === 'employer' ? 'bg-indigo-500/10 border-indigo-500' : 'bg-slate-900 border-slate-800'}`}
         >
           <Text className="text-white text-xl font-semibold mb-2">I'm hiring</Text>
           <Text className="text-slate-400 text-sm leading-relaxed">
@@ -56,12 +45,7 @@ export default function RoleSelection() {
         </Pressable>
       </View>
 
-      <Button
-        title="Continue"
-        fullWidth
-        disabled={!selected}
-        onPress={handleContinue}
-      />
+      <Button title="Continue" fullWidth disabled={!selected} onPress={handleContinue} />
     </View>
   );
 }

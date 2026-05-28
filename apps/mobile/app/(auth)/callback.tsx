@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native';
+import { View, Text } from '@/components/tw';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as Linking from 'expo-linking';
@@ -27,24 +27,14 @@ export default function Callback() {
 
   const runCallback = useCallback(async (params: ReturnType<typeof parseAuthCallbackParams>) => {
     const { session, error: authError } = await completeAuthCallback(supabase, params);
-
-    if (authError) {
-      setError(authError);
-      return;
-    }
-
-    if (!session) {
-      setError('No session found. Please try again.');
-      return;
-    }
-
+    if (authError) { setError(authError); return; }
+    if (!session) { setError('No session found. Please try again.'); return; }
     router.replace(routerHref(ROUTES.root));
   }, [router]);
 
   useEffect(() => {
     if (handledRef.current) return;
     handledRef.current = true;
-
     const handleCallback = async () => {
       try {
         const initialUrl = await Linking.getInitialURL();
@@ -52,14 +42,12 @@ export default function Callback() {
           await runCallback(parseAuthCallbackUrl(initialUrl));
           return;
         }
-
         await runCallback(parseAuthCallbackParams(searchParams));
       } catch (err) {
         console.error('[callback] Unexpected error:', err);
         setError('Something went wrong. Please try again.');
       }
     };
-
     void handleCallback();
   }, [runCallback, searchParams]);
 
@@ -68,18 +56,8 @@ export default function Callback() {
       <View className="flex-1 items-center justify-center bg-slate-950 p-6">
         <Text className="text-red-500 text-xl font-bold mb-4">Sign in failed</Text>
         <Text className="text-slate-400 text-center mb-8">{error}</Text>
-        <Button
-          title="Try again"
-          fullWidth
-          onPress={() => router.replace(routerHref(ROUTES.login))}
-          className="mb-3"
-        />
-        <Button
-          title="Back to login"
-          variant="outline"
-          fullWidth
-          onPress={() => router.replace(routerHref(ROUTES.login))}
-        />
+        <Button title="Try again" fullWidth onPress={() => router.replace(routerHref(ROUTES.login))} className="mb-3" />
+        <Button title="Back to login" variant="outline" fullWidth onPress={() => router.replace(routerHref(ROUTES.login))} />
       </View>
     );
   }

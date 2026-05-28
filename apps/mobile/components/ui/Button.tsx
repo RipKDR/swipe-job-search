@@ -1,7 +1,8 @@
-import { TouchableOpacity, Text, ActivityIndicator } from "react-native";
-import type { TouchableOpacityProps } from "react-native";
+import { Pressable, Text } from '@/components/tw';
+import { ActivityIndicator } from 'react-native';
+import type { PressableProps } from 'react-native';
 
-interface ButtonProps extends TouchableOpacityProps {
+interface ButtonProps extends PressableProps {
   title: string;
   variant?: "primary" | "secondary" | "ghost" | "outline" | "inverse";
   loading?: boolean;
@@ -40,7 +41,7 @@ export function Button({
   const isDisabled = disabled || loading;
 
   return (
-    <TouchableOpacity
+    <Pressable
       disabled={isDisabled}
       className={`px-6 py-4 rounded-xl flex-row items-center justify-center ${variantStyles[variant]} ${isDisabled ? "opacity-50" : ""} ${fullWidth ? "w-full" : ""} ${className ?? ""}`}
       {...props}
@@ -52,6 +53,6 @@ export function Button({
           {title}
         </Text>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 }

@@ -1,4 +1,5 @@
-import { View, Text, ActivityIndicator } from "react-native";
+import { View, Text } from '@/components/tw';
+import { ActivityIndicator } from 'react-native';
 
 interface LoadingScreenProps {
   message?: string;
