@@ -14,11 +14,15 @@ Job seekers swipe local jobs with transparent pay and hours. Employers review wh
 |-------|-------|
 | Product direction | ✅ Locked |
 | Canonical planning docs | ✅ Complete |
-| Repo scaffold (Expo monorepo) | ⬜ Not started |
-| Supabase migrations | ⬜ Not started |
+| Repo scaffold (Expo monorepo) | ✅ Complete |
+| Supabase migrations | 🟡 Written — pending local verify |
 | App Store submission | ⬜ Future |
 
 **Beachhead:** Tullamarine, Gladstone Park, Airport West and surrounding northern Melbourne suburbs.
+
+### CI / local Supabase
+
+GitHub Actions runs `pnpm typecheck`, `lint`, and `test` on every push/PR. A separate `supabase-db-lint` job runs `supabase db lint --local` with `continue-on-error` until CI starts local Supabase via Docker. **Locally:** `supabase start` then `supabase db lint --local` to validate migrations.
 
 ---
 

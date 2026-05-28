@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-05-28 U1 — Monorepo scaffold)
+
+- **pnpm workspace:** Root `package.json`, `pnpm-workspace.yaml`, `.npmrc` with Expo/RN hoist settings; scripts `dev:mobile`, `test`, `lint`, `typecheck`.
+- **`apps/mobile`:** Expo SDK 52 + Expo Router + TypeScript + NativeWind v4 (`app.config.ts`, `babel.config.js`, `tailwind.config.js`, `global.css`, `vitest.config.ts`); Supabase client at `lib/supabase.ts` (SecureStore adapter); env template at `.env.example` matching STACK § Environment Variables Matrix.
+- **`packages/shared`:** `@hi-hired/shared` with Zod schemas, constants, types; Vitest unit tests for profile and job schemas.
+- **CI:** `.github/workflows/ci.yml` — Node 20, pnpm install, typecheck, lint, vitest (35 tests).
+- **Maestro stub:** `apps/mobile/.maestro/README.md` pointing to TESTING_STRATEGY (flows land in U8).
+
 ### Added (2026-05-28 Full Pre-Scaffold Docs State)
 
 - **OSS Hygiene (MUST tier, Structure B root only):** Full LICENSE (MIT + AU Victorian law + Fair Work/Privacy/DDA note), CONTRIBUTING.md (agent-orchestrated lanes table from CLAUDE.md + exact Supabase agent_logs gate + PR checklist + dispatch examples), CODE_OF_CONDUCT.md (Contributor Covenant v2.1 + explicit AU DDA/anti-discrimination for swipe hiring + beachhead inclusive hiring), SECURITY.md (PII classification for jobseeker swipes/matches/profiles + Privacy Act notifiable breaches + App Store + ARCH CRITICAL gaps + 2026 MCP citations), CHANGELOG.md (this file; keep-a-changelog seeded with pre-0.1 audit/plan entries).

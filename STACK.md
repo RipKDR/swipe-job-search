@@ -1,7 +1,7 @@
 # Hi-Hired — Canonical Tech Stack
 
-> **Status:** Planning complete · Not yet scaffolded  
-> **Last updated:** 2026-05-27
+> **Status:** Scaffolded (U1 complete) · Migrations pending U2 sign-off  
+> **Last updated:** 2026-05-28
 
 This document is the **single source of truth** for Hi-Hired technology choices. It supersedes conflicting stack guidance in:
 
@@ -244,7 +244,7 @@ Update [`TESTING_STRATEGY.md`](TESTING_STRATEGY.md) references from Playwright/N
 ## Next Step for Developers
 
 1. Read [`README.md`](README.md) and [`docs/BACKEND.md`](docs/BACKEND.md)
-2. Scaffold monorepo: `pnpm init`, workspace config, `create-expo-app apps/mobile`
+2. ~~Scaffold monorepo~~ ✅ Done (U1) — `pnpm install`, `pnpm dev:mobile`
 3. Run Supabase migrations in order (BACKEND.md § Migration Order)
 4. Seed beachhead circle + demo jobs
 5. Implement auth → onboarding → swipe deck → interested list → chat
