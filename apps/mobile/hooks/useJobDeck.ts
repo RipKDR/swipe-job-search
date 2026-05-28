@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePostHog } from '@/hooks/usePostHog';
 import { useSwipe } from './useSwipe';
-import { mockJobs } from '@/lib/mocks/jobs';
+import { supabase } from '@/lib/supabase';
 import type { Job } from '@hi-hired/shared';
 
 export interface DeckState {
@@ -12,24 +12,56 @@ export interface DeckState {
   error: Error | null;
 }
 
-export async function fetchJobDeck(seedJobs: Job[] = mockJobs): Promise<Job[]> {
-  return seedJobs;
+/**
+ * Fetch job deck from Supabase.
+ * Returns active jobs not yet swiped by the current candidate.
+ * Falls back to empty array on error (no mock data in production).
+ */
+export async function fetchJobDeck(): Promise<Job[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // Fetch active jobs
+  const { data: jobs, error: jobsError } = await (supabase as any)
+    .from('jobs')
+    .select('*')
+    .eq('status', 'active')
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (jobsError) {
+    console.warn('[fetchJobDeck] jobs query failed:', jobsError.message);
+    return [];
+  }
+
+  if (!jobs || jobs.length === 0) return [];
+
+  // Fetch swiped job IDs to exclude them
+  const { data: swipes } = await (supabase as any)
+    .from('swipes')
+    .select('job_id')
+    .eq('candidate_id', user.id);
+
+  const swipedIds = new Set((swipes ?? []).map((s: { job_id: string }) => s.job_id));
+  const unswiped = (jobs as Job[]).filter((j) => !swipedIds.has(j.id));
+
+  return unswiped;
 }
 
 /**
- * useJobDeck: manages candidate deck (mock for U5, TanStack ready).
- * Per plan: TanStack for fetch (future), Zustand light for index/anim (here useState for minimal).
- * Optimistic remove on swipe via useSwipe + rollback support.
- * Excludes swiped (simulated).
+ * useJobDeck: manages candidate deck with real Supabase data.
+ * TanStack Query for fetch, optimistic remove on swipe via useSwipe.
+ * Falls back to empty state when no data — no mock data in production.
  */
-export function useJobDeck(initialJobs: Job[] = mockJobs) {
+export function useJobDeck() {
   const posthog = usePostHog();
   const deckQuery = useQuery<Job[], Error>({
     queryKey: ['job-deck'],
-    queryFn: () => fetchJobDeck(initialJobs),
-    initialData: initialJobs,
+    queryFn: fetchJobDeck,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
-  const [jobs, setJobs] = useState<Job[]>(deckQuery.data ?? initialJobs);
+  const [jobs, setJobs] = useState<Job[]>(deckQuery.data ?? []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const [swipeError, setSwipeError] = useState<Error | null>(null);
@@ -57,9 +89,11 @@ export function useJobDeck(initialJobs: Job[] = mockJobs) {
     setCurrentIndex((i) => i + 1);
 
     try {
-      // In real: candidateId from useAuth().profile.id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       await doSwipe({
-        candidateId: 'mock-candidate-001', // TODO: wire real auth
+        candidateId: user.id,
         jobId: topJob.id,
         direction,
       });
@@ -73,7 +107,6 @@ export function useJobDeck(initialJobs: Job[] = mockJobs) {
       setJobs(prevJobs);
       setCurrentIndex(prevIndex);
       setSwipeError(e);
-      // Toast surface (caller or here simple alert for U5)
       console.warn('[useJobDeck] swipe rollback', e?.message);
     } finally {
       setIsSwiping(false);
@@ -81,22 +114,23 @@ export function useJobDeck(initialJobs: Job[] = mockJobs) {
   }, [topJob, jobs, currentIndex, doSwipe, posthog]);
 
   const reset = useCallback(() => {
-    setJobs(deckQuery.data ?? initialJobs);
+    setJobs(deckQuery.data ?? []);
     setCurrentIndex(0);
     setSwipeError(null);
-  }, [deckQuery.data, initialJobs]);
+  }, [deckQuery.data]);
 
   const error = swipeError ?? deckQuery.error ?? null;
   const isLoading = isSwiping || deckQuery.isLoading;
 
   return {
     jobs: remainingJobs,
+    allJobs: jobs,
     currentIndex,
     topJob,
     isLoading,
     error,
     swipe,
     reset,
-    isEmpty: remainingJobs.length === 0,
+    isEmpty: remainingJobs.length === 0 && !isLoading,
   };
 }

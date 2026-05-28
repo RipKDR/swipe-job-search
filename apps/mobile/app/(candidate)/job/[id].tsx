@@ -2,22 +2,56 @@
  * Job detail (U5)
  * Full description + "I'm Interested" (duplicates swipe right)
  * Per plan: no Super Apply, no map.
+ * Fetches job by ID from Supabase (no mock data).
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
-import { useJobDeck } from '@/hooks/useJobDeck';
-import { mockJobs } from '@/lib/mocks/jobs';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { usePostHog } from '@/hooks/usePostHog';
+import type { Job } from '@hi-hired/shared';
+
+async function fetchJobById(id: string): Promise<Job | null> {
+  const { data, error } = await (supabase as any)
+    .from('jobs')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error || !data) return null;
+  return data as Job;
+}
 
 export default function JobDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { swipe } = useJobDeck(); // re-use for consistency (mock)
+  const posthog = usePostHog();
 
-  const job = mockJobs.find((j) => j.id === id) || mockJobs[0];
+  const { data: job, isLoading, error } = useQuery<Job | null>({
+    queryKey: ['job', id],
+    queryFn: () => fetchJobById(id!),
+    enabled: Boolean(id),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const handleInterested = async () => {
+    if (!job) return;
+
     try {
-      await swipe('right'); // optimistic in hook + upsert
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error: swipeError } = await (supabase as any)
+        .from('swipes')
+        .upsert(
+          [{ candidate_id: user.id, job_id: job.id, direction: 'right' }],
+          { onConflict: 'candidate_id,job_id' }
+        );
+
+      if (swipeError) throw swipeError;
+
+      posthog.capture('job_swiped', { direction: 'right', job_id: job.id });
+
       Alert.alert("Interest sent", "The employer will see you in their interested list.", [
         { text: 'Back to deck', onPress: () => router.back() },
       ]);
@@ -26,9 +60,30 @@ export default function JobDetail() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <ScrollView className="flex-1 bg-slate-950 p-6">
+        <Text className="text-slate-400">Loading job...</Text>
+      </ScrollView>
+    );
+  }
+
+  if (error || !job) {
+    return (
+      <ScrollView className="flex-1 bg-slate-950 p-6">
+        <Text className="text-red-400">Job not found</Text>
+        <Pressable onPress={() => router.back()} className="mt-6">
+          <Text className="text-[#60a5fa] text-center">← Back to deck</Text>
+        </Pressable>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView className="flex-1 bg-slate-950 p-6">
-      <Text className="text-[#4ade80] text-xs tracking-[2px] mb-1">TULLAMARINE • CASUAL</Text>
+      <Text className="text-[#4ade80] text-xs tracking-[2px] mb-1">
+        {job.suburb?.toUpperCase()} • {job.job_type?.toUpperCase()}
+      </Text>
       <Text className="text-white text-3xl font-semibold tracking-tight">{job.title}</Text>
       <Text className="text-[#4ade80] text-4xl font-bold mt-1 tabular-nums">{job.pay_display}</Text>
       <Text className="text-slate-400 mt-1">{job.hours_text} • {job.suburb}</Text>
