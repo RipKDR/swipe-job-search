@@ -7,7 +7,7 @@ import { AuthProvider } from '@/providers/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ProfileLoadError } from '@/components/ui/ProfileLoadError';
-import { getRoleHomeRoute, ROUTES, routerHref } from '@/lib/routing';
+import { getRoleHomeRoute, ROUTES, routerHref, shouldRedirectForRoleMismatch } from '@/lib/routing';
 import '../global.css';
 
 const queryClient = new QueryClient({
@@ -47,6 +47,15 @@ function RootLayoutNav() {
       }
 
       const homeRoute = getRoleHomeRoute(profile.role);
+      const group = segments[0];
+
+      if (
+        profile.onboarding_completed_at &&
+        shouldRedirectForRoleMismatch(profile.role, group, true)
+      ) {
+        router.replace(routerHref(homeRoute));
+        return;
+      }
 
       if (profile.onboarding_completed_at && inAuth) {
         router.replace(routerHref(homeRoute));

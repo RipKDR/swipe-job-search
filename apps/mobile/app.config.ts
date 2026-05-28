@@ -41,6 +41,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         color: '#6366f1',
         defaultChannel: 'default'
       }
+    ],
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'Allow Hi-Hired to access your photos for profile pictures.'
+      }
     ]
   ],
   experiments: {

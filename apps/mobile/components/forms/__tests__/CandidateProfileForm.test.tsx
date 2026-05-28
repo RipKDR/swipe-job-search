@@ -6,6 +6,15 @@ import { CandidateOnboardingSchema, type CandidateOnboarding } from '@hi-hired/s
 import { CandidateProfileForm } from '../CandidateProfileForm'
 import { Button } from '../../ui/Button'
 
+vi.mock('expo-image-picker', () => ({
+  requestMediaLibraryPermissionsAsync: vi.fn().mockResolvedValue({ granted: true }),
+  launchImageLibraryAsync: vi.fn(),
+}))
+
+vi.mock('@/lib/avatarUpload', () => ({
+  uploadAvatar: vi.fn(),
+}))
+
 function CandidateFormHarness() {
   const form = useForm<CandidateOnboarding>({
     resolver: zodResolver(CandidateOnboardingSchema),
@@ -19,7 +28,7 @@ function CandidateFormHarness() {
 
   return (
     <>
-      <CandidateProfileForm form={form} />
+      <CandidateProfileForm form={form} userId="test-user-id" />
       <Button title="Submit" onPress={form.handleSubmit(() => {})} />
     </>
   )

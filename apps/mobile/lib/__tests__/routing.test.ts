@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getRoleHomeRoute, ROUTES, getAuthRedirectUrl } from '../routing'
+import { getRoleHomeRoute, ROUTES, getAuthRedirectUrl, shouldRedirectForRoleMismatch } from '../routing'
 
 vi.mock('expo-constants', () => ({
   default: {
@@ -29,5 +29,13 @@ describe('routing helpers', () => {
 
   it('builds OAuth redirect URL from expo scheme', () => {
     expect(getAuthRedirectUrl()).toBe('hi-hired://auth/callback')
+  })
+
+  it('detects role mismatch for wrong route group', () => {
+    expect(shouldRedirectForRoleMismatch('candidate', '(employer)', true)).toBe(true)
+    expect(shouldRedirectForRoleMismatch('employer', '(candidate)', true)).toBe(true)
+    expect(shouldRedirectForRoleMismatch('candidate', '(candidate)', true)).toBe(false)
+    expect(shouldRedirectForRoleMismatch('employer', '(onboarding)', true)).toBe(false)
+    expect(shouldRedirectForRoleMismatch('candidate', '(employer)', false)).toBe(false)
   })
 })
