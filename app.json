@@ -1,6 +1,7 @@
-{ /* app.json for the mobile app */
-  "slug": "hi-hired", /* slug for the mobile app (expo-router) - see https://docs.expo.dev/schemas/app.json/ for more details */
-  "expo": { /* expo config for the mobile app (expo-router) - see https://docs.expo.dev/schemas/app.json/ for more details */
+{
+  "expo": {
+    "name": "Hi Hired",
+    "slug": "hi-hired",
     "android": {
       "scheme": "com.ripkdr.hihired",
       "package": "com.ripkdr.hihired"
@@ -10,8 +11,6 @@
       "scheme": "com.ripkdr.hihired"
     },
     "plugins": [
-      /* plugins for the mobile app (expo-router) - see https://docs.expo.dev/plugins/ for more details - add any other custom plugins here */
-      /* add any other custom plugins here as an array of objects - see https://docs.expo.dev/plugins/ for more details */
       [
         "@sentry/react-native/expo",
         {
@@ -23,4 +22,3 @@
     ]
   }
 }
-/* end of app.json for the mobile app */
