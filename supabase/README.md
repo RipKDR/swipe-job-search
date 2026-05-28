@@ -85,6 +85,9 @@ All migrations are in `supabase/migrations/` and numbered sequentially:
 | 014 | `storage.sql` | Buckets + storage policies |
 | 015 | `rpcs.sql` | confirm_hire, unmatch RPCs |
 | 016 | `seed.sql` | Beachhead demo data |
+| 017 | `complete_employer_onboarding.sql` | Employer onboarding RPC |
+| 018 | `seed_enabled.sql` | Force-seed helper for local dev |
+| 019 | `rate_limits.sql` | Swipe + match rate limits |
 
 ### Creating new migrations
 
@@ -176,6 +179,9 @@ psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/tests/n
 
 # blocked pair exclusion + create_match guard
 psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/tests/blocked_pairs_test.sql
+
+# rate limits (10 swipes/min, 5 matches/day)
+psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/tests/rate_limits_test.sql
 ```
 
 ### TypeScript schema tests

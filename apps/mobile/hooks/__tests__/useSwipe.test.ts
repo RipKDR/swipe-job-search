@@ -48,13 +48,26 @@ describe('useSwipe (TDD AE1 + rollback surface + haptics per plan/GUARDRAILS)', 
   });
 
   it('failed upsert throws (caller in deck does rollback + toast)', async () => {
-    mockUpsert.mockResolvedValueOnce({ error: new Error('upsert failed'), data: null });
+    mockUpsert.mockResolvedValueOnce({ error: { message: 'upsert failed' }, data: null });
     const { performSwipe } = await import('@/lib/swipe');
     const fakeSupabase = { from: vi.fn(() => ({ upsert: mockUpsert })) } as any;
 
     await expect(
       performSwipe(fakeSupabase, { candidateId: 'c', jobId: 'j', direction: 'right' })
     ).rejects.toThrow('upsert failed');
+  });
+
+  it('maps swipe rate limit to friendly message', async () => {
+    mockUpsert.mockResolvedValueOnce({
+      error: { message: 'RATE_LIMIT_EXCEEDED: Too many swipes.' },
+      data: null,
+    });
+    const { performSwipe } = await import('@/lib/swipe');
+    const fakeSupabase = { from: vi.fn(() => ({ upsert: mockUpsert })) } as any;
+
+    await expect(
+      performSwipe(fakeSupabase, { candidateId: 'c', jobId: 'j', direction: 'right' })
+    ).rejects.toThrow('Too many swipes — try again in a minute');
   });
 
   it('useSwipe hook exports and is importable (thin wrapper)', async () => {

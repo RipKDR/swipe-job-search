@@ -12,6 +12,14 @@ export interface SwipeResult {
   success: boolean;
 }
 
+export function mapSwipeError(error: { message?: string } | null): string {
+  const message = error?.message ?? '';
+  if (message.includes('RATE_LIMIT_EXCEEDED')) {
+    return 'Too many swipes — try again in a minute';
+  }
+  return message || 'Unable to save swipe right now';
+}
+
 /**
  * Core swipe persistence + haptics (pure, injectable deps for TDD).
  * Used by useSwipe hook. Tested without React renderer.
@@ -30,7 +38,7 @@ export async function performSwipe(
     );
 
   if (error) {
-    throw error;
+    throw new Error(mapSwipeError(error));
   }
 
   if (direction === 'right') {

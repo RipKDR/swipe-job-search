@@ -38,16 +38,16 @@ describe('useCreateMatch', () => {
     expect(result).toEqual({ status: 'already_matched', matchId: null })
   })
 
-  it('maps known RPC domain errors to user-facing messages', async () => {
+  it('maps rate limit errors to user-facing messages', async () => {
     mockRpc.mockResolvedValueOnce({
       data: null,
-      error: { message: 'CANDIDATE_NOT_INTERESTED' },
+      error: { message: 'RATE_LIMIT_EXCEEDED: Daily match limit reached.' },
     })
 
     const { createMatchRpc } = await import('../useCreateMatch')
 
     await expect(createMatchRpc('job-1', 'candidate-1')).rejects.toThrow(
-      'Candidate has not swiped right yet'
+      'Daily match limit reached — try again tomorrow'
     )
   })
 })
