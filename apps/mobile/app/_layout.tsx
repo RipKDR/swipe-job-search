@@ -1,18 +1,18 @@
 // Root layout with AuthProvider and auth gate
 // Per AUTH_FLOWS.md routing: unauthenticated → login, authenticated → role-based routing
-import { Slot, useRouter, useSegments, usePathname, useGlobalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Platform } from 'react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '@/providers/AuthProvider';
-import { useAuth } from '@/hooks/useAuth';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ProfileLoadError } from '@/components/ui/ProfileLoadError';
-import { getRoleHomeRoute, ROUTES, routerHref, shouldRedirectForRoleMismatch } from '@/lib/routing';
-import { initSentry, wrapApp } from '@/lib/sentry';
+import { useAuth } from '@/hooks/useAuth';
+import { useNotificationObserver, usePushRegistration } from '@/hooks/usePushRegistration';
 import { initAnalytics } from '@/lib/analytics';
-import { usePushRegistration, useNotificationObserver } from '@/hooks/usePushRegistration';
 import { posthog } from '@/lib/posthog';
+import { getRoleHomeRoute, routerHref, ROUTES, shouldRedirectForRoleMismatch } from '@/lib/routing';
+import { initSentry, wrapApp } from '@/lib/sentry';
+import { AuthProvider } from '@/providers/AuthProvider';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Slot, useGlobalSearchParams, usePathname, useRouter, useSegments } from 'expo-router';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Platform } from 'react-native';
 import '../global.css';
 
 initSentry();

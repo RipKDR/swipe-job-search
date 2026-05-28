@@ -7,11 +7,6 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     include: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'],
-    server: {
-      deps: {
-        inline: ['react-native-web'],
-      },
-    },
   },
   resolve: {
     alias: [

@@ -1,7 +1,7 @@
 /**
  * PostHog client — web-safe version.
  * On native: uses posthog-react-native SDK.
- * On web: no-op stub (PostHog web SDK can be added later if needed).
+ * On web: uses posthog-js (real analytics).
  */
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
@@ -14,7 +14,7 @@ if (!isConfigured && __DEV__) {
   console.warn('[posthog] EXPO_PUBLIC_POSTHOG_KEY / EXPO_PUBLIC_POSTHOG_HOST not set — analytics disabled');
 }
 
-// No-op stub for web (PostHog React Native SDK does not bundle for web)
+// No-op stub for when PostHog is not configured
 const noopCapture = () => {};
 const noopIdentify = () => {};
 const noopScreen = () => {};
@@ -41,8 +41,42 @@ const posthogStub = {
 let posthogInstance: typeof posthogStub;
 
 if (Platform.OS === 'web') {
-  // Web: use no-op stub
-  posthogInstance = posthogStub;
+  // Web: use posthog-js for real analytics
+  try {
+    const PostHogJS = require('posthog-js').default;
+    PostHogJS.init(apiKey || 'placeholder', {
+      api_host: host,
+      loaded: (ph: any) => {
+        if (!isConfigured) ph.opt_out_capturing();
+      },
+      capture_pageview: false, // handled by usePostHog
+      capture_pageleave: true,
+      autocapture: false, // don't capture clicks/forms by default
+      persistence: 'localStorage',
+    });
+    posthogInstance = {
+      capture: (event: string, props?: Record<string, unknown>) => PostHogJS.capture(event, props),
+      identify: (id: string, props?: Record<string, unknown>) => PostHogJS.identify(id, props),
+      screen: (name: string, props?: Record<string, unknown>) => PostHogJS.capture('$pageview', { $current_url: name, ...props }),
+      shutdown: () => PostHogJS.stop(),
+      opt_out_capturing: () => PostHogJS.opt_out_capturing(),
+      opt_in_capturing: () => PostHogJS.opt_in_capturing(),
+      has_opted_out_capturing: () => PostHogJS.has_opted_out_capturing(),
+      reloadFeatureFlags: () => PostHogJS.reloadFeatureFlags(),
+      isFeatureEnabled: (key: string) => PostHogJS.isFeatureEnabled(key),
+      getFeatureFlag: (key: string) => PostHogJS.getFeatureFlag(key),
+      on: (event: string, cb: (...args: any[]) => void) => {
+        PostHogJS.on(event, cb);
+        return () => PostHogJS.off(event, cb);
+      },
+      debug: () => PostHogJS.debug(true),
+      reset: () => PostHogJS.reset(),
+      flush: () => PostHogJS.flush(),
+      disabled: false,
+    };
+  } catch {
+    posthogInstance = posthogStub;
+  }
 } else {
   // Native: use posthog-react-native
   try {
