@@ -10,6 +10,7 @@
     "typecheck": "pnpm -r typecheck",
     "build:mobile": "pnpm --filter @hi-hired/mobile build",
     "db:reset": "supabase db reset",
+    "test:processor": "cd supabase/functions/notification-processor && deno test __tests__/",
     "android": "expo run:android",
     "ios": "expo run:ios"
   },

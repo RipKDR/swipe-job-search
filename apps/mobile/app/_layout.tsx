@@ -8,7 +8,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ProfileLoadError } from '@/components/ui/ProfileLoadError';
 import { getRoleHomeRoute, ROUTES, routerHref, shouldRedirectForRoleMismatch } from '@/lib/routing';
+import { initSentry } from '@/lib/sentry';
+import { initAnalytics } from '@/lib/analytics';
+import { usePushRegistration, useNotificationObserver } from '@/hooks/usePushRegistration';
 import '../global.css';
+
+initSentry();
+initAnalytics();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,6 +30,9 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
   const [retryingProfile, setRetryingProfile] = useState(false);
+
+  usePushRegistration();
+  useNotificationObserver();
 
   useEffect(() => {
     if (loading) return;

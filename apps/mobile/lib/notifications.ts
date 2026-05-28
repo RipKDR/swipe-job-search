@@ -1,0 +1,109 @@
+/**
+ * Push notification registration, routing, and in-app handling.
+ * Per EXPO_ROUTER_AUTH_NOTIFS_HAPTICS_2026.md §3 + BACKEND.md device_tokens.
+ */
+import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+import { supabase } from '@/lib/supabase';
+
+export type NotificationData = {
+  type?: string;
+  match_id?: string;
+  job_id?: string;
+};
+
+export function resolveNotificationRoute(data: NotificationData | null | undefined): string | null {
+  if (!data?.type) {
+    return null;
+  }
+
+  if (data.type === 'match' || data.type === 'message') {
+    if (!data.match_id) {
+      return null;
+    }
+    return `/chat/${data.match_id}`;
+  }
+
+  return null;
+}
+
+export async function registerDeviceToken(
+  profileId: string,
+  expoPushToken: string,
+  platform: 'ios' | 'android'
+): Promise<void> {
+  const { error } = await supabase.from('device_tokens').upsert(
+    {
+      profile_id: profileId,
+      expo_push_token: expoPushToken,
+      platform,
+      last_used_at: new Date().toISOString(),
+    },
+    { onConflict: 'expo_push_token' }
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+export function configureNotificationHandler(): void {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
+
+export async function registerForPushNotificationsAsync(): Promise<string | null> {
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+
+  if (finalStatus !== 'granted') {
+    return null;
+  }
+
+  const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+  if (!projectId) {
+    throw new Error('EAS projectId missing from app.config.ts');
+  }
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('matches', {
+      name: 'New Matches & Messages',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+    });
+  }
+
+  const tokenData = await Notifications.getExpoPushTokenAsync({ projectId });
+  const expoPushToken = tokenData.data;
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    await registerDeviceToken(user.id, expoPushToken, Platform.OS === 'ios' ? 'ios' : 'android');
+  }
+
+  return expoPushToken;
+}
+
+export function extractNotificationData(
+  notification: Notifications.Notification
+): NotificationData {
+  const raw = notification.request.content.data;
+  if (!raw || typeof raw !== 'object') {
+    return {};
+  }
+  return raw as NotificationData;
+}

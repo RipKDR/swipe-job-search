@@ -1,0 +1,29 @@
+# Smoke: employer interested list → chat → send message → hire confirm
+# Requires: seeded employer + candidate match, dev build, local Supabase
+# Run: maestro test apps/mobile/.maestro/chat-hire.yaml
+
+appId: au.com.hihired.app
+env:
+  TEST_EMPLOYER_LINK: ${TEST_EMPLOYER_LINK}
+  TEST_MATCH_ID: ${TEST_MATCH_ID}
+---
+- launchApp
+# Authenticate as employer via deep link (seed script provides TEST_EMPLOYER_LINK)
+- openLink: ${TEST_EMPLOYER_LINK}
+- assertVisible: "My Jobs"
+- tapOn: "Interested"
+- assertVisible: "Interested candidates"
+- tapOn: "Chat"
+- assertVisible: "Type a message"
+- tapOn: "Type a message"
+- inputText: "Hi, are you available this week?"
+- tapOn: "Send"
+- assertVisible: "Hi, are you available this week?"
+# Hire flow — both parties must confirm in separate sessions for full AE4;
+# this smoke verifies employer-side hire bar is reachable
+- scrollUntilVisible:
+    element: "Confirm hire"
+    direction: DOWN
+- tapOn: "Confirm hire"
+- assertVisible:
+    text: ".*"

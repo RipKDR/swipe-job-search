@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react'
 import { View, Text, FlatList } from 'react-native'
-import { useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
 import { InterestedCard, type InterestedActionState } from '@/components/employer/InterestedCard'
 import { useInterestedList } from '@/hooks/useInterestedList'
 import { useCreateMatch } from '@/hooks/useCreateMatch'
 
 export default function InterestedListScreen() {
   const params = useLocalSearchParams<{ id: string }>()
+  const router = useRouter()
   const jobId = Array.isArray(params.id) ? params.id[0] : params.id
   const { data: candidates = [], isLoading, error, refetch } = useInterestedList(jobId ?? '')
   const createMatch = useCreateMatch()
@@ -25,7 +26,11 @@ export default function InterestedListScreen() {
         ...prev,
         [candidateId]: result.status === 'already_matched' ? 'already_matched' : 'idle',
       }))
-      setMessage(result.status === 'already_matched' ? 'Candidate is already matched.' : 'Match created. Open Matches to chat.')
+      if (result.matchId) {
+        router.push(`/chat/${result.matchId}` as Href)
+      } else {
+        setMessage(result.status === 'already_matched' ? 'Candidate is already matched.' : 'Match created. Open Matches to chat.')
+      }
       await refetch()
     } catch (matchError: any) {
       setStates((prev) => ({ ...prev, [candidateId]: 'error' }))

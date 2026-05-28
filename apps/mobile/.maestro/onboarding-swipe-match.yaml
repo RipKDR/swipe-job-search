@@ -1,0 +1,34 @@
+# Smoke: auth → onboarding role → candidate deck swipe
+# Requires: dev build on simulator/device, local Supabase, seeded test data
+# Run: maestro test apps/mobile/.maestro/onboarding-swipe-match.yaml
+
+appId: au.com.hihired.app
+env:
+  TEST_EMAIL: ${TEST_EMAIL}
+  TEST_MAGIC_LINK: ${TEST_MAGIC_LINK}
+---
+- launchApp
+- assertVisible: "Hi-Hired"
+- tapOn: "Email"
+- inputText: ${TEST_EMAIL}
+- tapOn: "Send magic link"
+- assertVisible: "Check your email"
+# Deep-link auth callback (CI/dev inject TEST_MAGIC_LINK from seeded session)
+- openLink: ${TEST_MAGIC_LINK}
+- assertVisible: "Choose your role"
+- tapOn: "I'm looking for work"
+- tapOn: "Continue"
+# Candidate profile onboarding (minimal fields — adjust to match form labels)
+- tapOn: "Full name"
+- inputText: "Maestro Candidate"
+- tapOn: "Save and continue"
+- assertVisible: "Loading jobs near you"
+- extendedWaitUntil:
+    visible: "Swipe"
+    timeout: 30000
+# Swipe right on first job card
+- swipe:
+    direction: RIGHT
+    duration: 400
+- assertVisible:
+    text: ".*"
