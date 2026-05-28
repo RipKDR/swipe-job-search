@@ -15,6 +15,7 @@ function mapCreateMatchError(message?: string) {
   if (!message) return 'Unable to create match right now'
   if (message.includes('CANDIDATE_NOT_INTERESTED')) return 'Candidate has not swiped right yet'
   if (message.includes('JOB_NOT_FOUND_OR_FORBIDDEN')) return 'Job was not found or you do not own it'
+  if (message.includes('BLOCKED_PAIR')) return "You can't match with this candidate because one of you has blocked the other"
   return message
 }
 
