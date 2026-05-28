@@ -1,7 +1,6 @@
-ywimport { View, Text, FlatList, RefreshControl } from 'react-native'
 import { View, Text, FlatList, RefreshControl } from 'react-native'
 import { useRouter } from 'expo-router'
-import { Button } from '../../../ components/ui/Button'
+import { Button } from '@/components/ui/Button'
 import { JobListItem } from '../../../components/employer/JobListItem'
 import { useMyJobs } from '@/hooks/useMyJobs'
 

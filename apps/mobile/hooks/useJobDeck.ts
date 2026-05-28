@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useSwipe } from './useSwipe';
 import { mockJobs } from '@/lib/mocks/jobs';
 import type { Job } from '@hi-hired/shared';
-import * as Haptics from 'expo-haptics'; // for deck scroll selection if needed
 
 export interface DeckState {
   jobs: Job[];
@@ -62,8 +61,7 @@ export function useJobDeck(initialJobs: Job[] = mockJobs) {
         jobId: topJob.id,
         direction,
       });
-      // success: list already advanced
-      await Haptics.selectionAsync();
+      // success: list already advanced (haptics handled in performSwipe)
     } catch (e: any) {
       // Rollback
       setJobs(prevJobs);
