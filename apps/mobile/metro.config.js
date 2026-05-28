@@ -11,11 +11,6 @@ const nativewindConfig = withNativewind(config, {
   globalClassNamePolyfill: false,
 });
 
-nativewindConfig.transformerPath = path.resolve(
-  __dirname,
-  "metro-transformer-shim.js"
-);
-
 // Web stub for native-only packages.
 // Provides a Proxy that returns no-ops for any property access,
 // so lazy require() calls inside Platform.OS gates don't crash.
@@ -59,7 +54,6 @@ const nativeOnlyPackages = new Set([
 ]);
 
 // Intercept ALL module resolution on web to stub native-only packages.
-// This works for both direct imports AND transitive deps inside node_modules.
 const parentResolveRequest = nativewindConfig.resolver.resolveRequest;
 nativewindConfig.resolver.resolveRequest = (context, moduleName, platform) => {
   if (platform === "web" && nativeOnlyPackages.has(moduleName)) {

@@ -9,20 +9,34 @@ import { Platform } from 'react-native';
 let initialized = false;
 let sdkReady = false;
 
-// Web stub — Sentry React Native doesn't bundle for web
-const sentryStub = {
-  init: () => {},
-  wrap: (component: unknown) => component,
-  captureException: () => '',
-  withScope: (fn: (scope: unknown) => void) => fn({ setContext: () => {} }),
+type SentryScope = {
+  setContext: (key: string, context: Record<string, unknown>) => void;
 };
 
-function getSentryModule() {
+type SentryModule = {
+  init: (options: Record<string, unknown>) => void;
+  wrap: <T>(component: T) => T;
+  captureException: (error: unknown) => unknown;
+  withScope: (callback: (scope: SentryScope) => void) => void;
+};
+
+// Web stub — Sentry React Native doesn't bundle for web
+const sentryStub: SentryModule = {
+  init: () => {},
+  wrap: <T>(component: T) => component,
+  captureException: () => '',
+  withScope: (callback: (scope: SentryScope) => void) =>
+    callback({
+      setContext: () => {},
+    }),
+};
+
+function getSentryModule(): SentryModule {
   if (Platform.OS === 'web') {
     return sentryStub;
   }
   try {
-    return require('@sentry/react-native');
+    return require('@sentry/react-native') as SentryModule;
   } catch {
     return sentryStub;
   }
@@ -68,10 +82,10 @@ export function initSentry(): void {
   sdkReady = true;
 }
 
-export function wrapApp(AppComponent: React.ComponentType): React.ComponentType {
+export function wrapApp(AppComponent: React.ComponentType<unknown>): React.ComponentType<unknown> {
   if (Platform.OS === 'web') return AppComponent;
   try {
-    const Sentry = require('@sentry/react-native');
+    const Sentry = getSentryModule();
     return Sentry.wrap(AppComponent);
   } catch {
     return AppComponent;
@@ -84,16 +98,16 @@ export function captureException(error: unknown, context?: Record<string, string
   if (Platform.OS === 'web') return;
 
   try {
-    const Sentry = require('@sentry/react-native');
+    const Sentry = getSentryModule();
     if (context) {
-      Sentry.withScope((scope: { setContext: (key: string, value: unknown) => void }) => {
-        scope.setContext('extra', context);
+      Sentry.withScope((scope) => {
+        scope.setContext('context', context as Record<string, unknown>);
         Sentry.captureException(error);
       });
       return;
     }
     Sentry.captureException(error);
   } catch {
-    // Silently fail on web
+    return;
   }
 }

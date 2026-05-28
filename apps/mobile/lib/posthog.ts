@@ -10,35 +10,57 @@ const apiKey = Constants.expoConfig?.extra?.posthogKey as string | undefined;
 const host = Constants.expoConfig?.extra?.posthogHost as string | undefined;
 const isConfigured = Boolean(apiKey) && Boolean(host);
 
+type PostHogProperties = Record<string, unknown>;
+type PostHogOnHandler = (...args: unknown[]) => void;
+type PostHogOnUnsubscribe = () => void;
+
+type PostHogClient = {
+  capture: (event: string, properties?: PostHogProperties) => void | Promise<void>;
+  identify: (distinctId: string, properties?: PostHogProperties) => void | Promise<void>;
+  screen: (screenName: string, properties?: PostHogProperties) => void | Promise<void>;
+  shutdown: () => void | Promise<void>;
+  opt_out_capturing: () => void;
+  opt_in_capturing: () => void;
+  has_opted_out_capturing: () => boolean;
+  reloadFeatureFlags: () => Promise<void>;
+  isFeatureEnabled: (key: string, options?: PostHogProperties) => boolean | undefined;
+  getFeatureFlag: (key: string, options?: PostHogProperties) => unknown;
+  on: (event: string, handler?: PostHogOnHandler) => PostHogOnUnsubscribe;
+  debug: (enabled?: boolean) => void;
+  reset: (resetDeviceId?: boolean) => void | Promise<void>;
+  flush: () => Promise<void>;
+  disabled: boolean;
+};
+
 if (!isConfigured && __DEV__) {
   console.warn('[posthog] EXPO_PUBLIC_POSTHOG_KEY / EXPO_PUBLIC_POSTHOG_HOST not set — analytics disabled');
 }
 
 // No-op stub for when PostHog is not configured
-const noopCapture = () => {};
-const noopIdentify = () => {};
-const noopScreen = () => {};
-const noopShutdown = () => {};
+const noopCapture: PostHogClient['capture'] = () => { };
+const noopIdentify: PostHogClient['identify'] = () => { };
+const noopScreen: PostHogClient['screen'] = () => { };
+const noopShutdown = () => { };
 
-const posthogStub = {
+const posthogStub: PostHogClient = {
   capture: noopCapture,
   identify: noopIdentify,
   screen: noopScreen,
   shutdown: noopShutdown,
-  opt_out_capturing: () => {},
-  opt_in_capturing: () => {},
+  opt_out_capturing: () => { },
+  opt_in_capturing: () => { },
   has_opted_out_capturing: () => false,
   reloadFeatureFlags: () => Promise.resolve(),
   isFeatureEnabled: () => undefined,
   getFeatureFlag: () => undefined,
-  on: () => () => {},
-  debug: () => {},
-  reset: () => {},
+  on: () => () => { },
+  debug: () => { },
+  reset: () => { },
   flush: () => Promise.resolve(),
   disabled: true,
 };
 
-let posthogInstance: typeof posthogStub;
+let posthogInstance: PostHogClient;
 
 if (Platform.OS === 'web') {
   // Web: use posthog-js for real analytics
@@ -51,29 +73,10 @@ if (Platform.OS === 'web') {
       },
       capture_pageview: false, // handled by usePostHog
       capture_pageleave: true,
-      autocapture: false, // don't capture clicks/forms by default
+      autocapture: undefined, // don't capture clicks/forms by default
       persistence: 'localStorage',
     });
-    posthogInstance = {
-      capture: (event: string, props?: Record<string, unknown>) => PostHogJS.capture(event, props),
-      identify: (id: string, props?: Record<string, unknown>) => PostHogJS.identify(id, props),
-      screen: (name: string, props?: Record<string, unknown>) => PostHogJS.capture('$pageview', { $current_url: name, ...props }),
-      shutdown: () => PostHogJS.stop(),
-      opt_out_capturing: () => PostHogJS.opt_out_capturing(),
-      opt_in_capturing: () => PostHogJS.opt_in_capturing(),
-      has_opted_out_capturing: () => PostHogJS.has_opted_out_capturing(),
-      reloadFeatureFlags: () => PostHogJS.reloadFeatureFlags(),
-      isFeatureEnabled: (key: string) => PostHogJS.isFeatureEnabled(key),
-      getFeatureFlag: (key: string) => PostHogJS.getFeatureFlag(key),
-      on: (event: string, cb: (...args: any[]) => void) => {
-        PostHogJS.on(event, cb);
-        return () => PostHogJS.off(event, cb);
-      },
-      debug: () => PostHogJS.debug(true),
-      reset: () => PostHogJS.reset(),
-      flush: () => PostHogJS.flush(),
-      disabled: false,
-    };
+    posthogInstance = PostHogJS;
   } catch {
     posthogInstance = posthogStub;
   }
@@ -90,11 +93,6 @@ if (Platform.OS === 'web') {
       maxBatchSize: 100,
       maxQueueSize: 1000,
       preloadFeatureFlags: true,
-      sendFeatureFlagEvent: true,
-      featureFlagsRequestTimeoutMs: 10000,
-      requestTimeout: 10000,
-      fetchRetryCount: 3,
-      fetchRetryDelay: 3000,
     });
   } catch {
     posthogInstance = posthogStub;

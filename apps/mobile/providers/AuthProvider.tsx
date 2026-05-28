@@ -34,9 +34,9 @@ export const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   profileLoadFailed: false,
-  signOut: async () => {},
-  applyProfile: () => {},
-  retryProfileFetch: async () => {},
+  signOut: async () => { },
+  applyProfile: () => { },
+  retryProfileFetch: async () => { },
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -79,23 +79,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const freshProfile = await fetchProfile(userId);
       if (epochAtStart !== profileEpochRef.current) return;
       if (freshProfile) {
-        posthog.identify(userId, {
-          $set: {
-            role: freshProfile.role,
+        if (freshProfile.id) {
+          const identifyTraits: Record<string, unknown> = {
+            candidate: freshProfile.role === 'candidate' ? 1 : 0,
+            employer: freshProfile.role === 'employer' ? 1 : 0,
             email: freshProfile.email,
             suburb: freshProfile.suburb,
-          },
-          $set_once: { first_seen_at: freshProfile.created_at },
-        });
-        setProfile(freshProfile);
-        setProfileLoadFailed(false);
-      } else {
-        setProfileLoadFailed(true);
+          };
+          void posthog.identify(freshProfile.id, identifyTraits);
+        }
       }
-    },
-    [fetchProfile]
-  );
-
+    }, [fetchProfile]);
   const retryProfileFetch = useCallback(async () => {
     if (!session?.user) return;
     setProfileLoadFailed(false);
@@ -109,12 +103,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('[auth] Sign out error:', error);
       throw error;
     }
-    posthog.capture('user_signed_out');
-    posthog.reset();
+    void posthog.capture('user_signed_out', {
+      user_id: profile?.id ?? undefined,
+    });
+    void posthog.reset();
     setSession(null);
     setProfile(null);
     setProfileLoadFailed(false);
-  }, []);
+  }, [profile?.id]);
 
   useEffect(() => {
     const {

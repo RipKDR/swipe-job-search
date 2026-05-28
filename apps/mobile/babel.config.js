@@ -3,17 +3,15 @@ module.exports = function (api) {
   return {
     presets: ["babel-preset-expo"],
     plugins: [
-      "react-native-reanimated/plugin",
-      [
-        "module-resolver",
-        {
-          root: ["."],
-          alias: {
-            "@": "./",
-            "@hi-hired/shared": "../../packages/shared/src"
-          }
+      // react-native-dotenv removed — secrets now loaded via .env.local + expo-constants
+      // nativewind/babel removed — Expo 56's babel-preset-expo handles nativewind configuration
+      "react-native-reanimated/plugin", // Must be second for reanimated to work
+      ["babel-plugin-module-resolver", {
+        root: ["."],
+        alias: {
+          "@": ".",
         }
-      ]
+      }]
     ]
   };
 };
