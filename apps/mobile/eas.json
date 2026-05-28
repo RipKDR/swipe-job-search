@@ -4,21 +4,23 @@
     "appVersionSource": "remote"
   },
   "build": {
-    "production": {
+    "production": { // production env
       "autoIncrement": true
     },
-    "development": {
+    "development": { // development env
       "autoIncrement": true,
       "developmentClient": true,
       "distribution": "internal"
     },
-    "preview": {
+    "preview": { // staging env
       "autoIncrement": true,
       "distribution": "internal"
     }
   },
   "submit": {
-    "production": {},
-    "development": {}
+    "production": { // production env
+    },
+    "development": { // development env
+    }
   }
 }

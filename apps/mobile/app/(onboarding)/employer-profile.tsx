@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EmployerOnboardingSchema, type EmployerOnboarding } from '@hi-hired/shared';
+import { usePostHog } from 'posthog-react-native';
 import { EmployerProfileForm } from '@/components/forms/EmployerProfileForm';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
@@ -11,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 
 export default function EmployerProfile() {
   const { applyProfile } = useAuth();
+  const posthog = usePostHog();
   const [submitting, setSubmitting] = useState(false);
 
   const form = useForm<EmployerOnboarding>({
@@ -35,6 +37,10 @@ export default function EmployerProfile() {
       if (error) throw error;
       if (!updatedProfile) throw new Error('Employer onboarding returned no profile');
 
+      posthog.capture('employer_onboarding_completed', {
+        has_avatar: Boolean(data.avatar_url),
+        has_contact_name: Boolean(data.contact_name),
+      });
       applyProfile(updatedProfile);
     } catch (error) {
       console.error('[onboarding] Employer profile error:', error);

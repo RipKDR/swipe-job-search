@@ -13,13 +13,14 @@
         "../../packages/shared/src/*"
       ]
     },
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "allowJs": true,
     "esModuleInterop": true,
     "isolatedModules": true,
-    "jsx": "react-native"
+    "jsx": "react-native",
+    "noEmit": true,
   },
   "include": [
     "**/*.ts",

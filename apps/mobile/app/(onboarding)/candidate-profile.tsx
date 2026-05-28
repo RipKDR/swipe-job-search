@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CandidateOnboardingSchema, type CandidateOnboarding } from '@hi-hired/shared';
+import { usePostHog } from 'posthog-react-native';
 import { CandidateProfileForm } from '@/components/forms/CandidateProfileForm';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
@@ -15,6 +16,7 @@ import { pickAndUploadAvatar } from './avatar-upload';
 
 export default function CandidateProfile() {
   const { user, applyProfile } = useAuth();
+  const posthog = usePostHog();
   const [submitting, setSubmitting] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
@@ -46,6 +48,11 @@ export default function CandidateProfile() {
       if (profileError) throw profileError;
       if (!updatedProfile) throw new Error('Profile update returned no row');
 
+      posthog.capture('candidate_onboarding_completed', {
+        has_avatar: Boolean(data.avatar_url),
+        skills_count: data.skills?.length ?? 0,
+        work_rights: data.work_rights,
+      });
       applyProfile(updatedProfile);
     } catch (error) {
       console.error('[onboarding] Candidate profile error:', error);

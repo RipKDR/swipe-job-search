@@ -107,3 +107,6 @@ agentdb.rvf
 agentdb.rvf.lock
 pnpm
 =
+.env.local
+
+.env.local

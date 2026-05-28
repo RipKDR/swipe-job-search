@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { usePostHog } from 'posthog-react-native';
 import { useSwipe } from './useSwipe';
 import { mockJobs } from '@/lib/mocks/jobs';
 import type { Job } from '@hi-hired/shared';
@@ -22,6 +23,7 @@ export async function fetchJobDeck(seedJobs: Job[] = mockJobs): Promise<Job[]> {
  * Excludes swiped (simulated).
  */
 export function useJobDeck(initialJobs: Job[] = mockJobs) {
+  const posthog = usePostHog();
   const deckQuery = useQuery<Job[], Error>({
     queryKey: ['job-deck'],
     queryFn: () => fetchJobDeck(initialJobs),
@@ -61,7 +63,11 @@ export function useJobDeck(initialJobs: Job[] = mockJobs) {
         jobId: topJob.id,
         direction,
       });
-      // success: list already advanced (haptics handled in performSwipe)
+      posthog.capture('job_swiped', {
+        direction,
+        job_id: topJob.id,
+        job_title: (topJob as any).title ?? undefined,
+      });
     } catch (e: any) {
       // Rollback
       setJobs(prevJobs);
@@ -72,7 +78,7 @@ export function useJobDeck(initialJobs: Job[] = mockJobs) {
     } finally {
       setIsSwiping(false);
     }
-  }, [topJob, jobs, currentIndex, doSwipe]);
+  }, [topJob, jobs, currentIndex, doSwipe, posthog]);
 
   const reset = useCallback(() => {
     setJobs(deckQuery.data ?? initialJobs);

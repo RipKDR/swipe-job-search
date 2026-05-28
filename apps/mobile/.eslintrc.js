@@ -1,14 +1,16 @@
+const path = require('path');
+
 module.exports = {
   extends: ['expo'],
-  parser: '@typescript-eslint/parser',
-  parserOptions: {
-    ecmaVersion: 2021,
-    sourceType: 'module',
-    ecmaFeatures: {
-      jsx: true,
+  rules: {
+    'no-undef': 'off',
+  },
+  settings: {
+    'import/resolver': {
+      node: {
+        paths: [path.resolve(__dirname, '../../packages/shared/src')],
+      },
     },
   },
-  rules: {
-    // Add project-specific rules here
-  },
+  plugins: ['import'],
 };

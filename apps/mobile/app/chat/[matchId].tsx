@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { View, Text, Pressable, KeyboardAvoidingView, Platform } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
+import { usePostHog } from 'posthog-react-native'
 import { useAuth } from '@/hooks/useAuth'
 import { useChat } from '@/hooks/useChat'
 import { useMatchDetail } from '@/hooks/useMatchInbox'
@@ -20,6 +21,7 @@ export default function ChatScreen() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { user, profile } = useAuth()
+  const posthog = usePostHog()
   const { data: match, isLoading: matchLoading, refetch: refetchMatch } = useMatchDetail(matchId ?? '')
   const { messages, isLoading: messagesLoading, send, canSend } = useChat(
     matchId ?? '',
@@ -44,6 +46,7 @@ export default function ChatScreen() {
     setActionMessage(null)
     try {
       await confirmHire.mutateAsync(matchId)
+      posthog.capture('hire_confirmed', { match_id: matchId, role: profile?.role });
       await refetchMatch()
       queryClient.invalidateQueries({ queryKey: ['match-inbox'] })
     } catch (error: any) {
@@ -55,6 +58,7 @@ export default function ChatScreen() {
     setActionMessage(null)
     try {
       await unmatch.mutateAsync(matchId)
+      posthog.capture('user_unmatched', { match_id: matchId, message_count: messages.length });
       setShowUnmatch(false)
       queryClient.invalidateQueries({ queryKey: ['match-inbox'] })
       router.back()
@@ -81,6 +85,7 @@ export default function ChatScreen() {
       jobId: match.jobId,
       matchId: match.id,
     })
+    posthog.capture('user_reported', { match_id: matchId, reason });
     setShowReport(false)
     setActionMessage('Report submitted. Thank you.')
   }
@@ -88,6 +93,7 @@ export default function ChatScreen() {
   const handleBlock = async () => {
     if (!match) return
     await blockUser(user.id, match.counterpartId)
+    posthog.capture('user_blocked', { match_id: matchId });
     setShowBlock(false)
     queryClient.invalidateQueries({ queryKey: ['match-inbox'] })
     router.back()

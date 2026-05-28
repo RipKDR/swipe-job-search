@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
+import { usePostHog } from 'posthog-react-native'
 import { supabase } from '@/lib/supabase'
 
 export type CreateMatchResult = {
@@ -37,9 +38,15 @@ export async function createMatchRpc(jobId: string, candidateId: string): Promis
 }
 
 export function useCreateMatch() {
+  const posthog = usePostHog();
   return useMutation({
     mutationKey: ['create-match'],
     mutationFn: ({ jobId, candidateId }: { jobId: string; candidateId: string }) =>
       createMatchRpc(jobId, candidateId),
+    onSuccess: (result, { jobId, candidateId }) => {
+      if (result.status === 'matched') {
+        posthog.capture('match_created', { job_id: jobId, candidate_id: candidateId, match_id: result.matchId });
+      }
+    },
   })
 }

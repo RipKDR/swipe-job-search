@@ -1,15 +1,18 @@
 import { View, Text, Pressable } from '@/components/tw';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { usePostHog } from 'posthog-react-native';
 import { Button } from '@/components/ui/Button';
 import { getOnboardingRouteForRole } from './onboarding-submit';
 
 export default function RoleSelection() {
   const router = useRouter();
+  const posthog = usePostHog();
   const [selected, setSelected] = useState<'candidate' | 'employer' | null>(null);
 
   const handleContinue = () => {
     if (!selected) return;
+    posthog.capture('role_selected', { role: selected });
     router.push(getOnboardingRouteForRole(selected) as any);
   };
 

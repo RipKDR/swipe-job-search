@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { View, Text, ScrollView } from 'react-native'
 import { useRouter } from 'expo-router'
+import { usePostHog } from 'posthog-react-native'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { JobForm, type JobFormValues } from '@/components/employer/JobForm'
@@ -29,6 +30,7 @@ async function uploadJobPhoto(photoUri: string, employerId: string) {
 export default function PostJobScreen() {
   const router = useRouter()
   const { profile } = useAuth()
+  const posthog = usePostHog()
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
 
@@ -73,6 +75,12 @@ export default function PostJobScreen() {
 
       if (error) throw error
 
+      posthog.capture('job_posted', {
+        job_type: values.jobType,
+        pay_period: values.payPeriod,
+        has_photo: Boolean(values.photoUri.trim()),
+        has_description: Boolean(values.description.trim()),
+      });
       setFeedback('Job posted successfully')
       router.replace('/(employer)/(tabs)/jobs')
     } finally {

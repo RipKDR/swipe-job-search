@@ -3,6 +3,7 @@
 import React, { createContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { posthog } from '@/lib/posthog';
 import type { Database } from '@hi-hired/shared';
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -78,6 +79,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const freshProfile = await fetchProfile(userId);
       if (epochAtStart !== profileEpochRef.current) return;
       if (freshProfile) {
+        posthog.identify(userId, {
+          $set: {
+            role: freshProfile.role,
+            email: freshProfile.email,
+            suburb: freshProfile.suburb,
+          },
+          $set_once: { first_seen_at: freshProfile.created_at },
+        });
         setProfile(freshProfile);
         setProfileLoadFailed(false);
       } else {
@@ -100,6 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('[auth] Sign out error:', error);
       throw error;
     }
+    posthog.capture('user_signed_out');
+    posthog.reset();
     setSession(null);
     setProfile(null);
     setProfileLoadFailed(false);

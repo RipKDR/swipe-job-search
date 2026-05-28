@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=rwzzdsiawcovyfsnmiiy&features=docs%2Cdatabase%2Caccount%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching%2Cstorage"
+    },
+    "Sentry": {
+      "url": "https://mcp.sentry.dev/mcp/steps-to-recovery/react-native-yx"
+    }
+  }
+}

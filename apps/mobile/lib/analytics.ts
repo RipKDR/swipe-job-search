@@ -2,6 +2,7 @@
  * PostHog analytics wrapper — env-gated, no PII in payloads.
  */
 import Constants from 'expo-constants';
+import { posthog } from './posthog';
 
 type AnalyticsProperties = Record<string, string | number | boolean>;
 
@@ -15,19 +16,15 @@ export function initAnalytics(): void {
     return;
   }
 
-  // Stub: wire posthog-react-native when key is configured.
-  console.info('[analytics] PostHog key configured — SDK integration deferred to post-beta');
   initialized = true;
 }
 
 export function trackEvent(event: string, properties?: AnalyticsProperties): void {
   if (!Constants.expoConfig?.extra?.posthogKey) return;
-
-  const safeProps = properties ?? {};
-  console.debug('[analytics]', event, safeProps);
+  posthog.capture(event, properties);
 }
 
 export function identifyUser(userId: string): void {
   if (!Constants.expoConfig?.extra?.posthogKey) return;
-  console.debug('[analytics] identify', userId);
+  posthog.identify(userId);
 }
