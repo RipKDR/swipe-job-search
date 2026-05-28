@@ -1,6 +1,11 @@
 import React, { useState } from 'react'
 import { View, Text, TextInput } from 'react-native'
-import { fair_work_mins, JOB_TYPES, type JobType } from '@hi-hired/shared'
+import {
+  JOB_TYPES,
+  type JobType,
+  isBelowFairWorkMinimum,
+  fairWorkWarningMessage,
+} from '@hi-hired/shared'
 import { Button } from '@/components/ui/Button'
 
 export type JobFormValues = {
@@ -35,19 +40,18 @@ export function JobForm({ submitting = false, onSubmit }: JobFormProps) {
   const [error, setError] = useState<string | null>(null)
 
   const payNumeric = Number(values.payAmount)
-  const payTooLow =
+  const fairWorkWarning =
     values.payPeriod === 'hour' &&
     Number.isFinite(payNumeric) &&
     payNumeric > 0 &&
-    payNumeric < fair_work_mins.hour
+    isBelowFairWorkMinimum(payNumeric, values.payPeriod, values.jobType)
 
   const canSubmit =
     values.title.trim().length > 2 &&
     values.hoursText.trim().length > 2 &&
     values.suburb.trim().length > 1 &&
     Number.isFinite(payNumeric) &&
-    payNumeric > 0 &&
-    !payTooLow
+    payNumeric > 0
 
   const update = <K extends keyof JobFormValues>(key: K, next: JobFormValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: next }))
@@ -60,16 +64,13 @@ export function JobForm({ submitting = false, onSubmit }: JobFormProps) {
       return
     }
 
-    if (payTooLow) {
-      setError(`Hourly pay must be at least $${fair_work_mins.hour.toFixed(2)} for beachhead compliance`)
-      return
-    }
-
     try {
       await onSubmit(values)
       setValues(initialValues)
-    } catch (submitError: any) {
-      setError(submitError?.message ?? 'Unable to post job')
+    } catch (submitError: unknown) {
+      const message =
+        submitError instanceof Error ? submitError.message : 'Unable to post job'
+      setError(message)
     }
   }
 
@@ -115,9 +116,9 @@ export function JobForm({ submitting = false, onSubmit }: JobFormProps) {
         </View>
       </View>
 
-      {payTooLow ? (
+      {fairWorkWarning ? (
         <Text className="text-amber-300 text-sm">
-          Pay is below beachhead minimum (${fair_work_mins.hour.toFixed(2)}/hour).
+          {fairWorkWarningMessage(values.jobType)}
         </Text>
       ) : null}
 
@@ -152,7 +153,13 @@ export function JobForm({ submitting = false, onSubmit }: JobFormProps) {
       />
 
       {error ? <Text className="text-rose-300">{error}</Text> : null}
-      <Button title="Post job" loading={submitting} disabled={!canSubmit || submitting} onPress={handleSubmit} fullWidth />
+      <Button
+        title="Post job"
+        loading={submitting}
+        disabled={!canSubmit || submitting}
+        onPress={handleSubmit}
+        fullWidth
+      />
     </View>
   )
 }
