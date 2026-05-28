@@ -1,67 +1,45 @@
-// Employer profile onboarding form
-// Per 02-mvp-definition.md §4: business_name, suburb, contact_name
-import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView } from '@/components/tw';
+import { Alert } from 'react-native';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { EmployerOnboardingSchema, type EmployerOnboardingInput } from '@hi-hired/shared';
+import { EmployerOnboardingSchema, type EmployerOnboarding } from '@hi-hired/shared';
 import { EmployerProfileForm } from '@/components/forms/EmployerProfileForm';
+import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
-import {
-  buildEmployerProfileInsert,
-  buildEmployerProfileUpdate,
-} from './onboarding-submit';
 
 export default function EmployerProfile() {
-  const { user, refreshProfile } = useAuth();
+  const { applyProfile } = useAuth();
   const [submitting, setSubmitting] = useState(false);
 
-  const form = useForm<EmployerOnboardingInput>({
+  const form = useForm<EmployerOnboarding>({
     resolver: zodResolver(EmployerOnboardingSchema),
     defaultValues: {
-      suburb: undefined,
       business_name: '',
-      // @ts-ignore - optional field can be null
-      contact_name: null,
-      // @ts-ignore - optional field can be null
-      avatar_url: null,
+      contact_name: '',
     },
   });
 
-  const onSubmit = async (data: EmployerOnboardingInput) => {
-    if (!user) {
-      Alert.alert('Error', 'No authenticated user');
-      return;
-    }
-
+  const onSubmit = async (data: EmployerOnboarding) => {
     setSubmitting(true);
     try {
-      const nowIso = new Date().toISOString();
+      const { data: updatedProfile, error } = await (supabase as any).rpc('complete_employer_onboarding', {
+        p_suburb: data.suburb,
+        p_avatar_url: data.avatar_url ?? null,
+        p_business_name: data.business_name,
+        p_contact_name: data.contact_name,
+        p_about_text: data.about_text ?? null,
+      });
 
-      // Update profile with employer data and mark onboarding complete
-      // @ts-ignore - Database types incomplete for Update
-      const { error: profileError } = await (supabase.from('profiles') as any)
-        .update(buildEmployerProfileUpdate(data, nowIso) as any)
-        .eq('id', user.id);
+      if (error) throw error;
+      if (!updatedProfile) throw new Error('Employer onboarding returned no profile');
 
-      if (profileError) throw profileError;
-
-      // Create employer_profiles row
-      // @ts-ignore - Database types incomplete for Insert
-      const { error: employerError } = await supabase
-        .from('employer_profiles')
-        .insert(buildEmployerProfileInsert(user.id, data) as any);
-
-      if (employerError) throw employerError;
-
-      // Refresh profile to trigger routing
-      await refreshProfile();
-
-      // Root layout will redirect to employer home
+      applyProfile(updatedProfile);
     } catch (error) {
       console.error('[onboarding] Employer profile error:', error);
       Alert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
       setSubmitting(false);
     }
   };
@@ -69,33 +47,19 @@ export default function EmployerProfile() {
   return (
     <View className="flex-1 bg-slate-950">
       <ScrollView className="flex-1" contentContainerClassName="px-6 pt-12 pb-8">
-        {/* Header */}
         <View className="mb-8">
           <Text className="text-white text-2xl font-bold mb-2">Business details</Text>
-          <Text className="text-slate-400 text-sm">
-            Tell candidates about your business (under 60 seconds)
-          </Text>
+          <Text className="text-slate-400 text-sm">Tell candidates about your business (under 60 seconds)</Text>
         </View>
-
-        {/* Form */}
         <EmployerProfileForm form={form} />
-
-        {/* Submit Button */}
-        <Pressable
-          onPress={form.handleSubmit(onSubmit)}
+        <Button
+          title="Complete Profile"
+          fullWidth
+          loading={submitting}
           disabled={submitting}
-          className={`mt-8 py-4 rounded-xl ${
-            submitting ? 'bg-slate-800' : 'bg-indigo-600'
-          }`}
-        >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text className="text-white text-center font-semibold text-base">
-              Complete Profile
-            </Text>
-          )}
-        </Pressable>
+          onPress={form.handleSubmit(onSubmit)}
+          className="mt-8"
+        />
       </ScrollView>
     </View>
   );

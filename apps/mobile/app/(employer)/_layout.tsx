@@ -1,8 +1,3 @@
-/**
- * Employer layout with tab navigation
- * Protected route - requires onboarding completion
- */
-
 import { Tabs } from 'expo-router'
 import { Text } from 'react-native'
 

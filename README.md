@@ -21,6 +21,10 @@ Job seekers swipe local jobs with transparent pay and hours. Employers review wh
 
 **Beachhead:** Tullamarine, Gladstone Park, Airport West and surrounding northern Melbourne suburbs.
 
+### CI / local Supabase
+
+GitHub Actions runs `pnpm typecheck`, `lint`, and `test` on every push/PR. A separate `supabase-db-lint` job runs `supabase db lint --local` with `continue-on-error` until CI starts local Supabase via Docker. **Locally:** `supabase start` then `supabase db lint --local` to validate migrations.
+
 ---
 
 ## Start Here

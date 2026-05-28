@@ -31,6 +31,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundler: 'metro'
   },
   plugins: [
+    'expo-dev-client',
     'expo-router',
     'expo-secure-store',
     [
@@ -39,6 +40,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         icon: './assets/notification-icon.png',
         color: '#6366f1',
         defaultChannel: 'default'
+      }
+    ],
+    [
+      'expo-image-picker',
+      {
+        photosPermission: 'Allow Hi-Hired to access your photos for profile pictures.'
       }
     ]
   ],

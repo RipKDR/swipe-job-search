@@ -22,7 +22,20 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
-      # supabase db lint added in U2 when migrations exist
-      # EAS build checks in future D phase per EAS_CHECKLIST
+
+  # Requires Docker + `supabase start` — optional until local Supabase runs in CI.
+  # Run locally: supabase start && supabase db lint --local
+  supabase-db-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Lint migrations against local DB
+        continue-on-error: true
+        run: |
+          supabase db lint --local
+        # Fails in CI without `supabase start` (Docker). See README § CI / supabase db lint.
 
   # Note: full E2E / Maestro + EAS preview in later phases (Sam lane)

@@ -1,10 +1,7 @@
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: [
-      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
-      "nativewind/babel"
-    ],
+    presets: ["babel-preset-expo"],
     plugins: [
       "react-native-reanimated/plugin",
       [
@@ -12,8 +9,8 @@ module.exports = function (api) {
         {
           root: ["."],
           alias: {
-            "@": ".",
-            "@hi-hired/shared": "../packages/shared/src"
+            "@": "./",
+            "@hi-hired/shared": "../../packages/shared/src"
           }
         }
       ]

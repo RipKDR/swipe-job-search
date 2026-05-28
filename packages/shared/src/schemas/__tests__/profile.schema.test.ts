@@ -125,7 +125,6 @@ describe('CandidateOnboardingSchema', () => {
 describe('EmployerOnboardingSchema', () => {
   it('accepts valid employer profile data', () => {
     const validData = {
-      full_name: 'Jane Smith',
       suburb: 'Moonee Ponds' as const,
       business_name: 'Little Lane Cafe',
       contact_name: 'Jane Smith',
@@ -138,9 +137,8 @@ describe('EmployerOnboardingSchema', () => {
 
   it('rejects empty business_name', () => {
     const invalidData = {
-      full_name: 'Jane Smith',
       suburb: 'Moonee Ponds' as const,
-      business_name: '', // Empty
+      business_name: '',
       contact_name: 'Jane Smith',
     };
 
@@ -151,22 +149,20 @@ describe('EmployerOnboardingSchema', () => {
     }
   });
 
-  it('accepts null contact_name', () => {
-    const validData = {
-      full_name: 'Jane Smith',
+  it('rejects empty contact_name', () => {
+    const invalidData = {
       suburb: 'Moonee Ponds' as const,
       business_name: 'Little Lane Cafe',
-      contact_name: null,
+      contact_name: '',
     };
 
-    const result = EmployerOnboardingSchema.safeParse(validData);
-    expect(result.success).toBe(true);
+    const result = EmployerOnboardingSchema.safeParse(invalidData);
+    expect(result.success).toBe(false);
   });
 
   it('rejects invalid suburb', () => {
     const invalidData = {
-      full_name: 'Jane Smith',
-      suburb: 'Perth' as any, // Not in BEACHHEAD_SUBURBS
+      suburb: 'Perth' as any,
       business_name: 'Little Lane Cafe',
       contact_name: 'Jane Smith',
     };

@@ -38,7 +38,6 @@ export function JobListItem({ job, onOpenInterested }: JobListItemProps) {
         <Button
           title="View interested"
           variant="secondary"
-          size="sm"
           onPress={() => onOpenInterested(job.id)}
           disabled={job.interestedCount === 0}
         />

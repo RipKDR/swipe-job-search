@@ -1,14 +1,19 @@
-// Login screen with magic link, Google, and Apple sign-in
-// Per AUTH_FLOWS.md adapted for Expo + STACK.md OAuth via WebBrowser
-import { View, Text, Pressable, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text } from '@/components/tw';
+import { Alert } from 'react-native';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
-import Constants from 'expo-constants';
-import { APPLE_AUTH_DISABLED_COPY, APPLE_AUTH_ENABLED } from './login-config';
+import { getAuthRedirectUrl } from '@/lib/routing';
+import { completeAuthCallback, parseAuthCallbackUrl } from '@/lib/authCallback';
+import { Button } from '@/components/ui/Button';
+import { TextField } from '@/components/ui/TextField';
 
-// Required for OAuth to work properly
 WebBrowser.maybeCompleteAuthSession();
+
+const redirectUrl = getAuthRedirectUrl();
+
+/** Apple Sign-In requires App Store credentials — enable when operator supplies them. */
+const APPLE_SIGN_IN_ENABLED = false;
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -20,28 +25,17 @@ export default function Login() {
       Alert.alert('Error', 'Please enter your email address');
       return;
     }
-
     setLoading(true);
     try {
-      const redirectUrl = Constants.expoConfig?.scheme
-        ? `${Constants.expoConfig.scheme}://auth/callback`
-        : 'hi-hired://auth/callback';
-
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
-        options: {
-          emailRedirectTo: redirectUrl,
-        },
+        options: { emailRedirectTo: redirectUrl },
       });
-
       if (error) {
         Alert.alert('Error', error.message);
       } else {
         setMagicLinkSent(true);
-        Alert.alert(
-          'Check your email',
-          'We sent you a magic link. Click it to sign in.'
-        );
+        Alert.alert('Check your email', 'We sent you a magic link. Click it to sign in.');
       }
     } catch (err) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
@@ -52,33 +46,31 @@ export default function Login() {
   };
 
   const handleOAuth = async (provider: 'google' | 'apple') => {
+    if (provider === 'apple' && !APPLE_SIGN_IN_ENABLED) {
+      Alert.alert('Coming soon', 'Apple Sign-In will be enabled before App Store submission.');
+      return;
+    }
     setLoading(true);
     try {
-      const redirectUrl = Constants.expoConfig?.scheme
-        ? `${Constants.expoConfig.scheme}://auth/callback`
-        : 'hi-hired://auth/callback';
-
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: {
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: false,
-        },
+        options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
       });
-
       if (error) {
         Alert.alert('Error', error.message);
         return;
       }
-
       if (data?.url) {
-        const result = await WebBrowser.openAuthSessionAsync(
-          data.url,
-          redirectUrl
-        );
-
+        const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
         if (result.type === 'cancel') {
           Alert.alert('Cancelled', 'Sign in was cancelled');
+          return;
+        }
+        if (result.type === 'success' && result.url) {
+          const { error: authError } = await completeAuthCallback(supabase, parseAuthCallbackUrl(result.url));
+          if (authError) {
+            Alert.alert('Error', authError);
+          }
         }
       }
     } catch (err) {
@@ -94,18 +86,13 @@ export default function Login() {
       <View className="flex-1 items-center justify-center bg-slate-950 p-6">
         <Text className="text-white text-2xl font-bold mb-4">Check your email</Text>
         <Text className="text-slate-400 text-center mb-8">
-          We sent a magic link to {email}.{'\n'}
-          Click it to sign in.
+          We sent a magic link to {email}.{'\n'}Click it to sign in.
         </Text>
-        <Pressable
-          onPress={() => {
-            setMagicLinkSent(false);
-            setEmail('');
-          }}
-          className="border border-slate-700 px-6 py-3 rounded-xl active:bg-slate-900"
-        >
-          <Text className="text-white font-semibold">Try different email</Text>
-        </Pressable>
+        <Button
+          title="Try different email"
+          variant="outline"
+          onPress={() => { setMagicLinkSent(false); setEmail(''); }}
+        />
       </View>
     );
   }
@@ -118,34 +105,19 @@ export default function Login() {
           Find your next job, one swipe at a time
         </Text>
 
-        <View className="mb-6">
-          <Text className="text-white text-sm font-semibold mb-2">Email</Text>
-          <TextInput
-            className="bg-slate-900 text-white px-4 py-3 rounded-xl border border-slate-700"
-            placeholder="your@email.com"
-            placeholderTextColor="#64748b"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            editable={!loading}
-          />
-        </View>
+        <TextField
+          label="Email"
+          className="rounded-xl border-slate-700 mb-6"
+          placeholder="your@email.com"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          editable={!loading}
+        />
 
-        <Pressable
-          onPress={handleMagicLink}
-          disabled={loading}
-          className="bg-indigo-600 px-6 py-4 rounded-xl active:bg-indigo-500 mb-4 disabled:opacity-50"
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text className="text-white font-semibold text-center text-base">
-              Continue with Email
-            </Text>
-          )}
-        </Pressable>
+        <Button title="Continue with Email" fullWidth loading={loading} disabled={loading} onPress={handleMagicLink} className="mb-4" />
 
         <View className="flex-row items-center mb-4">
           <View className="flex-1 h-px bg-slate-700" />
@@ -153,29 +125,16 @@ export default function Login() {
           <View className="flex-1 h-px bg-slate-700" />
         </View>
 
-        <Pressable
-          onPress={() => handleOAuth('google')}
-          disabled={loading}
-          className="bg-white px-6 py-4 rounded-xl active:bg-slate-100 mb-3 disabled:opacity-50"
-        >
-          <Text className="text-slate-900 font-semibold text-center text-base">
-            Continue with Google
-          </Text>
-        </Pressable>
+        <Button title="Continue with Google" variant="inverse" fullWidth disabled={loading} onPress={() => handleOAuth('google')} className="mb-3" />
 
-        <Pressable
+        <Button
           testID="apple-login-button"
+          title={APPLE_SIGN_IN_ENABLED ? 'Continue with Apple' : 'Apple Sign-In (coming soon)'}
+          variant="outline"
+          fullWidth
+          disabled={loading || !APPLE_SIGN_IN_ENABLED}
           onPress={() => handleOAuth('apple')}
-          disabled={loading || !APPLE_AUTH_ENABLED}
-          className="bg-slate-900 border border-slate-700 px-6 py-4 rounded-xl active:bg-slate-800 disabled:opacity-50"
-        >
-          <Text className="text-white font-semibold text-center text-base">
-            Continue with Apple
-          </Text>
-        </Pressable>
-        {!APPLE_AUTH_ENABLED && (
-          <Text className="text-slate-500 text-xs text-center mt-2">{APPLE_AUTH_DISABLED_COPY}</Text>
-        )}
+        />
 
         <Text className="text-slate-500 text-xs text-center mt-8">
           By continuing, you agree to our Terms of Service and Privacy Policy

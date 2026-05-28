@@ -1,7 +1,4 @@
-import type {
-  CandidateOnboardingInput,
-  EmployerOnboardingInput,
-} from '@hi-hired/shared';
+import type { CandidateOnboarding, EmployerOnboarding } from '@hi-hired/shared';
 
 export type OnboardingRole = 'candidate' | 'employer';
 
@@ -12,7 +9,7 @@ export function getOnboardingRouteForRole(role: OnboardingRole): string {
 }
 
 export function buildCandidateProfileUpdate(
-  data: CandidateOnboardingInput,
+  data: CandidateOnboarding,
   nowIso: string
 ) {
   return {
@@ -29,7 +26,7 @@ export function buildCandidateProfileUpdate(
 }
 
 export function buildEmployerProfileUpdate(
-  data: EmployerOnboardingInput,
+  data: EmployerOnboarding,
   nowIso: string
 ) {
   return {
@@ -42,7 +39,7 @@ export function buildEmployerProfileUpdate(
 
 export function buildEmployerProfileInsert(
   userId: string,
-  data: EmployerOnboardingInput
+  data: EmployerOnboarding
 ) {
   return {
     profile_id: userId,

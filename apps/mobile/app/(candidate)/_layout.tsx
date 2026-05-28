@@ -1,10 +1,5 @@
-/**
- * Candidate layout with tab navigation
- * Protected route - requires onboarding completion
- */
-
 import { Tabs } from 'expo-router'
-import { Text, View } from 'react-native'
+import { Text } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 
 export default function CandidateLayout() {

@@ -52,6 +52,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       employer_profiles: {
         Row: {
@@ -81,6 +82,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       circle_members: {
         Row: {
@@ -236,6 +238,16 @@ export type Database = {
           p_candidate_id: string;
         };
         Returns: string;
+      };
+      complete_employer_onboarding: {
+        Args: {
+          p_suburb: string;
+          p_avatar_url: string | null;
+          p_business_name: string;
+          p_contact_name: string;
+          p_about_text?: string | null;
+        };
+        Returns: Database['public']['Tables']['profiles']['Row'];
       };
     };
     Enums: {

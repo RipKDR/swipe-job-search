@@ -1,29 +1,29 @@
 -- Beachhead seed data (dev/staging only)
 -- Conditional: only runs when app.settings.seed_enabled = true
--- For manual seed, operators can run this file directly
+-- For manual seed, operators can run this file directly after:
+--   SELECT set_config('app.settings.seed_enabled', 'true', false);
+--
+-- Hosted Supabase note: auth.users has a partial unique index on email
+-- (users_email_partial_key), not a full UNIQUE(email), so ON CONFLICT (email)
+-- fails. Use select-then-insert and let handle_new_user() create profiles.
 
 do $$
 declare
   v_default_circle_id uuid;
   v_employer1_id uuid;
   v_employer2_id uuid;
-  v_job1_id uuid;
-  v_job2_id uuid;
   v_seed_enabled boolean;
 begin
-  -- Check seed flag (app settings)
   select coalesce(
     current_setting('app.settings.seed_enabled', true)::boolean,
     false
   ) into v_seed_enabled;
 
-  -- Exit if seed disabled
   if not v_seed_enabled then
     raise notice 'Seed skipped: app.settings.seed_enabled = false';
     return;
   end if;
 
-  -- Get default circle
   select id into v_default_circle_id from circles where is_default = true limit 1;
 
   if v_default_circle_id is null then
@@ -31,20 +31,28 @@ begin
   end if;
 
   -- Demo employer 1
-  insert into auth.users (id, email, encrypted_password, email_confirmed_at, created_at, updated_at)
-  values (
-    gen_random_uuid(),
-    'demo-employer1@example.com',
-    crypt('password123', gen_salt('bf')),
-    now(),
-    now(),
-    now()
-  )
-  on conflict (email) do nothing
-  returning id into v_employer1_id;
+  select id into v_employer1_id from auth.users where email = 'demo-employer1@example.com';
 
   if v_employer1_id is null then
-    select id into v_employer1_id from auth.users where email = 'demo-employer1@example.com';
+    insert into auth.users (
+      id,
+      email,
+      encrypted_password,
+      email_confirmed_at,
+      created_at,
+      updated_at,
+      is_sso_user
+    )
+    values (
+      gen_random_uuid(),
+      'demo-employer1@example.com',
+      crypt('password123', gen_salt('bf')),
+      now(),
+      now(),
+      now(),
+      false
+    )
+    returning id into v_employer1_id;
   end if;
 
   update profiles set
@@ -64,20 +72,28 @@ begin
   on conflict (profile_id) do nothing;
 
   -- Demo employer 2
-  insert into auth.users (id, email, encrypted_password, email_confirmed_at, created_at, updated_at)
-  values (
-    gen_random_uuid(),
-    'demo-employer2@example.com',
-    crypt('password123', gen_salt('bf')),
-    now(),
-    now(),
-    now()
-  )
-  on conflict (email) do nothing
-  returning id into v_employer2_id;
+  select id into v_employer2_id from auth.users where email = 'demo-employer2@example.com';
 
   if v_employer2_id is null then
-    select id into v_employer2_id from auth.users where email = 'demo-employer2@example.com';
+    insert into auth.users (
+      id,
+      email,
+      encrypted_password,
+      email_confirmed_at,
+      created_at,
+      updated_at,
+      is_sso_user
+    )
+    values (
+      gen_random_uuid(),
+      'demo-employer2@example.com',
+      crypt('password123', gen_salt('bf')),
+      now(),
+      now(),
+      now(),
+      false
+    )
+    returning id into v_employer2_id;
   end if;
 
   update profiles set
@@ -96,8 +112,11 @@ begin
   )
   on conflict (profile_id) do nothing;
 
-  -- Seed beachhead jobs
-  -- Warehouse jobs
+  if exists (select 1 from jobs limit 1) then
+    raise notice 'Jobs already seeded, skipping job inserts';
+    return;
+  end if;
+
   insert into jobs (
     employer_id,
     circle_id,

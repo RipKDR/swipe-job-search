@@ -1,4 +1,19 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+
+vi.mock('@/components/ui/Button', () => ({
+  Button: ({ title, onPress, disabled }: { title: string; onPress?: () => void; disabled?: boolean }) => {
+    const React = require('react');
+    const { Pressable, Text } = require('react-native');
+    return React.createElement(
+      Pressable,
+      { onPress, disabled, accessibilityRole: 'button' },
+      React.createElement(Text, null, title)
+    );
+  },
+}));
+
+import RoleSelection from '../role';
 import {
   buildCandidateProfileUpdate,
   buildEmployerProfileInsert,
@@ -6,17 +21,50 @@ import {
   getOnboardingRouteForRole,
 } from '../onboarding-submit';
 
+const mockPush = vi.fn();
+
+vi.mock('expo-router', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
+
 describe('Onboarding role selection', () => {
+  beforeEach(() => {
+    mockPush.mockClear();
+  });
+
   it('routes candidate role to candidate profile onboarding', () => {
-    expect(getOnboardingRouteForRole('candidate')).toBe(
-      '/(onboarding)/candidate-profile'
-    );
+    expect(getOnboardingRouteForRole('candidate')).toBe('/(onboarding)/candidate-profile');
   });
 
   it('routes employer role to employer profile onboarding', () => {
-    expect(getOnboardingRouteForRole('employer')).toBe(
-      '/(onboarding)/employer-profile'
-    );
+    expect(getOnboardingRouteForRole('employer')).toBe('/(onboarding)/employer-profile');
+  });
+
+  it('starts with Continue disabled until a role is chosen', () => {
+    render(<RoleSelection />);
+
+    fireEvent.click(screen.getByText('Continue'));
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('routes candidates to candidate profile onboarding', () => {
+    render(<RoleSelection />);
+
+    fireEvent.click(screen.getByText("I'm looking for work"));
+    fireEvent.click(screen.getByText('Continue'));
+
+    expect(mockPush).toHaveBeenCalledWith('/(onboarding)/candidate-profile');
+  });
+
+  it('routes employers to employer profile onboarding', () => {
+    render(<RoleSelection />);
+
+    fireEvent.click(screen.getByText("I'm hiring"));
+    fireEvent.click(screen.getByText('Continue'));
+
+    expect(mockPush).toHaveBeenCalledWith('/(onboarding)/employer-profile');
   });
 });
 

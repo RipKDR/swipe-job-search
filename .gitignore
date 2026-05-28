@@ -100,3 +100,10 @@ temp/
 # Git worktrees for parallel agent/swarm isolation (superpowers:using-git-worktrees + swarm orchestrator)
 .worktrees/
 worktrees/
+
+# Local agent/tooling artifacts (never commit)
+ruvector.db
+agentdb.rvf
+agentdb.rvf.lock
+pnpm
+=

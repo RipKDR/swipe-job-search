@@ -3,7 +3,8 @@
  * Uses SwipeDeck + useJobDeck + optimistic swipes + a11y + haptics
  */
 import { useRouter } from 'expo-router';
-import { View, Text, Alert, Pressable } from 'react-native';
+import { View, Text, Pressable } from '@/components/tw';
+import { Alert } from 'react-native';
 import { SwipeDeck } from '@/components/deck/SwipeDeck';
 import { EmptyDeck } from '@/components/deck/EmptyDeck';
 import { useJobDeck } from '@/hooks/useJobDeck';
@@ -12,11 +13,10 @@ export default function DeckScreen() {
   const router = useRouter();
   const { jobs, isLoading, error, swipe, isEmpty, reset } = useJobDeck();
 
-  const handleSwipe = async (jobId: string, direction: 'left' | 'right') => {
+  const handleSwipe = async (_jobId: string, direction: 'left' | 'right') => {
     try {
       await swipe(direction);
-    } catch (e: any) {
-      // Rollback + toast (AE: failed upsert)
+    } catch {
       Alert.alert('Swipe failed', 'Could not save your choice. Please try again.', [
         { text: 'OK' },
         { text: 'Retry deck', onPress: reset },
@@ -24,7 +24,7 @@ export default function DeckScreen() {
     }
   };
 
-  const handleCardPress = (job: any) => {
+  const handleCardPress = (job: { id: string }) => {
     router.push(`/job/${job.id}` as any);
   };
 

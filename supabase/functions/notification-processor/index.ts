@@ -1,31 +1,127 @@
 /**
  * Notification Processor Edge Function
- * 
- * Processes pending notifications from the queue and sends:
- * - Push notifications via Expo
- * - Email fallback via Resend (if push fails/unopened after 2h)
- * 
- * Triggered by:
- * - Cron: every 1 minute
- * - Manual: HTTP POST with optional { queue_id: uuid }
- * 
- * Idempotency: Unique idempotency_key on queue insert prevents duplicates
+ *
+ * Processes pending notifications from the queue and sends push via Expo.
+ *
+ * Triggered by cron (every 1 min) or manual HTTP POST with optional { queue_id: uuid }.
  */
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const EXPO_ACCESS_TOKEN = Deno.env.get('EXPO_ACCESS_TOKEN')
 
+type NotificationType =
+  | 'interest_received'
+  | 'match_created'
+  | 'message_received'
+  | 'hire_confirmed'
+
+type NotificationStatus = 'pending' | 'sent' | 'failed'
+
+interface NotificationQueueRow {
+  id: string
+  type: NotificationType
+  payload: Record<string, unknown>
+  status: NotificationStatus
+  attempts: number
+  created_at: string
+}
+
+interface InterestPayload {
+  employer_id: string
+  job_id: string
+}
+
+interface MatchPayload {
+  match_id: string
+  candidate_id: string
+  employer_id: string
+  job_id: string
+}
+
+interface MessagePayload {
+  recipient_id: string
+  match_id: string
+  preview: string
+}
+
+interface HirePayload {
+  candidate_id: string
+  employer_id: string
+  job_id: string
+}
+
+interface PushMessage {
+  title: string
+  body: string
+  data: Record<string, string>
+}
+
+interface DeviceTokenRow {
+  expo_push_token: string
+}
+
+interface JobTitleRow {
+  title: string | null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function readString(payload: Record<string, unknown>, key: string): string {
+  const value = payload[key]
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`Missing or invalid payload field: ${key}`)
+  }
+  return value
+}
+
+function parseInterestPayload(payload: Record<string, unknown>): InterestPayload {
+  return {
+    employer_id: readString(payload, 'employer_id'),
+    job_id: readString(payload, 'job_id'),
+  }
+}
+
+function parseMatchPayload(payload: Record<string, unknown>): MatchPayload {
+  return {
+    match_id: readString(payload, 'match_id'),
+    candidate_id: readString(payload, 'candidate_id'),
+    employer_id: readString(payload, 'employer_id'),
+    job_id: readString(payload, 'job_id'),
+  }
+}
+
+function parseMessagePayload(payload: Record<string, unknown>): MessagePayload {
+  return {
+    recipient_id: readString(payload, 'recipient_id'),
+    match_id: readString(payload, 'match_id'),
+    preview: readString(payload, 'preview'),
+  }
+}
+
+function parseHirePayload(payload: Record<string, unknown>): HirePayload {
+  return {
+    candidate_id: readString(payload, 'candidate_id'),
+    employer_id: readString(payload, 'employer_id'),
+    job_id: readString(payload, 'job_id'),
+  }
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
 serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const body = await req.json().catch(() => ({}))
-    const queueId = body.queue_id
+    const queueId = typeof body.queue_id === 'string' ? body.queue_id : undefined
 
-    // Fetch pending notifications (up to 50 per batch)
     let query = supabase
       .from('notification_queue')
       .select('*')
@@ -47,27 +143,29 @@ serve(async (req) => {
     let processed = 0
     let failed = 0
 
-    for (const notif of notifications || []) {
+    for (const notif of (notifications ?? []) as NotificationQueueRow[]) {
       try {
-        // Route based on notification type
-        switch (notif.type) {
-          case 'interest_received':
-            await sendInterestNotification(supabase, notif)
-            break
-          case 'match_created':
-            await sendMatchNotification(supabase, notif)
-            break
-          case 'message_received':
-            await sendMessageNotification(supabase, notif)
-            break
-          case 'hire_confirmed':
-            await sendHireNotification(supabase, notif)
-            break
-          default:
-            console.warn(`Unknown notification type: ${notif.type}`)
+        if (!isRecord(notif.payload)) {
+          throw new Error(`Invalid payload for notification ${notif.id}`)
         }
 
-        // Mark as sent
+        switch (notif.type) {
+          case 'interest_received':
+            await sendInterestNotification(supabase, parseInterestPayload(notif.payload))
+            break
+          case 'match_created':
+            await sendMatchNotification(supabase, parseMatchPayload(notif.payload))
+            break
+          case 'message_received':
+            await sendMessageNotification(supabase, parseMessagePayload(notif.payload))
+            break
+          case 'hire_confirmed':
+            await sendHireNotification(supabase, parseHirePayload(notif.payload))
+            break
+          default:
+            throw new Error(`Unknown notification type: ${notif.type}`)
+        }
+
         await supabase
           .from('notification_queue')
           .update({ status: 'sent', processed_at: new Date().toISOString() })
@@ -77,12 +175,11 @@ serve(async (req) => {
       } catch (err) {
         console.error(`Failed to process ${notif.id}:`, err)
 
-        // Increment attempts
         await supabase
           .from('notification_queue')
           .update({
             attempts: notif.attempts + 1,
-            last_error: err.message,
+            last_error: errorMessage(err),
             status: notif.attempts + 1 >= 3 ? 'failed' : 'pending',
           })
           .eq('id', notif.id)
@@ -91,93 +188,98 @@ serve(async (req) => {
       }
     }
 
-    return new Response(
-      JSON.stringify({ processed, failed }),
-      { headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ processed, failed }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
   } catch (error) {
     console.error('Notification processor error:', error)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: errorMessage(error) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
 })
 
-async function sendInterestNotification(supabase: any, notif: any) {
-  const { employer_id, job_id } = notif.payload
-  const { data: job } = await supabase
+async function getJobTitle(
+  supabase: SupabaseClient,
+  jobId: string
+): Promise<string | null> {
+  const { data } = await supabase
     .from('jobs')
     .select('title')
-    .eq('id', job_id)
+    .eq('id', jobId)
     .single()
 
-  await sendPushToUser(supabase, employer_id, {
+  return (data as JobTitleRow | null)?.title ?? null
+}
+
+async function sendInterestNotification(
+  supabase: SupabaseClient,
+  payload: InterestPayload
+) {
+  const jobTitle = await getJobTitle(supabase, payload.job_id)
+
+  await sendPushToUser(supabase, payload.employer_id, {
     title: 'New Interest!',
-    body: `Someone's interested in ${job?.title || 'your job'}`,
-    data: { type: 'interest', job_id },
+    body: `Someone's interested in ${jobTitle || 'your job'}`,
+    data: { type: 'interest', job_id: payload.job_id },
   })
 }
 
-async function sendMatchNotification(supabase: any, notif: any) {
-  const { match_id, candidate_id, employer_id, job_id } = notif.payload
+async function sendMatchNotification(
+  supabase: SupabaseClient,
+  payload: MatchPayload
+) {
+  const jobTitle = await getJobTitle(supabase, payload.job_id)
 
-  const { data: job } = await supabase
-    .from('jobs')
-    .select('title')
-    .eq('id', job_id)
-    .single()
-
-  // Push to candidate
-  await sendPushToUser(supabase, candidate_id, {
+  await sendPushToUser(supabase, payload.candidate_id, {
     title: "It's a match!",
-    body: `You matched for ${job?.title || 'a job'}`,
-    data: { type: 'match', match_id },
+    body: `You matched for ${jobTitle || 'a job'}`,
+    data: { type: 'match', match_id: payload.match_id },
   })
 
-  // Push to employer
-  await sendPushToUser(supabase, employer_id, {
+  await sendPushToUser(supabase, payload.employer_id, {
     title: 'New Match',
-    body: `Candidate matched for ${job?.title || 'your job'}`,
-    data: { type: 'match', match_id },
+    body: `Candidate matched for ${jobTitle || 'your job'}`,
+    data: { type: 'match', match_id: payload.match_id },
   })
 }
 
-async function sendMessageNotification(supabase: any, notif: any) {
-  const { recipient_id, match_id, preview } = notif.payload
-
-  await sendPushToUser(supabase, recipient_id, {
+async function sendMessageNotification(
+  supabase: SupabaseClient,
+  payload: MessagePayload
+) {
+  await sendPushToUser(supabase, payload.recipient_id, {
     title: 'New Message',
-    body: preview,
-    data: { type: 'message', match_id },
+    body: payload.preview,
+    data: { type: 'message', match_id: payload.match_id },
   })
 }
 
-async function sendHireNotification(supabase: any, notif: any) {
-  const { candidate_id, employer_id, job_id } = notif.payload
+async function sendHireNotification(
+  supabase: SupabaseClient,
+  payload: HirePayload
+) {
+  const jobTitle = await getJobTitle(supabase, payload.job_id)
 
-  const { data: job } = await supabase
-    .from('jobs')
-    .select('title')
-    .eq('id', job_id)
-    .single()
-
-  // Push to both parties
-  await sendPushToUser(supabase, candidate_id, {
+  await sendPushToUser(supabase, payload.candidate_id, {
     title: 'Hired! 🎉',
-    body: `You're hired for ${job?.title || 'the job'}!`,
-    data: { type: 'hire', job_id },
+    body: `You're hired for ${jobTitle || 'the job'}!`,
+    data: { type: 'hire', job_id: payload.job_id },
   })
 
-  await sendPushToUser(supabase, employer_id, {
+  await sendPushToUser(supabase, payload.employer_id, {
     title: 'Hire Confirmed',
-    body: `Hire confirmed for ${job?.title || 'your job'}`,
-    data: { type: 'hire', job_id },
+    body: `Hire confirmed for ${jobTitle || 'your job'}`,
+    data: { type: 'hire', job_id: payload.job_id },
   })
 }
 
-async function sendPushToUser(supabase: any, userId: string, message: any) {
-  // Fetch device tokens
+async function sendPushToUser(
+  supabase: SupabaseClient,
+  userId: string,
+  message: PushMessage
+) {
   const { data: tokens } = await supabase
     .from('device_tokens')
     .select('expo_push_token')
@@ -188,18 +290,17 @@ async function sendPushToUser(supabase: any, userId: string, message: any) {
     return
   }
 
-  // Send via Expo Push API
-  const expoPushTokens = tokens.map((t: any) => t.expo_push_token)
+  const expoPushTokens = (tokens as DeviceTokenRow[]).map((token) => token.expo_push_token)
 
   const response = await fetch('https://exp.host/--/api/v2/push/send', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...(EXPO_ACCESS_TOKEN && { 'Authorization': `Bearer ${EXPO_ACCESS_TOKEN}` }),
+      Accept: 'application/json',
+      ...(EXPO_ACCESS_TOKEN && { Authorization: `Bearer ${EXPO_ACCESS_TOKEN}` }),
     },
     body: JSON.stringify(
-      expoPushTokens.map((token: string) => ({
+      expoPushTokens.map((token) => ({
         to: token,
         title: message.title,
         body: message.body,

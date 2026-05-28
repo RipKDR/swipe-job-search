@@ -44,9 +44,9 @@ export default function RootLayout() {
     } else if (session && !profile?.onboarding_completed_at && !inOnboarding) {
       router.replace('/onboarding');
     } else if (session && profile?.role === 'candidate' && segments[0] !== '(candidate)') {
-      router.replace('/(candidate)/swipe');
+      router.replace('/(candidate)/(tabs)/deck');
     } else if (session && profile?.role === 'employer' && segments[0] !== '(employer)') {
-      router.replace('/(employer)/jobs');
+      router.replace('/(employer)/(tabs)/jobs');
     }
   }, [session, profile, loading, segments]);
 
