@@ -29,29 +29,40 @@ export default function EmployerProfile() {
 
     setSubmitting(true);
     try {
-      const { data: updatedProfile, error: profileError } = await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           role: 'employer',
           suburb: data.suburb,
           avatar_url: data.avatar_url ?? null,
+        })
+        .eq('id', user.id);
+
+      if (profileError) throw profileError;
+
+      const { error: employerError } = await supabase.from('employer_profiles').upsert(
+        {
+          profile_id: user.id,
+          business_name: data.business_name,
+          contact_name: data.contact_name,
+          about_text: data.about_text ?? null,
+        },
+        { onConflict: 'profile_id' }
+      );
+
+      if (employerError) throw employerError;
+
+      const { data: updatedProfile, error: completeError } = await supabase
+        .from('profiles')
+        .update({
           onboarding_completed_at: new Date().toISOString(),
         })
         .eq('id', user.id)
         .select(PROFILE_SELECT)
         .single();
 
-      if (profileError) throw profileError;
+      if (completeError) throw completeError;
       if (!updatedProfile) throw new Error('Profile update returned no row');
-
-      const { error: employerError } = await supabase.from('employer_profiles').insert({
-        profile_id: user.id,
-        business_name: data.business_name,
-        contact_name: data.contact_name,
-        about_text: data.about_text ?? null,
-      });
-
-      if (employerError) throw employerError;
 
       applyProfile(updatedProfile);
     } catch (error) {
