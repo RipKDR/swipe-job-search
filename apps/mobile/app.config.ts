@@ -45,21 +45,4 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   experiments: {
     typedRoutes: true,
   },
-  extra: {
-    // All secrets live in .env.local (gitignored) — never hardcode in source
-    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
-    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
-    posthogKey: process.env.EXPO_PUBLIC_POSTHOG_KEY ?? '',
-    posthogHost: process.env.EXPO_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com',
-    posthogProjectId: process.env.EXPO_PUBLIC_POSTHOG_PROJECT_ID ?? '',
-    posthogPersonalAccessToken: process.env.EXPO_PUBLIC_POSTHOG_PAT ?? '',
-    sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
-    sentryAuthToken: process.env.EXPO_PUBLIC_SENTRY_AUTH_TOKEN ?? '',
-    sentryOrg: process.env.EXPO_PUBLIC_SENTRY_ORG ?? 'steps-to-recovery',
-    sentryProject: process.env.EXPO_PUBLIC_SENTRY_PROJECT ?? 'react-native-yx',
-    appEnv: process.env.EXPO_PUBLIC_APP_ENV ?? 'staging',
-    /** Optional override for web auth callback origin (see .env.example). */
-    authRedirectOrigin: process.env.EXPO_PUBLIC_AUTH_REDIRECT_ORIGIN ?? '',
-    eas: {}
-  },
 });
