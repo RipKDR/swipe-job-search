@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text } from 'react-native'
+import { View, Text } from '@/components/tw'
 import { Button } from '@/components/ui/Button'
 
 export type InterestedActionState = 'idle' | 'matching' | 'already_matched' | 'error'

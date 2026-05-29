@@ -1,4 +1,5 @@
-import { View, Text, Modal, Pressable } from 'react-native'
+import { View, Text, Pressable } from '@/components/tw'
+import { Modal } from 'react-native'
 import { Button } from '@/components/ui/Button'
 
 type UnmatchSheetProps = {

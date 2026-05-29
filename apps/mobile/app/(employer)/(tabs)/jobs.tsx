@@ -1,4 +1,5 @@
-import { View, Text, FlatList, RefreshControl } from 'react-native'
+import { FlatList, RefreshControl } from 'react-native'
+import { View, Text } from '@/components/tw'
 import { useRouter } from 'expo-router'
 import { Button } from '@/components/ui/Button'
 import { JobListItem } from '@/components/employer/JobListItem'

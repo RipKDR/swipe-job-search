@@ -1,4 +1,4 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable } from '@/components/tw';
 
 interface EmptyDeckProps {
   onRefresh?: () => void;

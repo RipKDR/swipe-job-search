@@ -1,4 +1,5 @@
-import { View, Text } from 'react-native';
+import { View, Text } from '@/components/tw'
+;
 
 /** SwipeOverlay labels (integrated in SwipeDeck for perf; stub for import completeness) */
 export function SwipeOverlay({ direction }: { direction: 'left' | 'right' | null }) {

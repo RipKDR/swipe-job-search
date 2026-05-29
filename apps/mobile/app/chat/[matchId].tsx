@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { View, Text, Pressable, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, Pressable } from '@/components/tw'
+import { KeyboardAvoidingView, Platform } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { usePostHog } from '@/hooks/usePostHog'

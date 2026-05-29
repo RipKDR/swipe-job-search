@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { usePostHog } from '@/hooks/usePostHog';
 import { Button } from '@/components/ui/Button';
-import { getOnboardingRouteForRole } from './onboarding-submit';
+import { getOnboardingRouteForRole } from '@/lib/onboarding-submit';
 
 export default function RoleSelection() {
   const router = useRouter();

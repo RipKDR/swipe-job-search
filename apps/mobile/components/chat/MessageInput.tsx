@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { View, TextInput, Text } from 'react-native'
+import { View, TextInput, Text } from '@/components/tw'
 import { Button } from '@/components/ui/Button'
 
 type MessageInputProps = {

@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native'
+import { View, Text } from '@/components/tw'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/hooks/useAuth'
 

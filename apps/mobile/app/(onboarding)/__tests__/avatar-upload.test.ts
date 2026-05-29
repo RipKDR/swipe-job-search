@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { pickAndUploadAvatar, uploadAvatarFromUri } from '../avatar-upload';
+import { pickAndUploadAvatar, uploadAvatarFromUri } from '@/lib/avatar-upload';
 
 describe('avatar upload helpers', () => {
   it('returns null when picker is cancelled', async () => {

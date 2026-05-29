@@ -76,7 +76,11 @@ if (Platform.OS === 'web') {
       autocapture: undefined, // don't capture clicks/forms by default
       persistence: 'localStorage',
     });
+    // posthog-js doesn't have .screen() — add it as a wrapper
     posthogInstance = PostHogJS;
+    (posthogInstance as any).screen = (screenName: string, properties?: PostHogProperties) => {
+      PostHogJS.capture('$screenview', { $screen_name: screenName, ...properties });
+    };
   } catch {
     posthogInstance = posthogStub;
   }

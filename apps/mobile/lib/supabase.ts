@@ -9,7 +9,45 @@ import type { Database } from '@hi-hired/shared';
 const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl;
 const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+/** Hostnames that are placeholders — DNS fails and signInWithOtp throws "Failed to fetch". */
+const INVALID_SUPABASE_HOSTS = new Set(['staging.supabase.co']);
+
+export function getSupabaseConfigError(
+  url: string | undefined = supabaseUrl,
+  key: string | undefined = supabaseAnonKey
+): string | null {
+  if (!url?.trim() || !key?.trim()) {
+    return (
+      'Supabase is not configured. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY ' +
+      'in apps/mobile/.env.local (see .env.example), then restart Expo.'
+    );
+  }
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    return `Invalid EXPO_PUBLIC_SUPABASE_URL: ${url}`;
+  }
+  if (
+    INVALID_SUPABASE_HOSTS.has(hostname) ||
+    url.includes('<project-ref>') ||
+    key.includes('<anon')
+  ) {
+    return (
+      `Invalid Supabase configuration (${hostname}). Use your real project URL, e.g. ` +
+      'https://rwzzdsiawcovyfsnmiiy.supabase.co with the publishable/anon key from the Supabase dashboard.'
+    );
+  }
+  if (!hostname.endsWith('.supabase.co')) {
+    return `EXPO_PUBLIC_SUPABASE_URL must be a *.supabase.co project URL, not "${hostname}".`;
+  }
+  return null;
+}
+
+const supabaseConfigError = getSupabaseConfigError();
+if (supabaseConfigError) {
+  console.error('[supabase]', supabaseConfigError);
+} else if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('[supabase] Missing EXPO_PUBLIC_SUPABASE_* in app.config extra (see .env.example)');
 }
 

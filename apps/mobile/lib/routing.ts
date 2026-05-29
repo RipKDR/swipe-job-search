@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import type { Href } from 'expo-router';
+import { Platform } from 'react-native';
 
 export const ROUTES = {
   root: '/',
@@ -21,7 +22,33 @@ export function getRoleHomeRoute(role: 'candidate' | 'employer' | null | undefin
   return ROUTES.onboardingRole;
 }
 
+/**
+ * OAuth / magic-link callback URL sent to Supabase as redirect_to / emailRedirectTo.
+ * Must match an entry in Dashboard → Authentication → URL Configuration → Redirect URLs.
+ *
+ * Prefer EXPO_PUBLIC_AUTH_REDIRECT_ORIGIN when set (stable across localhost vs 127.0.0.1).
+ * Otherwise use the live browser origin on web, or the native deep link scheme.
+ */
 export function getAuthRedirectUrl(): string {
+  const envOrigin =
+    Constants.expoConfig?.extra?.authRedirectOrigin?.trim() ||
+    process.env.EXPO_PUBLIC_AUTH_REDIRECT_ORIGIN?.trim();
+
+  if (Platform.OS === 'web') {
+    const origin =
+      envOrigin ||
+      (typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : undefined);
+    if (origin) {
+      return `${origin.replace(/\/$/, '')}/callback`;
+    }
+  }
+
+  if (envOrigin) {
+    return `${envOrigin.replace(/\/$/, '')}/callback`;
+  }
+
   const scheme = Constants.expoConfig?.scheme;
   return scheme ? `${scheme}://auth/callback` : 'hi-hired://auth/callback';
 }

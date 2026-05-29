@@ -39,3 +39,13 @@ describe('routing helpers', () => {
     expect(shouldRedirectForRoleMismatch('candidate', '(employer)', false)).toBe(false)
   })
 })
+
+describe('getAuthRedirectUrl web origin override', () => {
+  it('uses EXPO_PUBLIC_AUTH_REDIRECT_ORIGIN when configured', async () => {
+    vi.stubEnv('EXPO_PUBLIC_AUTH_REDIRECT_ORIGIN', 'http://localhost:8081')
+    vi.resetModules()
+    const { getAuthRedirectUrl: getUrl } = await import('../routing')
+    expect(getUrl()).toBe('http://localhost:8081/callback')
+    vi.unstubAllEnvs()
+  })
+})

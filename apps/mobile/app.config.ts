@@ -58,6 +58,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     sentryOrg: process.env.EXPO_PUBLIC_SENTRY_ORG ?? 'steps-to-recovery',
     sentryProject: process.env.EXPO_PUBLIC_SENTRY_PROJECT ?? 'react-native-yx',
     appEnv: process.env.EXPO_PUBLIC_APP_ENV ?? 'staging',
+    /** Optional override for web auth callback origin (see .env.example). */
+    authRedirectOrigin: process.env.EXPO_PUBLIC_AUTH_REDIRECT_ORIGIN ?? '',
     eas: {}
   },
 });

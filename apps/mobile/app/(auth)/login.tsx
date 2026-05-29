@@ -1,66 +1,189 @@
 import { View, Text } from '@/components/tw';
-import { Alert } from 'react-native';
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { Alert, Platform } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { supabase, getSupabaseConfigError } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
+import { APPLE_AUTH_ENABLED, APPLE_AUTH_DISABLED_COPY } from '@/lib/login-config';
 import { getAuthRedirectUrl } from '@/lib/routing';
+import { formatSupabaseAuthError } from '@/lib/auth-errors';
 import { completeAuthCallback, parseAuthCallbackUrl } from '@/lib/authCallback';
+import {
+  OTP_RESEND_COOLDOWN_MS,
+  formatButtonCountdown,
+  formatRateLimitMessage,
+  formatResendWaitMessage,
+  getOtpCooldownRemainingMs,
+  getOtpCooldownUntil,
+  resolveRateLimitCooldownMs,
+  setOtpCooldown,
+} from '@/lib/otp-cooldown';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const redirectUrl = getAuthRedirectUrl();
-
-/** Apple Sign-In requires App Store credentials — enable when operator supplies them. */
-const APPLE_SIGN_IN_ENABLED = false;
-
 export default function Login() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [otpHint, setOtpHint] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const otpInFlightRef = useRef(false);
+
+  useEffect(() => {
+    const storedUntil = getOtpCooldownUntil();
+    if (storedUntil > Date.now()) {
+      const remaining = storedUntil - Date.now();
+      const rateLimited = remaining >= OTP_RESEND_COOLDOWN_MS;
+      setCooldownUntil(storedUntil);
+      setIsRateLimited(rateLimited);
+      setOtpHint(
+        rateLimited ? formatRateLimitMessage(remaining) : formatResendWaitMessage(remaining),
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    if (cooldownUntil <= Date.now()) return;
+    const id = setInterval(() => {
+      const until = getOtpCooldownUntil();
+      const remaining = getOtpCooldownRemainingMs();
+      if (remaining <= 0) {
+        setCooldownUntil(0);
+        setOtpHint(null);
+        setIsRateLimited(false);
+        return;
+      }
+      setCooldownUntil(until);
+      setOtpHint((prev) => {
+        if (isRateLimited) return formatRateLimitMessage(remaining);
+        if (prev?.startsWith('Too many attempts')) return formatRateLimitMessage(remaining);
+        return formatResendWaitMessage(remaining);
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [cooldownUntil, isRateLimited]);
+
+  const cooldownRemainingMs = getOtpCooldownRemainingMs();
+  const isOnCooldown = cooldownRemainingMs > 0;
+
+  const applyCooldown = (durationMs: number, rateLimited: boolean) => {
+    const until = setOtpCooldown(durationMs);
+    setCooldownUntil(until);
+    setIsRateLimited(rateLimited);
+    const remaining = until - Date.now();
+    setOtpHint(
+      rateLimited ? formatRateLimitMessage(remaining) : formatResendWaitMessage(remaining),
+    );
+  };
+
+  const showAuthError = (message: string) => {
+    setLoginError(message);
+    if (Platform.OS !== 'web') {
+      Alert.alert('Error', message);
+    }
+  };
 
   const handleMagicLink = async () => {
     if (!email.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
+      showAuthError('Please enter your email address');
       return;
     }
+    if (otpInFlightRef.current || loading) return;
+    if (isOnCooldown) {
+      setOtpHint(
+        isRateLimited
+          ? formatRateLimitMessage(cooldownRemainingMs)
+          : formatResendWaitMessage(cooldownRemainingMs),
+      );
+      return;
+    }
+    const configError = getSupabaseConfigError();
+    if (configError) {
+      showAuthError(configError);
+      return;
+    }
+    const redirectUrl = getAuthRedirectUrl();
+    otpInFlightRef.current = true;
     setLoading(true);
+    setOtpHint(null);
+    setLoginError(null);
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
         options: { emailRedirectTo: redirectUrl },
       });
       if (error) {
-        Alert.alert('Error', error.message);
+        if (error.status === 429) {
+          const cooldownMs = resolveRateLimitCooldownMs(error);
+          applyCooldown(cooldownMs, true);
+          console.warn('[login] Magic link rate limited (429):', error.message, { redirectUrl });
+        } else {
+          const message = formatSupabaseAuthError(error, { redirectUrl });
+          console.warn(
+            '[login] Magic link failed:',
+            error.status,
+            error.message,
+            error.code,
+            { redirectUrl },
+          );
+          showAuthError(message);
+        }
       } else {
+        applyCooldown(OTP_RESEND_COOLDOWN_MS, false);
         setMagicLinkSent(true);
-        Alert.alert('Check your email', 'We sent you a magic link. Click it to sign in.');
+        if (Platform.OS !== 'web') {
+          Alert.alert('Check your email', 'We sent you a magic link. Click it to sign in.');
+        }
       }
     } catch (err) {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      const message =
+        err instanceof TypeError && /fetch/i.test(err.message)
+          ? 'Cannot reach Supabase. Check EXPO_PUBLIC_SUPABASE_URL in apps/mobile/.env.local and restart Expo.'
+          : 'Something went wrong. Please try again.';
+      showAuthError(message);
       console.error('[login] Magic link error:', err);
     } finally {
+      otpInFlightRef.current = false;
       setLoading(false);
     }
   };
 
   const handleOAuth = async (provider: 'google' | 'apple') => {
-    if (provider === 'apple' && !APPLE_SIGN_IN_ENABLED) {
-      Alert.alert('Coming soon', 'Apple Sign-In will be enabled before App Store submission.');
+    if (loading) return;
+    if (provider === 'apple' && !APPLE_AUTH_ENABLED) {
+      Alert.alert('Coming soon', APPLE_AUTH_DISABLED_COPY);
       return;
     }
+    const configError = getSupabaseConfigError();
+    if (configError) {
+      showAuthError(configError);
+      return;
+    }
+    const redirectUrl = getAuthRedirectUrl();
     setLoading(true);
+    setLoginError(null);
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
       });
       if (error) {
-        Alert.alert('Error', error.message);
+        const message = formatSupabaseAuthError(error, { redirectUrl });
+        console.warn(`[login] ${provider} OAuth failed:`, error.status, error.message, { redirectUrl });
+        showAuthError(message);
         return;
       }
       if (data?.url) {
+        // Web: full-page redirect — popups from openAuthSessionAsync are blocked/unreliable.
+        // Return lands on /callback; detectSessionInUrl + callback.tsx complete the session.
+        if (Platform.OS === 'web') {
+          window.location.assign(data.url);
+          return;
+        }
+
         const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
         if (result.type === 'cancel') {
           Alert.alert('Cancelled', 'Sign in was cancelled');
@@ -69,12 +192,12 @@ export default function Login() {
         if (result.type === 'success' && result.url) {
           const { error: authError } = await completeAuthCallback(supabase, parseAuthCallbackUrl(result.url));
           if (authError) {
-            Alert.alert('Error', authError);
+            showAuthError(authError);
           }
         }
       }
     } catch (err) {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      showAuthError('Something went wrong. Please try again.');
       console.error(`[login] ${provider} OAuth error:`, err);
     } finally {
       setLoading(false);
@@ -91,7 +214,7 @@ export default function Login() {
         <Button
           title="Try different email"
           variant="outline"
-          onPress={() => { setMagicLinkSent(false); setEmail(''); }}
+          onPress={() => { setMagicLinkSent(false); setEmail(''); setLoginError(null); }}
         />
       </View>
     );
@@ -110,14 +233,47 @@ export default function Login() {
           className="rounded-xl border-slate-700 mb-6"
           placeholder="your@email.com"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={(value) => {
+            setEmail(value);
+            if (loginError) setLoginError(null);
+          }}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="email-address"
           editable={!loading}
         />
 
-        <Button title="Continue with Email" fullWidth loading={loading} disabled={loading} onPress={handleMagicLink} className="mb-4" />
+        <Button
+          title={
+            isOnCooldown
+              ? formatButtonCountdown(cooldownRemainingMs)
+              : 'Continue with Email'
+          }
+          fullWidth
+          loading={loading}
+          disabled={loading || isOnCooldown}
+          onPress={handleMagicLink}
+          className="mb-2"
+        />
+        {loginError ? (
+          <Text
+            testID="login-error"
+            className="text-sm text-center mb-4 text-red-400"
+            accessibilityLiveRegion="assertive"
+            accessibilityRole="alert"
+          >
+            {loginError}
+          </Text>
+        ) : otpHint ? (
+          <Text
+            className={`text-sm text-center mb-4 ${isRateLimited ? 'text-amber-400' : 'text-slate-400'}`}
+            accessibilityLiveRegion="polite"
+          >
+            {otpHint}
+          </Text>
+        ) : (
+          <View className="mb-4" />
+        )}
 
         <View className="flex-row items-center mb-4">
           <View className="flex-1 h-px bg-slate-700" />
@@ -129,10 +285,10 @@ export default function Login() {
 
         <Button
           testID="apple-login-button"
-          title={APPLE_SIGN_IN_ENABLED ? 'Continue with Apple' : 'Apple Sign-In (coming soon)'}
+          title={APPLE_AUTH_ENABLED ? 'Continue with Apple' : 'Apple Sign-In (coming soon)'}
           variant="outline"
           fullWidth
-          disabled={loading || !APPLE_SIGN_IN_ENABLED}
+          disabled={loading || !APPLE_AUTH_ENABLED}
           onPress={() => handleOAuth('apple')}
         />
 

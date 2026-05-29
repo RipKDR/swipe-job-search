@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   APPLE_AUTH_DISABLED_COPY,
   APPLE_AUTH_ENABLED,
-} from '../login-config';
+} from '@/lib/login-config';
 
 describe('Login screen', () => {
   it('disables Apple auth entry point until credentials are configured', () => {

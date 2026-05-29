@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable } from '@/components/tw';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -85,12 +85,12 @@ export function SwipeDeck({ jobs, onSwipe, onCardPress, isLoading }: SwipeDeckPr
   return (
     <View className="flex-1 bg-slate-950 items-center justify-center px-4 pt-8">
       {/* Peek stack (visual weight per ref) */}
-      <View className="absolute w-[92%] h-[92%] -bottom-3 -left-[4%] bg-[#1f1c18] rounded-3xl border border-[#2a2723]" />
-      <View className="absolute w-[96%] h-[96%] -bottom-1.5 -left-[2%] bg-[#2a2723] rounded-3xl border border-[#3a3630]" />
+      <View className="absolute w-[92%] h-[92%] -bottom-3 left-[-4%] bg-[#1f1c18] rounded-3xl border border-[#2a2723]" />
+      <View className="absolute w-[96%] h-[96%] -bottom-1.5 left-[-2%] bg-[#2a2723] rounded-3xl border border-[#3a3630]" />
 
       {/* Top card with gesture */}
       <GestureDetector gesture={pan}>
-        <Animated.View style={cardStyle} className="w-full max-w-[340px]">
+        <Animated.View style={[cardStyle, { width: '100%', maxWidth: 340 }]}>
           <JobCard
             job={topJob}
             onPress={() => onCardPress?.(topJob)}
@@ -99,15 +99,13 @@ export function SwipeDeck({ jobs, onSwipe, onCardPress, isLoading }: SwipeDeckPr
           {/* Live overlays (green APPLY / red PASS) */}
           <Animated.View
             pointerEvents="none"
-            style={leftOpacity}
-            className="absolute top-1/3 left-6 bg-[#475569] px-4 py-1 rounded-full"
+            style={[leftOpacity, { position: 'absolute', top: '33%', left: 24, backgroundColor: '#475569', paddingHorizontal: 16, paddingVertical: 4, borderRadius: 9999 }]}
           >
             <Text className="text-white text-2xl font-bold tracking-[3px]">PASS</Text>
           </Animated.View>
           <Animated.View
             pointerEvents="none"
-            style={rightOpacity}
-            className="absolute top-1/3 right-6 bg-[#166534] px-4 py-1 rounded-full"
+            style={[rightOpacity, { position: 'absolute', top: '33%', right: 24, backgroundColor: '#166534', paddingHorizontal: 16, paddingVertical: 4, borderRadius: 9999 }]}
           >
             <Text className="text-white text-2xl font-bold tracking-[3px]">APPLY</Text>
           </Animated.View>

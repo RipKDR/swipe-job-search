@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react'
-import { View, Text, FlatList } from 'react-native'
+import { View, Text } from '@/components/tw'
+import { FlatList } from 'react-native'
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router'
 import { InterestedCard, type InterestedActionState } from '@/components/employer/InterestedCard'
 import { useInterestedList } from '@/hooks/useInterestedList'

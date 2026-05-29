@@ -8,14 +8,14 @@ const config = getDefaultConfig(__dirname);
 
 const nativewindConfig = withNativewind(config, {
   inlineVariables: false,
-  globalClassNamePolyfill: false,
+  globalClassNamePolyfill: true,
 });
 
 // Web stub for native-only packages.
 // Provides a Proxy that returns no-ops for any property access,
 // so lazy require() calls inside Platform.OS gates don't crash.
 const stubDir = path.join(__dirname, ".metro-stubs");
-if (!fs.existsSync(stubDir)) fs.mkdirSync(stubDir, { recursive: true });
+fs.mkdirSync(stubDir, { recursive: true });
 
 const stubContent = `
 const handler = {
@@ -51,19 +51,38 @@ const nativeOnlyPackages = new Set([
   "@posthog/core",
   "@posthog/core/surveys",
   "@opentelemetry/api",
+  "react-native-screens",
 ]);
 
 // Intercept ALL module resolution on web to stub native-only packages.
 const parentResolveRequest = nativewindConfig.resolver.resolveRequest;
+// Skip globalClassNamePolyfill for importers that need real RN/RN-web primitives.
+// - Reanimated / gesture-handler call createAnimatedComponent at module init.
+// - react-native-web export shims (dist/exports/FlatList, etc.) must load vendor
+//   implementations; redirecting them to react-native-css creates circular deps
+//   where FlatList.default is undefined at init.
+const isCssComponentImporter = (origin) => /react-native-css[\\/]/.test(origin);
+const skipCssPolyfillOrigin =
+  /react-native-reanimated[\\/]|react-native-gesture-handler[\\/]|react-native-web[\\/]dist[\\/](exports|vendor)[\\/]/;
 nativewindConfig.resolver.resolveRequest = (context, moduleName, platform) => {
   if (platform === "web" && nativeOnlyPackages.has(moduleName)) {
     return { type: "sourceFile", filePath: stubPath };
+  }
+  const origin = context.originModulePath ?? "";
+  if (skipCssPolyfillOrigin.test(origin)) {
+    return context.resolveRequest(context, moduleName, platform);
+  }
+  if (
+    isCssComponentImporter(origin) &&
+    (moduleName === "react-native" || moduleName.startsWith("react-native/"))
+  ) {
+    return context.resolveRequest(context, moduleName, platform);
   }
   // Delegate to parent resolver (nativewind/expo) for everything else
   if (parentResolveRequest) {
     return parentResolveRequest(context, moduleName, platform);
   }
-  return context.resolveRequest(context, moduleName);
+  return context.resolveRequest(context, moduleName, platform);
 };
 
 module.exports = nativewindConfig;

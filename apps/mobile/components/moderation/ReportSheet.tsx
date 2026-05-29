@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { View, Text, Modal, Pressable, TextInput } from 'react-native'
+import { View, Text, Pressable, TextInput } from '@/components/tw'
+import { Modal } from 'react-native'
 import { Button } from '@/components/ui/Button'
 import type { ReportReason } from '@/lib/moderation'
 

@@ -13,8 +13,14 @@
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
   "tailwindcss.experimental.classRegex": [
-    ["className\\s*=\\s*[\"'`]([^\"'`]*)[\"'`]", "([^\\s]+)"],
-    ["tw`([^`]*)`", "'([^']*)'"]
+    [
+      "className\\s*=\\s*[\"'`]([^\"'`]*)[\"'`]",
+      "([^\\s]+)"
+    ],
+    [
+      "tw`([^`]*)`",
+      "'([^']*)'"
+    ]
   ],
   "files.associations": {
     "*.css": "tailwindcss"
@@ -23,7 +29,7 @@
     "editor.defaultFormatter": "yzhang.markdown-all-in-one"
   },
   "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "vscode.json-language-features"
   },
   "[jsonc]": {
     "editor.defaultFormatter": "vscode.json-language-features"

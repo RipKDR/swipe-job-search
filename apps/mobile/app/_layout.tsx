@@ -6,7 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNotificationObserver, usePushRegistration } from '@/hooks/usePushRegistration';
 import { initAnalytics } from '@/lib/analytics';
 import { posthog } from '@/lib/posthog';
-import { getRoleHomeRoute, routerHref, ROUTES, shouldRedirectForRoleMismatch } from '@/lib/routing';
+import { resolveAuthRedirect } from '@/lib/auth-gate';
+import { getRoleHomeRoute, routerHref, ROUTES, shouldRedirectForRoleMismatch, type AppRoute } from '@/lib/routing';
 import { initSentry, wrapApp } from '@/lib/sentry';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -59,6 +60,7 @@ function RootLayoutNav() {
   const pathname = usePathname();
   const params = useGlobalSearchParams();
   const previousPathname = useRef<string | undefined>(undefined);
+  const lastAuthRedirectRef = useRef<string | null>(null);
   const [retryingProfile, setRetryingProfile] = useState(false);
 
   useEffect(() => {
@@ -74,41 +76,34 @@ function RootLayoutNav() {
   useEffect(() => {
     if (loading) return;
 
-    const inAuth = segments[0] === '(auth)';
-    const inOnboarding = segments[0] === '(onboarding)';
+    const authTarget = resolveAuthRedirect({
+      loading,
+      session,
+      profile: profile
+        ? { role: profile.role, onboarding_completed_at: profile.onboarding_completed_at }
+        : null,
+      segments: [...segments],
+    });
 
-    if (!session && !inAuth) {
-      router.replace(routerHref(ROUTES.login));
+    if (authTarget) {
+      if (lastAuthRedirectRef.current !== authTarget) {
+        lastAuthRedirectRef.current = authTarget;
+        router.replace(routerHref(authTarget as AppRoute));
+      }
       return;
     }
-
-    if (session && !profile && !inAuth) {
-      return;
-    }
+    lastAuthRedirectRef.current = null;
 
     if (session && profile) {
-      if (!profile.onboarding_completed_at && !inOnboarding && !inAuth) {
-        router.replace(routerHref(ROUTES.onboardingRole));
-        return;
-      }
-
       const homeRoute = getRoleHomeRoute(profile.role);
       const group = segments[0];
+      const inAuth = segments[0] === '(auth)';
+      const inOnboarding = segments[0] === '(onboarding)';
 
       if (
         profile.onboarding_completed_at &&
         shouldRedirectForRoleMismatch(profile.role, group, true)
       ) {
-        router.replace(routerHref(homeRoute));
-        return;
-      }
-
-      if (profile.onboarding_completed_at && inAuth) {
-        router.replace(routerHref(homeRoute));
-        return;
-      }
-
-      if (profile.onboarding_completed_at && inOnboarding) {
         router.replace(routerHref(homeRoute));
         return;
       }

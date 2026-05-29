@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native'
+import { View, Text } from '@/components/tw'
 import { MatchInboxList } from '@/components/chat/MatchInboxList'
 import { useMatchInbox } from '@/hooks/useMatchInbox'
 

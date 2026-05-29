@@ -1,4 +1,5 @@
-import { View, Text, TextInput, type TextInputProps } from 'react-native'
+import { View, Text, TextInput } from '@/components/tw'
+import type { TextInputProps } from 'react-native'
 
 const PLACEHOLDER_COLOR = '#64748b'
 

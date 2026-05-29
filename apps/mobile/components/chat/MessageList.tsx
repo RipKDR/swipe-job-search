@@ -1,4 +1,5 @@
-import { View, Text, FlatList } from 'react-native'
+import { View, Text } from '@/components/tw'
+import { FlatList } from 'react-native'
 import type { ChatMessage } from '@/hooks/useChat'
 
 type MessageListProps = {

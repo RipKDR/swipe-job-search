@@ -10,8 +10,8 @@ import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { PROFILE_SELECT } from '@/providers/AuthProvider';
-import { buildCandidateProfileUpdate } from './onboarding-submit';
-import { pickAndUploadAvatar } from './avatar-upload';
+import { buildCandidateProfileUpdate } from '@/lib/onboarding-submit';
+import { pickAndUploadAvatar } from '@/lib/avatar-upload';
 
 // Lazy import expo-image-picker on native only (no web impl)
 let ImagePicker: typeof import('expo-image-picker') | null = null;

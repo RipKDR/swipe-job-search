@@ -19,7 +19,7 @@ import {
   buildEmployerProfileInsert,
   buildEmployerProfileUpdate,
   getOnboardingRouteForRole,
-} from '../onboarding-submit';
+} from '@/lib/onboarding-submit';
 
 const mockPush = vi.fn();
 

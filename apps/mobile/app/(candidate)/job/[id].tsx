@@ -5,7 +5,9 @@
  * Fetches job by ID from Supabase (no mock data).
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, Pressable, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView } from '@/components/tw'
+import { Alert } from 'react-native'
+;
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { usePostHog } from '@/hooks/usePostHog';

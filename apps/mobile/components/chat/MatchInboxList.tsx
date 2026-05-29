@@ -1,4 +1,5 @@
-import { View, Text, FlatList, Pressable } from 'react-native'
+import { FlatList } from 'react-native'
+import { View, Text, Pressable } from '@/components/tw'
 import { useRouter, type Href } from 'expo-router'
 import type { InboxMatch } from '@/hooks/useMatchInbox'
 

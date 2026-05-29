@@ -1,4 +1,4 @@
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable } from '@/components/tw';
 import type { Job } from '@hi-hired/shared';
 
 interface JobCardProps {
@@ -30,7 +30,7 @@ export function JobCard({ job, onPress, testID }: JobCardProps) {
     >
       {/* Photo area (placeholder grain per ref) */}
       <View className="h-56 bg-[#2a2723] items-center justify-center relative">
-        <View className="absolute inset-0 bg-[radial-gradient(#3a3630_0.6px,transparent_1px)] bg-[length:3px_3px] opacity-40" />
+        <View className="absolute inset-0 bg-[radial-gradient(#3a3630_0.6px,transparent_1px)] bg-size-[3px_3px] opacity-40" />
         <Text className="text-[#6b665f] text-xs tracking-[3px]">{job.suburb.toUpperCase()}</Text>
         <Text className="text-[#a19b8f] text-[10px] mt-0.5">{job.hours_text}</Text>
         <View className="absolute top-4 right-4 px-3 py-px bg-[#f4f0e9] rounded">

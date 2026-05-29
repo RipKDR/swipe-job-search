@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, Pressable } from 'react-native'
+import { View, Text, Pressable } from '@/components/tw'
 import { Button } from '@/components/ui/Button'
 import type { MyJobItem } from '@/hooks/useMyJobs'
 

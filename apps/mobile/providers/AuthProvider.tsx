@@ -79,6 +79,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const freshProfile = await fetchProfile(userId);
       if (epochAtStart !== profileEpochRef.current) return;
       if (freshProfile) {
+        setProfile(freshProfile);
+        setProfileLoadFailed(false);
         if (freshProfile.id) {
           const identifyTraits: Record<string, unknown> = {
             candidate: freshProfile.role === 'candidate' ? 1 : 0,
@@ -88,6 +90,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           };
           void posthog.identify(freshProfile.id, identifyTraits);
         }
+      } else {
+        setProfile(null);
+        setProfileLoadFailed(true);
       }
     }, [fetchProfile]);
   const retryProfileFetch = useCallback(async () => {

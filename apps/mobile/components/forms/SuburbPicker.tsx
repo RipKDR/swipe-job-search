@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native'
+import { View, Text, ScrollView, Pressable } from '@/components/tw'
 import { BEACHHEAD_SUBURBS } from '@hi-hired/shared'
 
 interface SuburbPickerProps {
@@ -14,7 +14,7 @@ export function SuburbPicker({ value, onChange, error }: SuburbPickerProps) {
       <View className="bg-slate-900 rounded-lg border border-slate-800 max-h-40">
         <ScrollView>
           {BEACHHEAD_SUBURBS.map((suburb) => (
-            <TouchableOpacity
+            <Pressable
               key={suburb}
               onPress={() => onChange(suburb)}
               className={`px-4 py-3 border-b border-slate-800 ${
@@ -24,7 +24,7 @@ export function SuburbPicker({ value, onChange, error }: SuburbPickerProps) {
               <Text className={value === suburb ? 'text-indigo-400' : 'text-white'}>
                 {suburb}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </ScrollView>
       </View>

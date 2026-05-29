@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { View, Text, ScrollView } from 'react-native'
+import { View, Text, ScrollView } from '@/components/tw'
 import { useRouter } from 'expo-router'
 import { usePostHog } from '@/hooks/usePostHog'
 import { supabase } from '@/lib/supabase'
