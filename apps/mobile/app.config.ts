@@ -2,7 +2,7 @@ import { ConfigContext } from 'expo/config';
 import type { ExpoConfig } from '@expo/config-types';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
-  ...config,
+  ...config as ExpoConfig,
   name: 'Hi-Hired',
   slug: 'hi-hired',
   version: '0.0.1',
@@ -41,8 +41,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         photosPermission: 'Allow Hi-Hired to access your photos for profile pictures.',
       }
     ]
-  ],
-  experiments: {
-    typedRoutes: true,
-  },
+    ],
+    experiments: {
+      typedRoutes: true,
+    }
+  }
 });

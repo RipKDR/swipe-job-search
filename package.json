@@ -41,7 +41,7 @@
     }
   },
   "dependencies": {
-    "@sentry/react-native": "^7.13.0",
+    "@sentry/react-native": "8.13.0",
     "expo": "~56.0.6",
     "react": "19.2.6",
     "react-native": "0.85.3"

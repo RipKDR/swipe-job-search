@@ -1,7 +1,3 @@
-/**
- * Profile schemas for validation
- * Matches profiles table from supabase/migrations/202605270003_profiles.sql
- */
 
 import { z } from 'zod'
 import { BEACHHEAD_SUBURBS } from '../constants/suburbs'
