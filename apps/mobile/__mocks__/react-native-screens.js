@@ -1,0 +1,31 @@
+// CJS mock for react-native-screens — minimal, no imports or requires.
+// Using a plain object avoids ANY ESM→CJS bridge or TypeScript transform path.
+// Vite serves .js files as-is, so this bypasses all TS/typeof issues.
+module.exports = {
+  enableScreens: () => {},
+  enableFreeze: () => {},
+  screensEnabled: () => false,
+  freezeEnabled: () => false,
+  Screen: null,
+  InnerScreen: null,
+  ScreenContainer: null,
+  NativeScreen: null,
+  ScreenStack: null,
+  ScreenStackItem: null,
+  SearchBar: null,
+  FullWindowOverlay: null,
+  ScreenFooter: null,
+  ScreenContentWrapper: null,
+  ScreenStackHeaderConfig: null,
+  ScreenStackHeaderSubview: null,
+  ScreenStackHeaderLeftView: null,
+  ScreenStackHeaderCenterView: null,
+  ScreenStackHeaderRightView: null,
+  ScreenStackHeaderBackButtonImage: null,
+  ScreenStackHeaderSearchBarView: null,
+  ScreenContext: null,
+  useTransitionProgress: null,
+  TransitionProgressContext: null,
+  isSearchBarAvailableForCurrentPlatform: false,
+  default: undefined,
+};

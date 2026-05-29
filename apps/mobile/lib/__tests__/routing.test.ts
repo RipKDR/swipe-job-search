@@ -9,6 +9,11 @@ vi.mock('expo-constants', () => ({
   },
 }))
 
+// Override Platform to non-web so getAuthRedirectUrl falls through to scheme
+vi.mock('react-native', () => ({
+  Platform: { OS: 'ios', select: (obj: any) => obj.ios || obj.default },
+}))
+
 describe('routing helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks()

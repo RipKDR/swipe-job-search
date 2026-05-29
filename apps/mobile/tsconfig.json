@@ -1,17 +1,33 @@
 {
-  "extends":  "../../packages/shared/tsconfig.json",
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
+    "strict": true,
     "baseUrl": ".",
     "paths": {
-        "@/*": ["./*"],
-        "@hi-hired/shared/*": ["../../packages/shared/src/*"]
-      },
-      "module": "esnext",
-        "moduleResolution": "bundler",
-        "allowJs": true,
-        "esModuleInterop": true,
-        "isolatedModules": true,
-        "jsx": "react-jsx",
-        "noEmit": true
-  }
+      "@/*": ["./*"],
+      "@hi-hired/shared": ["../../packages/shared/src/index.ts"],
+      "@hi-hired/shared/*": ["../../packages/shared/src/*"]
+    },
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "allowJs": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "global.d.ts",
+    "nativewind-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "babel.config.js",
+    "tailwind.config.js"
+  ]
 }

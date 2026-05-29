@@ -1,12 +1,11 @@
 import { describe, it, expect, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
-import renderer from 'react-test-renderer'
 import { InterestedCard } from '../InterestedCard'
-import { Button } from '@/components/ui/Button'
 
 describe('InterestedCard', () => {
   it('renders candidate details and default chat CTA', () => {
-    const tree = renderer.create(
+    render(
       <InterestedCard
         candidateId="candidate-1"
         fullName="Jess Candidate"
@@ -15,17 +14,16 @@ describe('InterestedCard', () => {
         onChat={vi.fn()}
       />
     )
-    const output = JSON.stringify(tree.toJSON())
 
-    expect(output).toContain('Jess Candidate')
-    expect(output).toContain('Reservoir')
-    expect(output).toContain('Barista, POS')
-    expect(output).toContain('Chat')
+    expect(screen.getByText('Jess Candidate')).toBeTruthy()
+    expect(screen.getByText('Reservoir')).toBeTruthy()
+    expect(screen.getByText('Barista · POS')).toBeTruthy()
+    expect(screen.getByText('Start chat')).toBeTruthy()
   })
 
   it('calls onChat with candidate id when chat is pressed', () => {
     const onChat = vi.fn()
-    const tree = renderer.create(
+    render(
       <InterestedCard
         candidateId="candidate-1"
         fullName="Jess Candidate"
@@ -35,13 +33,12 @@ describe('InterestedCard', () => {
       />
     )
 
-    const button = tree.root.findByType(Button)
-    button.props.onPress()
+    fireEvent.click(screen.getByText('Start chat'))
     expect(onChat).toHaveBeenCalledWith('candidate-1')
   })
 
   it('shows loading state while match RPC is in flight', () => {
-    const tree = renderer.create(
+    render(
       <InterestedCard
         candidateId="candidate-1"
         fullName="Jess Candidate"
@@ -51,13 +48,12 @@ describe('InterestedCard', () => {
         onChat={vi.fn()}
       />
     )
-    const output = JSON.stringify(tree.toJSON())
 
-    expect(output).toContain('Connecting...')
+    expect(screen.getByText('Connecting…')).toBeTruthy()
   })
 
   it('shows idempotent already-matched state', () => {
-    const tree = renderer.create(
+    render(
       <InterestedCard
         candidateId="candidate-1"
         fullName="Jess Candidate"
@@ -67,8 +63,7 @@ describe('InterestedCard', () => {
         onChat={vi.fn()}
       />
     )
-    const output = JSON.stringify(tree.toJSON())
 
-    expect(output).toContain('Already matched')
+    expect(screen.getByText('Already matched')).toBeTruthy()
   })
 })

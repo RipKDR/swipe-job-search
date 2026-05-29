@@ -14,4 +14,4 @@ export const BEACHHEAD_SUBURBS = [
   'Brunswick',
 ] as const;
 
-export type BeachheadSuburb = typeof BEACHHEAD_SUBURBS[number];
+type BeachheadSuburb = typeof BEACHHEAD_SUBURBS[number];

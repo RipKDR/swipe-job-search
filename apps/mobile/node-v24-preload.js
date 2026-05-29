@@ -1,22 +1,24 @@
 // Preload script for Node v24 compatibility.
 // Node v24 strictly enforces the "exports" field in package.json.
-// Many npm packages (metro*, etc.) don't declare all internal subpaths.
-// This script patches exports fields on ALL packages with incomplete exports.
+// In pnpm, node_modules doesn't have a top-level package.json —
+// the preload only runs for root-level metro packages that need patching.
+// This is a no-op on pnpm installs; the real fix is ensuring all deps
+// have proper exports fields (handled by Expo SDK 56+).
+try {
+  const fs = require('fs');
+  const path = require('path');
 
-const fs = require('fs');
-const path = require('path');
+  const rootDir = path.resolve(__dirname, '../../..');
+  const nodeModulesDir = path.join(rootDir, 'node_modules');
+  const pkgPath = path.join(nodeModulesDir, 'package.json');
 
-const rootDir = path.resolve(path.join( __dirname, '../..'));
-const nodeModulesDir = path.join(rootDir, 'node_modules');
-
-    try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(nodeModulesDir, 'package.json'), 'utf-8'));
-    if (!pkg.exports || typeof pkg.exports !== 'object' || Array.isArray(pkg.exports)) return;
-
-    fs.writeFileSync(path.join(nodeModulesDir, 'package.json'), JSON.stringify(pkg, null, 2));
-    console.log(`[node-v24] Patched exports for package.json (${Object.keys(pkg.exports).length} entries)`);
-  } catch (e) {
-    console.error(`[node-v24] Failed to patch package.json:`, e.message);
-  } finally {
-    console.log(`[node-v24] Done`);
+  if (fs.existsSync(pkgPath)) {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+    if (pkg.exports && typeof pkg.exports === 'object' && !Array.isArray(pkg.exports)) {
+      fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+      console.log(`[node-v24] Patched exports for ${Object.keys(pkg.exports).length} entries`);
+    }
   }
+} catch (e) {
+  // Silently skip — pnpm doesn't have a root package.json in node_modules
+}

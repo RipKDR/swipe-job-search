@@ -229,6 +229,38 @@ export type Database = {
           created_at?: string;
         };
       };
+      reports: {
+        Row: {
+          id: string;
+          reporter_id: string;
+          reported_id: string;
+          reason: string;
+          details: string | null;
+          job_id: string | null;
+          match_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          reporter_id: string;
+          reported_id: string;
+          reason: string;
+          details?: string | null;
+          job_id?: string | null;
+          match_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          reporter_id?: string;
+          reported_id?: string;
+          reason?: string;
+          details?: string | null;
+          job_id?: string | null;
+          match_id?: string | null;
+          created_at?: string;
+        };
+      };
     };
     Views: Record<string, never>;
     Functions: {

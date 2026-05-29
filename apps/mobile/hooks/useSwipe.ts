@@ -12,5 +12,3 @@ export function useSwipe() {
 
   return { swipe };
 }
-
-export type { SwipeInput, SwipeResult };

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePostHog } from '@/hooks/usePostHog';
-import { useSwipe } from './useSwipe';
+import { useSwipe } from '@/hooks/useSwipe';
 import { supabase } from '@/lib/supabase';
 import type { Job } from '@hi-hired/shared';
 

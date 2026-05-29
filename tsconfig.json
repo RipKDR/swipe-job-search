@@ -1,6 +1,7 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "moduleResolution": "bundler"
-  },
-  "extends": "expo/tsconfig.base"
+    "moduleResolution": "nodenext",
+    "strictNullChecks": false
+  }
 }

@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router'
 import { Text } from 'react-native'
+import { resolveTabBarColor } from '@/lib/tab-bar-color'
 
 export type RoleTab = {
   name: string
@@ -9,6 +10,12 @@ export type RoleTab = {
 
 interface RoleTabLayoutProps {
   tabs: RoleTab[]
+}
+
+export function TabIcon({ emoji, color }: { emoji: string; color: unknown }) {
+  return (
+    <Text style={{ color: resolveTabBarColor(color), fontSize: 24 }}>{emoji}</Text>
+  );
 }
 
 export function RoleTabLayout({ tabs }: RoleTabLayoutProps) {
@@ -30,7 +37,7 @@ export function RoleTabLayout({ tabs }: RoleTabLayoutProps) {
           name={tab.name}
           options={{
             title: tab.title,
-            tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 24 }}>{tab.icon}</Text>,
+            tabBarIcon: ({ color }) => <TabIcon emoji={tab.icon} color={color} />,
           }}
         />
       ))}

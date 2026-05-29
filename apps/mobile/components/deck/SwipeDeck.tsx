@@ -83,14 +83,14 @@ export function SwipeDeck({ jobs, onSwipe, onCardPress, isLoading }: SwipeDeckPr
   }
 
   return (
-    <View className="flex-1 bg-slate-950 items-center justify-center px-4 pt-8">
+    <View className="flex-1 items-center justify-center px-4 sm:px-6 pt-6 sm:pt-8 w-full">
       {/* Peek stack (visual weight per ref) */}
-      <View className="absolute w-[92%] h-[92%] -bottom-3 left-[-4%] bg-[#1f1c18] rounded-3xl border border-[#2a2723]" />
-      <View className="absolute w-[96%] h-[96%] -bottom-1.5 left-[-2%] bg-[#2a2723] rounded-3xl border border-[#3a3630]" />
+      <View className="absolute w-[88%] sm:w-[92%] max-w-md h-[92%] -bottom-3 left-1/2 -translate-x-1/2 -ml-[44%] sm:-ml-[46%] bg-[#1f1c18] rounded-3xl border border-[#2a2723]" />
+      <View className="absolute w-[92%] sm:w-[96%] max-w-md h-[96%] -bottom-1.5 left-1/2 -translate-x-1/2 -ml-[46%] sm:-ml-[48%] bg-[#2a2723] rounded-3xl border border-[#3a3630]" />
 
       {/* Top card with gesture */}
       <GestureDetector gesture={pan}>
-        <Animated.View style={[cardStyle, { width: '100%', maxWidth: 340 }]}>
+        <Animated.View style={[cardStyle, { width: '100%', maxWidth: 420, alignSelf: 'center' }]}>
           <JobCard
             job={topJob}
             onPress={() => onCardPress?.(topJob)}
@@ -118,7 +118,7 @@ export function SwipeDeck({ jobs, onSwipe, onCardPress, isLoading }: SwipeDeckPr
           onPress={() => handleSwipeComplete('left')}
           accessibilityRole="button"
           accessibilityLabel="Pass this job (swipe left)"
-          className="w-16 h-16 rounded-full bg-[#475569] items-center justify-center active:opacity-80"
+          className="w-16 h-16 rounded-full bg-slate-600 items-center justify-center active:opacity-80"
           testID="pass-button"
         >
           <Text className="text-white text-3xl">✕</Text>
@@ -135,7 +135,7 @@ export function SwipeDeck({ jobs, onSwipe, onCardPress, isLoading }: SwipeDeckPr
         </Pressable>
       </View>
 
-      <Text className="text-[#6b665f] text-xs mt-4 tracking-wide">Swipe or tap • {localJobs.length} left in circle</Text>
+      <Text className="text-slate-500 text-xs mt-4 tracking-wide">Swipe or tap • {localJobs.length} left in circle</Text>
 
       {isLoading && <Text className="text-[#4ade80] mt-2 text-sm">Saving...</Text>}
     </View>

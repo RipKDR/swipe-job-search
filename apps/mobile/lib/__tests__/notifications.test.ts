@@ -44,6 +44,12 @@ vi.mock('expo-constants', () => ({
   },
 }))
 
+vi.mock('expo', () => ({
+  default: {},
+  isRunningInExpoGo: () => false,
+  PermissionStatus: { GRANTED: 'granted', DENIED: 'denied', UNDETERMINED: 'undetermined' },
+}))
+
 vi.mock('react-native', () => ({
   Platform: { OS: 'ios' },
   AppState: {

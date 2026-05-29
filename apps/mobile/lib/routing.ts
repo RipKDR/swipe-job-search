@@ -12,7 +12,7 @@ export const ROUTES = {
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
 
-export function routerHref(route: AppRoute): Href {
+function routerHref(route: AppRoute): Href {
   return route as Href;
 }
 
@@ -53,7 +53,7 @@ export function getAuthRedirectUrl(): string {
   return scheme ? `${scheme}://auth/callback` : 'hi-hired://auth/callback';
 }
 
-export type AppRole = 'candidate' | 'employer';
+type AppRole = 'candidate' | 'employer';
 
 /** Route group that requires a specific role once onboarding is complete. */
 export function getRequiredRoleForGroup(group: string | undefined): AppRole | null {

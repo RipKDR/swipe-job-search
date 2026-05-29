@@ -1,24 +1,32 @@
 import { useCssElement } from "react-native-css";
 import React from "react";
-import { StyleSheet } from "react-native";
+import {
+  Image as RNImage,
+  Platform,
+  StyleSheet,
+  type ImageProps as RNImageProps,
+} from "react-native";
 import Animated from "react-native-reanimated";
-import { Image as RNImage } from "expo-image";
+import { Image as ExpoImage } from "expo-image";
 
-const AnimatedExpoImage = Animated.createAnimatedComponent(RNImage);
+const AnimatedExpoImage =
+  Platform.OS === "web" ? null : Animated.createAnimatedComponent(ExpoImage);
 
-type CSSImageProps = React.ComponentProps<typeof AnimatedExpoImage>;
-type ContentFit = CSSImageProps["contentFit"];
-type ContentPosition = CSSImageProps["contentPosition"];
+type ExpoImageProps = React.ComponentProps<typeof ExpoImage>;
+type ContentFit = ExpoImageProps["contentFit"];
+type ContentPosition = ExpoImageProps["contentPosition"];
+type CSSImageProps = Omit<ExpoImageProps, "source" | "style"> &
+  Omit<RNImageProps, "source" | "style"> & {
+    source?: ExpoImageProps["source"] | RNImageProps["source"] | string;
+    style?: ExpoImageProps["style"] | RNImageProps["style"];
+  };
 type StyleWithObjectProps = {
   objectFit?: ContentFit;
   objectPosition?: ContentPosition;
   [key: string]: unknown;
 };
 
-const CSSImage = React.forwardRef<
-  React.ElementRef<typeof AnimatedExpoImage>,
-  CSSImageProps
->(function CSSImage(props, ref) {
+const CSSImage = React.forwardRef<any, CSSImageProps>(function CSSImage(props, ref) {
   let contentFit: ContentFit;
   let contentPosition: ContentPosition;
   let flattenedStyle: CSSImageProps["style"];
@@ -43,17 +51,46 @@ const CSSImage = React.forwardRef<
     flattenedStyle = undefined;
   }
 
+  const normalizedSource =
+    typeof props.source === "string" ? { uri: props.source } : props.source;
+  const imageContentFit = contentFit ?? props.contentFit;
+  const imageContentPosition = contentPosition ?? props.contentPosition;
+
+  if (Platform.OS === "web") {
+    const {
+      contentFit: _contentFit,
+      contentPosition: _contentPosition,
+      ...webProps
+    } = props;
+    const resizeMode =
+      imageContentFit === "contain" || imageContentFit === "scale-down"
+        ? "contain"
+        : imageContentFit === "fill"
+          ? "stretch"
+          : imageContentFit === "none"
+            ? "center"
+            : "cover";
+
+    return (
+      <RNImage
+        ref={ref}
+        {...(webProps as RNImageProps)}
+        source={normalizedSource as RNImageProps["source"]}
+        resizeMode={resizeMode}
+        style={flattenedStyle as RNImageProps["style"]}
+      />
+    );
+  }
+
+  const NativeImage = AnimatedExpoImage as any;
+
   return (
-    <AnimatedExpoImage
+    <NativeImage
       ref={ref}
-      contentFit={contentFit}
-      contentPosition={contentPosition}
-      {...props}
-      source={
-        typeof props.source === "string"
-          ? { uri: props.source }
-          : props.source
-      }
+      contentFit={imageContentFit}
+      contentPosition={imageContentPosition}
+      {...(props as ExpoImageProps)}
+      source={normalizedSource as ExpoImageProps["source"]}
       style={flattenedStyle}
     />
   );

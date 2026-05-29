@@ -1,34 +1,67 @@
-import { View, Text, ScrollView, Pressable } from '@/components/tw'
-import { BEACHHEAD_SUBURBS } from '@hi-hired/shared'
+import { View, Text, Pressable } from '@/components/tw';
+import { useMemo, useState } from 'react';
+import { BEACHHEAD_SUBURBS } from '@hi-hired/shared';
+import { FormBlock } from '@/components/onboarding/FormBlock';
+
+const VISIBLE_COUNT = 6;
 
 interface SuburbPickerProps {
-  value: string | undefined
-  onChange: (suburb: (typeof BEACHHEAD_SUBURBS)[number]) => void
-  error?: string
+  value: string | undefined;
+  onChange: (suburb: (typeof BEACHHEAD_SUBURBS)[number]) => void;
+  error?: string;
 }
 
 export function SuburbPicker({ value, onChange, error }: SuburbPickerProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  const visibleSuburbs = useMemo(() => {
+    if (expanded) return [...BEACHHEAD_SUBURBS];
+    if (value && !BEACHHEAD_SUBURBS.slice(0, VISIBLE_COUNT).includes(value as never)) {
+      const rest = BEACHHEAD_SUBURBS.filter((s) => s !== value);
+      return [value, ...rest.slice(0, VISIBLE_COUNT - 1)];
+    }
+    return BEACHHEAD_SUBURBS.slice(0, VISIBLE_COUNT);
+  }, [expanded, value]);
+
+  const hasMore = BEACHHEAD_SUBURBS.length > VISIBLE_COUNT;
+
   return (
-    <View>
-      <Text className="text-white text-sm font-medium mb-2">Suburb *</Text>
-      <View className="bg-slate-900 rounded-lg border border-slate-800 max-h-40">
-        <ScrollView>
-          {BEACHHEAD_SUBURBS.map((suburb) => (
+    <FormBlock
+      label="Suburb *"
+      hint="Northern Melbourne beachhead — pick where you are based"
+      error={error}
+    >
+      <View className="flex-row flex-wrap gap-2 sm:gap-2.5 md:gap-3">
+        {visibleSuburbs.map((suburb) => {
+          const selected = value === suburb;
+          return (
             <Pressable
               key={suburb}
               onPress={() => onChange(suburb)}
-              className={`px-4 py-3 border-b border-slate-800 ${
-                value === suburb ? 'bg-indigo-600/20' : ''
+              accessibilityRole="button"
+              accessibilityState={{ selected }}
+              className={`px-3.5 py-2.5 rounded-full border ${
+                selected
+                  ? 'border-indigo-500 bg-indigo-500/15'
+                  : 'border-slate-700 bg-slate-900/90 active:bg-slate-800'
               }`}
             >
-              <Text className={value === suburb ? 'text-indigo-400' : 'text-white'}>
+              <Text
+                className={`text-sm font-medium ${selected ? 'text-indigo-300' : 'text-slate-200'}`}
+              >
                 {suburb}
               </Text>
             </Pressable>
-          ))}
-        </ScrollView>
+          );
+        })}
       </View>
-      {error ? <Text className="text-red-400 text-xs mt-1">{error}</Text> : null}
-    </View>
-  )
+      {hasMore ? (
+        <Pressable onPress={() => setExpanded((e) => !e)} className="mt-3 self-start">
+          <Text className="text-indigo-400 text-sm font-medium">
+            {expanded ? 'Show fewer suburbs' : `Show all ${BEACHHEAD_SUBURBS.length} suburbs`}
+          </Text>
+        </Pressable>
+      ) : null}
+    </FormBlock>
+  );
 }

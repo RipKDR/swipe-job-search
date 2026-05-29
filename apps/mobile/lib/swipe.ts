@@ -12,7 +12,7 @@ export interface SwipeResult {
   success: boolean;
 }
 
-export function mapSwipeError(error: { message?: string } | null): string {
+function mapSwipeError(error: { message?: string } | null): string {
   const message = error?.message ?? '';
   if (message.includes('RATE_LIMIT_EXCEEDED')) {
     return 'Too many swipes — try again in a minute';
@@ -24,7 +24,7 @@ export function mapSwipeError(error: { message?: string } | null): string {
 async function triggerHaptic(type?: 'selection' | 'success' | 'warning') {
   if (Platform.OS === 'web') return;
   try {
-    const Haptics = require('expo-haptics');
+    const Haptics = await import('expo-haptics');
     if (type === 'selection') {
       await Haptics.selectionAsync();
     } else if (type === 'success') {

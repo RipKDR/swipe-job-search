@@ -1,73 +1,89 @@
-import { FlatList, RefreshControl } from 'react-native'
-import { View, Text } from '@/components/tw'
-import { useRouter } from 'expo-router'
-import { Button } from '@/components/ui/Button'
-import { JobListItem } from '@/components/employer/JobListItem'
-import { useMyJobs } from '@/hooks/useMyJobs'
+import React, { useCallback } from 'react';
+import { FlatList, RefreshControl } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Button } from '@/components/ui/Button';
+import { JobListItem } from '@/components/employer/JobListItem';
+import { useMyJobs } from '@/hooks/useMyJobs';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { TabWebShell } from '@/components/ui/TabWebShell';
+import { useListColumns } from '@/hooks/useListColumns';
 
 export default function JobsScreen() {
-  const router = useRouter()
-  const { data: jobs = [], isLoading, error, refetch, isRefetching } = useMyJobs()
+  const router = useRouter();
+  const { data: jobs = [], isLoading, error, refetch, isRefetching } = useMyJobs();
+  const numColumns = useListColumns(2);
+  const totalInterested = jobs.reduce((sum, j) => sum + (j.interestedCount || 0), 0);
 
-  const totalInterested = jobs.reduce((sum, j) => sum + (j.interestedCount || 0), 0)
+  const handlePostJob = useCallback(() => {
+    router.push('/(employer)/(tabs)/post-job');
+  }, [router]);
+
+  const handleOpenInterested = useCallback(
+    (jobId: string) => {
+      router.push(`/(employer)/(tabs)/jobs/${jobId}/interested` as any);
+    },
+    [router],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: any }) => (
+      <JobListItem job={item} onOpenInterested={handleOpenInterested} />
+    ),
+    [handleOpenInterested],
+  );
+
+  if (isLoading) {
+    return <LoadingScreen message="Loading your jobs…" />;
+  }
 
   return (
-    <View className="flex-1 bg-slate-950 px-4 pt-14 pb-6">
-      <View className="mb-4">
-        <Text className="text-white text-2xl font-semibold">My Jobs</Text>
-        <Text className="text-slate-400 mt-1">
-          {jobs.length} active role{jobs.length === 1 ? '' : 's'} · {totalInterested} interested candidates
-        </Text>
-      </View>
-
-      <Button
-        title="Post new job"
-        onPress={() => router.push('/(employer)/(tabs)/post-job')}
-        className="mb-4"
-      />
-
-      {isLoading ? (
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-slate-300">Loading your jobs...</Text>
-        </View>
-      ) : error ? (
-        <View className="flex-1 items-center justify-center gap-3">
-          <Text className="text-rose-300 text-center">Unable to load your jobs.</Text>
-          <Button title="Retry" variant="secondary" onPress={() => refetch()} />
-        </View>
-      ) : jobs.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-6xl mb-4">📭</Text>
-          <Text className="text-white text-xl font-semibold text-center">No jobs yet</Text>
-          <Text className="text-slate-400 text-center mt-2">
-            Post your first casual role and start receiving interest from local candidates.
-          </Text>
-          <Button
-            title="Post your first job"
-            onPress={() => router.push('/(employer)/(tabs)/post-job')}
-            className="mt-6"
-          />
-        </View>
-      ) : (
-        <FlatList
-          data={jobs}
-          keyExtractor={(job) => job.id}
-          contentContainerStyle={{ gap: 12, paddingBottom: 40 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefetching}
-              onRefresh={refetch}
-              tintColor="#4ade80"
-            />
-          }
-          renderItem={({ item }) => (
-            <JobListItem
-              job={item}
-              onOpenInterested={(jobId) => router.push(`/(employer)/(tabs)/jobs/${jobId}/interested` as any)}
-            />
-          )}
+    <AppScreen centered={false} maxWidth="tab">
+      <TabWebShell>
+        <ScreenHeader
+          title="My jobs"
+          subtitle={`${jobs.length} active role${jobs.length === 1 ? '' : 's'} · ${totalInterested} interested`}
         />
-      )}
-    </View>
-  )
+        <Button
+          title="Post new job"
+          onPress={handlePostJob}
+          className="mb-4"
+          fullWidth
+        />
+
+        {error ? (
+          <EmptyState
+            emoji="⚠️"
+            title="Could not load jobs"
+            description="Check your connection and try again."
+            actionLabel="Retry"
+            onAction={() => refetch()}
+          />
+        ) : jobs.length === 0 ? (
+          <EmptyState
+            emoji="📋"
+            title="No jobs yet"
+            description="Post your first casual role and start receiving interest from local candidates."
+            actionLabel="Post your first job"
+            onAction={() => router.push('/(employer)/(tabs)/post-job')}
+          />
+        ) : (
+          <FlatList
+            key={`jobs-cols-${numColumns}`}
+            data={jobs}
+            numColumns={numColumns}
+            keyExtractor={(job) => job.id}
+            columnWrapperStyle={numColumns > 1 ? { gap: 12 } : undefined}
+            contentContainerStyle={{ gap: 12, paddingBottom: 40 }}
+            refreshControl={
+              <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#818cf8" />
+            }
+            renderItem={renderItem}
+          />
+        )}
+      </TabWebShell>
+    </AppScreen>
+  );
 }

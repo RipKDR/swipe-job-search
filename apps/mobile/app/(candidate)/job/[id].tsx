@@ -1,17 +1,14 @@
-/**
- * Job detail (U5)
- * Full description + "I'm Interested" (duplicates swipe right)
- * Per plan: no Super Apply, no map.
- * Fetches job by ID from Supabase (no mock data).
- */
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, Pressable, ScrollView } from '@/components/tw'
-import { Alert } from 'react-native'
-;
+import { View, Text, Pressable } from '@/components/tw';
+import { Alert } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { usePostHog } from '@/hooks/usePostHog';
 import type { Job } from '@hi-hired/shared';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Button } from '@/components/ui/Button';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 
 async function fetchJobById(id: string): Promise<Job | null> {
   const { data, error } = await (supabase as any)
@@ -40,21 +37,22 @@ export default function JobDetail() {
     if (!job) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
       const { error: swipeError } = await (supabase as any)
         .from('swipes')
-        .upsert(
-          [{ candidate_id: user.id, job_id: job.id, direction: 'right' }],
-          { onConflict: 'candidate_id,job_id' }
-        );
+        .upsert([{ candidate_id: user.id, job_id: job.id, direction: 'right' }], {
+          onConflict: 'candidate_id,job_id',
+        });
 
       if (swipeError) throw swipeError;
 
       posthog.capture('job_swiped', { direction: 'right', job_id: job.id });
 
-      Alert.alert("Interest sent", "The employer will see you in their interested list.", [
+      Alert.alert('Interest sent', 'The employer will see you in their interested list.', [
         { text: 'Back to deck', onPress: () => router.back() },
       ]);
     } catch {
@@ -63,55 +61,37 @@ export default function JobDetail() {
   };
 
   if (isLoading) {
-    return (
-      <ScrollView className="flex-1 bg-slate-950 p-6">
-        <Text className="text-slate-400">Loading job...</Text>
-      </ScrollView>
-    );
+    return <LoadingScreen message="Loading job…" />;
   }
 
   if (error || !job) {
     return (
-      <ScrollView className="flex-1 bg-slate-950 p-6">
-        <Text className="text-red-400">Job not found</Text>
-        <Pressable onPress={() => router.back()} className="mt-6">
-          <Text className="text-[#60a5fa] text-center">← Back to deck</Text>
-        </Pressable>
-      </ScrollView>
+      <AppScreen scroll centered maxWidth="lg">
+        <ScreenHeader title="Job not found" subtitle="This role may have expired or been removed." onBack={() => router.back()} />
+        <Button title="Back to deck" variant="outline" fullWidth onPress={() => router.back()} className="mt-6" />
+      </AppScreen>
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-slate-950 p-6">
-      <Text className="text-[#4ade80] text-xs tracking-[2px] mb-1">
-        {job.suburb?.toUpperCase()} • {job.job_type?.toUpperCase()}
-      </Text>
-      <Text className="text-white text-3xl font-semibold tracking-tight">{job.title}</Text>
-      <Text className="text-[#4ade80] text-4xl font-bold mt-1 tabular-nums">{job.pay_display}</Text>
-      <Text className="text-slate-400 mt-1">{job.hours_text} • {job.suburb}</Text>
+    <AppScreen scroll centered maxWidth="lg" footer={
+      <View className="gap-3">
+        <Button title="I'm interested" fullWidth onPress={handleInterested}  />
+        <Text className="text-slate-500 text-xs text-center">Same as swiping right on the deck</Text>
+      </View>
+    }>
+      <ScreenHeader onBack={() => router.back()} title={job.title} subtitle={`${job.suburb} · ${job.job_type.replace('_', ' ')}`} />
 
-      <View className="h-px bg-slate-800 my-6" />
-
-      <Text className="text-white text-lg font-medium mb-2">About the role</Text>
-      <Text className="text-slate-300 leading-relaxed text-[15px]">
-        {job.description || 'Great casual opportunity in the local area. Supportive team, consistent shifts.'}
-      </Text>
-
-      <View className="mt-8">
-        <Pressable
-          onPress={handleInterested}
-          accessibilityRole="button"
-          accessibilityLabel="I'm interested — swipe right equivalent"
-          className="bg-[#166534] py-4 rounded-2xl active:opacity-90"
-        >
-          <Text className="text-white text-center text-lg font-semibold tracking-wide">I'M INTERESTED</Text>
-        </Pressable>
-        <Text className="text-center text-[#6b665f] text-xs mt-3">This is the same as swiping right on the deck</Text>
+      <View className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 mb-6">
+        <Text className="text-emerald-400 text-4xl font-bold tabular-nums">{job.pay_display}</Text>
+        <Text className="text-slate-400 mt-2">{job.hours_text}</Text>
       </View>
 
-      <Pressable onPress={() => router.back()} className="mt-6">
-        <Text className="text-[#60a5fa] text-center">← Back to deck</Text>
-      </Pressable>
-    </ScrollView>
+      <Text className="text-white text-lg font-semibold mb-2">About the role</Text>
+      <Text className="text-slate-300 leading-relaxed text-base">
+        {job.description ||
+          'Great casual opportunity in the local area. Supportive team, consistent shifts.'}
+      </Text>
+    </AppScreen>
   );
 }

@@ -9,6 +9,6 @@ export const JOB_TYPE_LABELS: Record<JobType, string> = {
   permanent: 'Permanent',
 };
 
-export function isValidJobType(type: string): type is JobType {
+function isValidJobType(type: string): type is JobType {
   return JOB_TYPES.includes(type as JobType);
 }

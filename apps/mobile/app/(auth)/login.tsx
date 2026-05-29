@@ -6,6 +6,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { APPLE_AUTH_ENABLED, APPLE_AUTH_DISABLED_COPY } from '@/lib/login-config';
 import { getAuthRedirectUrl } from '@/lib/routing';
 import { formatSupabaseAuthError } from '@/lib/auth-errors';
+import { getErrorMessage } from '@/lib/errors';
 import { completeAuthCallback, parseAuthCallbackUrl } from '@/lib/authCallback';
 import {
   OTP_RESEND_COOLDOWN_MS,
@@ -142,7 +143,7 @@ export default function Login() {
       const message =
         err instanceof TypeError && /fetch/i.test(err.message)
           ? 'Cannot reach Supabase. Check EXPO_PUBLIC_SUPABASE_URL in apps/mobile/.env.local and restart Expo.'
-          : 'Something went wrong. Please try again.';
+          : getErrorMessage(err, 'Something went wrong. Please try again.');
       showAuthError(message);
       console.error('[login] Magic link error:', err);
     } finally {
@@ -206,25 +207,30 @@ export default function Login() {
 
   if (magicLinkSent) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-950 p-6">
-        <Text className="text-white text-2xl font-bold mb-4">Check your email</Text>
-        <Text className="text-slate-400 text-center mb-8">
-          We sent a magic link to {email}.{'\n'}Click it to sign in.
-        </Text>
-        <Button
-          title="Try different email"
-          variant="outline"
-          onPress={() => { setMagicLinkSent(false); setEmail(''); setLoginError(null); }}
-        />
+      <View className="flex-1 items-center justify-center bg-slate-950 p-4 sm:p-6 lg:p-8 min-h-screen-safe">
+        <View className="absolute inset-x-0 top-0 h-48 bg-indigo-600/10" pointerEvents="none" />
+        <View className="w-full max-w-md sm:max-w-lg lg:max-w-xl">
+          <Text className="text-white text-3xl font-bold mb-3 text-center tracking-tight">Check your email</Text>
+          <Text className="text-slate-400 text-center mb-8 text-base leading-relaxed">
+            We sent a magic link to {email}. Tap it to sign in.
+          </Text>
+          <Button
+            title="Try different email"
+            variant="outline"
+            fullWidth
+            onPress={() => { setMagicLinkSent(false); setEmail(''); setLoginError(null); }}
+          />
+        </View>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 items-center justify-center bg-slate-950 p-6">
-      <View className="w-full max-w-sm">
-        <Text className="text-white text-4xl font-bold mb-2 text-center">Hi-Hired</Text>
-        <Text className="text-slate-400 mb-8 text-center">
+    <View className="flex-1 items-center justify-center bg-slate-950 p-4 sm:p-6 lg:p-8 min-h-screen-safe">
+      <View className="absolute inset-x-0 top-0 h-48 bg-indigo-600/10" pointerEvents="none" />
+      <View className="w-full max-w-md sm:max-w-lg lg:max-w-xl">
+        <Text className="text-white text-4xl font-bold mb-2 text-center tracking-tight">Hi-Hired</Text>
+        <Text className="text-slate-400 mb-8 text-center text-base leading-relaxed">
           Find your next job, one swipe at a time
         </Text>
 

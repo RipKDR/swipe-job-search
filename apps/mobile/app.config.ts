@@ -2,7 +2,7 @@ import { ConfigContext } from 'expo/config';
 import type { ExpoConfig } from '@expo/config-types';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
-  ...config as ExpoConfig,
+  ...(config as ExpoConfig),
   name: 'Hi-Hired',
   slug: 'hi-hired',
   version: '0.0.1',
@@ -15,6 +15,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     bundler: 'metro',
     output: 'single',
   },
+  extra: {
+    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+    authRedirectOrigin: process.env.EXPO_PUBLIC_AUTH_REDIRECT_ORIGIN,
+    posthogKey: process.env.EXPO_PUBLIC_POSTHOG_KEY,
+    posthogHost: process.env.EXPO_PUBLIC_POSTHOG_HOST,
+    sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+    sentryOrg: process.env.EXPO_PUBLIC_SENTRY_ORG,
+    sentryProject: process.env.EXPO_PUBLIC_SENTRY_PROJECT,
+  },
   plugins: [
     'expo-dev-client',
     'expo-router',
@@ -24,26 +34,25 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       {
         image: './assets/splash.png',
         resizeMode: 'contain',
-        backgroundColor: '#0f172a'
-      }
+        backgroundColor: '#0f172a',
+      },
     ],
     [
       'expo-notifications',
       {
         icon: './assets/notification-icon.png',
         color: '#6366f1',
-        defaultChannelName: 'default'
-      }
+        defaultChannelName: 'default',
+      },
     ],
     [
       'expo-image-picker',
       {
         photosPermission: 'Allow Hi-Hired to access your photos for profile pictures.',
-      }
-    ]
+      },
     ],
-    experiments: {
-      typedRoutes: true,
-    }
-  }
+  ],
+  experiments: {
+    typedRoutes: true,
+  },
 });

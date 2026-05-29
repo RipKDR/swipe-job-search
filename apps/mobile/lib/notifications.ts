@@ -63,7 +63,7 @@ export function configureNotificationHandler(): void {
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   if (Platform.OS === 'web') return null;
 
-  const Notifications = require('expo-notifications');
+  const { default: Notifications } = await import('expo-notifications');
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
 

@@ -57,3 +57,4 @@ agentdb.rvf
 agentdb.rvf.lock
 .sentryclirc
 posthog*.json
+.metro-stubs/

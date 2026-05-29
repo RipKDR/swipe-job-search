@@ -7,11 +7,11 @@ import { useNotificationObserver, usePushRegistration } from '@/hooks/usePushReg
 import { initAnalytics } from '@/lib/analytics';
 import { posthog } from '@/lib/posthog';
 import { resolveAuthRedirect } from '@/lib/auth-gate';
-import { getRoleHomeRoute, routerHref, ROUTES, shouldRedirectForRoleMismatch, type AppRoute } from '@/lib/routing';
+import { getRoleHomeRoute, ROUTES, shouldRedirectForRoleMismatch, type AppRoute } from '@/lib/routing';
 import { initSentry, wrapApp } from '@/lib/sentry';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Slot, useGlobalSearchParams, usePathname, useRouter, useSegments } from 'expo-router';
+import { Slot, useGlobalSearchParams, usePathname, useRouter, useSegments, type Href } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import '../global.css';
@@ -88,7 +88,7 @@ function RootLayoutNav() {
     if (authTarget) {
       if (lastAuthRedirectRef.current !== authTarget) {
         lastAuthRedirectRef.current = authTarget;
-        router.replace(routerHref(authTarget as AppRoute));
+        router.replace(authTarget as Href);
       }
       return;
     }
@@ -104,12 +104,12 @@ function RootLayoutNav() {
         profile.onboarding_completed_at &&
         shouldRedirectForRoleMismatch(profile.role, group, true)
       ) {
-        router.replace(routerHref(homeRoute));
+        router.replace(homeRoute as Href);
         return;
       }
 
       if (profile.onboarding_completed_at && !inAuth && !inOnboarding && !segments[0]) {
-        router.replace(routerHref(homeRoute));
+        router.replace(homeRoute as Href);
       }
     }
   }, [session, profile, loading, segments, router]);

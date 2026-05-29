@@ -35,12 +35,12 @@ export function useInterestedList(jobId: string) {
         { data: blocksData, error: blocksError },
       ] =
         await Promise.all([
-          (supabase as any)
+          supabase
             .from('profiles')
             .select('id,full_name,suburb,skills,avatar_url')
             .in('id', candidateIds),
-          (supabase as any).from('matches').select('candidate_id').eq('job_id', jobId).in('candidate_id', candidateIds),
-          (supabase as any)
+          supabase.from('matches').select('candidate_id').eq('job_id', jobId).in('candidate_id', candidateIds),
+          supabase
             .from('blocks')
             .select('blocked_id')
             .eq('blocker_id', profile!.id)

@@ -19,12 +19,12 @@ export function initAnalytics(): void {
   initialized = true;
 }
 
-export function trackEvent(event: string, properties?: AnalyticsProperties): void {
+function trackEvent(event: string, properties?: AnalyticsProperties): void {
   if (!Constants.expoConfig?.extra?.posthogKey) return;
   posthog.capture(event, properties);
 }
 
-export function identifyUser(userId: string): void {
+function identifyUser(userId: string): void {
   if (!Constants.expoConfig?.extra?.posthogKey) return;
   posthog.identify(userId);
 }

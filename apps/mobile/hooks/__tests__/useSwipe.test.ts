@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock haptics (exact 2026 APIs)
-vi.mock('expo-haptics', () => ({
-  notificationAsync: vi.fn().mockResolvedValue(undefined),
-  selectionAsync: vi.fn().mockResolvedValue(undefined),
-  NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
+// NOTE: expo-haptics is mocked at setup level (vitest.setup.ts) with vi.fn() so
+// Vite's runtime require('expo-haptics') in lib/swipe.ts intercepts through
+// vitest's CJS layer. The Vite-level alias was removed to avoid bypassing the mock.
+
+// Override Platform to non-web so haptics code path fires
+vi.mock('react-native', () => ({
+  Platform: { OS: 'ios', select: (obj: any) => obj.ios || obj.default },
 }));
 
 // Mock supabase used by pure fn

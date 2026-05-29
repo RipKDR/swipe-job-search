@@ -4,12 +4,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 vi.mock('@/components/ui/Button', () => ({
   Button: ({ title, onPress, disabled }: { title: string; onPress?: () => void; disabled?: boolean }) => {
     const React = require('react');
-    const { Pressable, Text } = require('react-native');
-    return React.createElement(
-      Pressable,
-      { onPress, disabled, accessibilityRole: 'button' },
-      React.createElement(Text, null, title)
-    );
+    return React.createElement('button', { onClick: onPress, disabled, 'data-testid': 'continue-btn' }, title);
   },
 }));
 
@@ -22,6 +17,10 @@ import {
 } from '@/lib/onboarding-submit';
 
 const mockPush = vi.fn();
+
+vi.mock('@/hooks/usePostHog', () => ({
+  usePostHog: () => ({ capture: vi.fn() }),
+}));
 
 vi.mock('expo-router', () => ({
   useRouter: () => ({

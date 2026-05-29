@@ -1,3 +1,4 @@
+import React from 'react';
 import { View, Text, Pressable } from '@/components/tw';
 import type { Job } from '@hi-hired/shared';
 
@@ -12,7 +13,7 @@ interface JobCardProps {
  * Large pay, tactile feel, high contrast, a11y labels.
  * No gesture here (owned by SwipeDeck).
  */
-export function JobCard({ job, onPress, testID }: JobCardProps) {
+export const JobCard = React.memo(function JobCard({ job, onPress, testID }: JobCardProps) {
   return (
     <Pressable
       onPress={onPress}
@@ -43,8 +44,7 @@ export function JobCard({ job, onPress, testID }: JobCardProps) {
           <View className="flex-1 pr-2">
             <Text className="text-[#1f1c18] text-[21px] leading-none font-semibold tracking-[-0.4px]">{job.title}</Text>
             <View className="mt-1 flex-row items-baseline">
-              <Text className="text-[36px] font-semibold tabular-nums tracking-[-1.5px] text-[#166534]">{job.pay_display.split('/')[0]}</Text>
-              <Text className="text-[#166534]/70 text-sm ml-1">/hr + super</Text>
+              <Text className="text-[36px] font-semibold tabular-nums tracking-[-1.5px] text-[#166534]">{job.pay_display}</Text>
             </View>
           </View>
           <Text className="text-right text-[10px] text-[#6b665f] pt-1">in circle</Text>
@@ -60,4 +60,6 @@ export function JobCard({ job, onPress, testID }: JobCardProps) {
       </View>
     </Pressable>
   );
-}
+});
+
+export default JobCard;

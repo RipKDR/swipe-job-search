@@ -22,7 +22,7 @@ export async function submitReport({
   jobId?: string
   matchId?: string
 }) {
-  const { error } = await (supabase as any).from('reports').insert({
+  const { error } = await supabase.from('reports').insert({
     reporter_id: reporterId,
     reported_id: reportedId,
     reason,
@@ -35,7 +35,7 @@ export async function submitReport({
 }
 
 export async function blockUser(blockerId: string, blockedId: string) {
-  const { error } = await (supabase as any).from('blocks').insert({
+  const { error } = await supabase.from('blocks').insert({
     blocker_id: blockerId,
     blocked_id: blockedId,
   })

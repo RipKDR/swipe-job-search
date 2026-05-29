@@ -1,6 +1,6 @@
-import { View, Text } from '@/components/tw';
+import { Text } from '@/components/tw';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import * as Linking from 'expo-linking';
 import { supabase } from '@/lib/supabase';
 import {
@@ -8,8 +8,10 @@ import {
   parseAuthCallbackParams,
   parseAuthCallbackUrl,
 } from '@/lib/authCallback';
-import { ROUTES, routerHref } from '@/lib/routing';
+import { ROUTES } from '@/lib/routing';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
 
 export default function Callback() {
@@ -27,9 +29,15 @@ export default function Callback() {
 
   const runCallback = useCallback(async (params: ReturnType<typeof parseAuthCallbackParams>) => {
     const { session, error: authError } = await completeAuthCallback(supabase, params);
-    if (authError) { setError(authError); return; }
-    if (!session) { setError('No session found. Please try again.'); return; }
-    router.replace(routerHref(ROUTES.root));
+    if (authError) {
+      setError(authError);
+      return;
+    }
+    if (!session) {
+      setError('No session found. Please try again.');
+      return;
+    }
+    router.replace(ROUTES.root as Href);
   }, [router]);
 
   useEffect(() => {
@@ -53,14 +61,21 @@ export default function Callback() {
 
   if (error) {
     return (
-      <View className="flex-1 items-center justify-center bg-slate-950 p-6">
-        <Text className="text-red-500 text-xl font-bold mb-4">Sign in failed</Text>
-        <Text className="text-slate-400 text-center mb-8">{error}</Text>
-        <Button title="Try again" fullWidth onPress={() => router.replace(routerHref(ROUTES.login))} className="mb-3" />
-        <Button title="Back to login" variant="outline" fullWidth onPress={() => router.replace(routerHref(ROUTES.login))} />
-      </View>
+      <AppScreen centered maxWidth="md">
+        <EmptyState
+          emoji="🔐"
+          title="Sign in failed"
+          description={error}
+          secondary={
+            <>
+              <Button title="Try again" fullWidth onPress={() => router.replace(ROUTES.login as Href)} className="mb-3" />
+              <Button title="Back to login" variant="outline" fullWidth onPress={() => router.replace(ROUTES.login as Href)} />
+            </>
+          }
+        />
+      </AppScreen>
     );
   }
 
-  return <LoadingScreen message="Signing you in..." />;
+  return <LoadingScreen message="Signing you in…" />;
 }

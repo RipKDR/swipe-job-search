@@ -1,4 +1,3 @@
-import { View, Text, ScrollView } from '@/components/tw';
 import { Alert } from 'react-native';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -7,6 +6,7 @@ import { EmployerOnboardingSchema, type EmployerOnboarding } from '@hi-hired/sha
 import { usePostHog } from '@/hooks/usePostHog';
 import { EmployerProfileForm } from '@/components/forms/EmployerProfileForm';
 import { Button } from '@/components/ui/Button';
+import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -51,22 +51,22 @@ export default function EmployerProfile() {
   };
 
   return (
-    <View className="flex-1 bg-slate-950">
-      <ScrollView className="flex-1" contentContainerClassName="px-6 pt-12 pb-8">
-        <View className="mb-8">
-          <Text className="text-white text-2xl font-bold mb-2">Business details</Text>
-          <Text className="text-slate-400 text-sm">Tell candidates about your business (under 60 seconds)</Text>
-        </View>
-        <EmployerProfileForm form={form} />
+    <OnboardingShell
+      title="Business details"
+      subtitle="Help candidates understand your business — quick setup, no lengthy forms."
+      step={2}
+      totalSteps={2}
+      footer={
         <Button
-          title="Complete Profile"
+          title="Complete profile"
           fullWidth
           loading={submitting}
           disabled={submitting}
           onPress={form.handleSubmit(onSubmit)}
-          className="mt-8"
         />
-      </ScrollView>
-    </View>
+      }
+    >
+      <EmployerProfileForm form={form} />
+    </OnboardingShell>
   );
 }
