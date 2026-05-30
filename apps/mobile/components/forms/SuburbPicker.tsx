@@ -1,13 +1,13 @@
 import { View, Text, Pressable } from '@/components/tw';
 import { useMemo, useState } from 'react';
-import { BEACHHEAD_SUBURBS } from '@hi-hired/shared';
+import { BEACHHEAD_SUBURBS, type BeachheadSuburb } from '@hi-hired/shared';
 import { FormBlock } from '@/components/onboarding/FormBlock';
 
 const VISIBLE_COUNT = 6;
 
 interface SuburbPickerProps {
-  value: string | undefined;
-  onChange: (suburb: (typeof BEACHHEAD_SUBURBS)[number]) => void;
+  value: BeachheadSuburb | undefined;
+  onChange: (suburb: BeachheadSuburb) => void;
   error?: string;
 }
 
@@ -16,7 +16,7 @@ export function SuburbPicker({ value, onChange, error }: SuburbPickerProps) {
 
   const visibleSuburbs = useMemo(() => {
     if (expanded) return [...BEACHHEAD_SUBURBS];
-    if (value && !BEACHHEAD_SUBURBS.slice(0, VISIBLE_COUNT).includes(value as never)) {
+    if (value && !BEACHHEAD_SUBURBS.slice(0, VISIBLE_COUNT).includes(value)) {
       const rest = BEACHHEAD_SUBURBS.filter((s) => s !== value);
       return [value, ...rest.slice(0, VISIBLE_COUNT - 1)];
     }

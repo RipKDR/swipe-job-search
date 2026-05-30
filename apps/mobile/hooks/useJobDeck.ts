@@ -2,7 +2,10 @@ import { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePostHog } from '@/hooks/usePostHog';
 import { useSwipe } from '@/hooks/useSwipe';
+import { useUserLocation, type UserLocation } from '@/hooks/useUserLocation';
+import { useJobsPipeline } from '@/hooks/useJobsPipeline';
 import { supabase } from '@/lib/supabase';
+import { filterJobsByDistance } from '@/lib/distance';
 import type { Job } from '@hi-hired/shared';
 
 export interface DeckState {
@@ -10,6 +13,11 @@ export interface DeckState {
   currentIndex: number;
   isLoading: boolean;
   error: Error | null;
+}
+
+export interface UseJobDeckOptions {
+  /** Optional radius in km for GPS proximity filtering. Omit or set 0 for no filtering. */
+  radius_km?: number;
 }
 
 /**
@@ -21,7 +29,7 @@ export async function fetchJobDeck(): Promise<Job[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  // Fetch active jobs
+  // Fetch active jobs including lat/lng fields
   const { data: jobs, error: jobsError } = await (supabase as any)
     .from('jobs')
     .select('*')
@@ -53,14 +61,37 @@ export async function fetchJobDeck(): Promise<Job[]> {
  * useJobDeck: manages candidate deck with real Supabase data.
  * TanStack Query for fetch, optimistic remove on swipe via useSwipe.
  * Falls back to empty state when no data — no mock data in production.
+ *
+ * When `radius_km` is provided (> 0), uses the paged JobsPipeline
+ * approach for predictive buffering instead of the full 50-job fetch.
  */
-export function useJobDeck() {
+export function useJobDeck(options?: UseJobDeckOptions) {
+  const radius_km = options?.radius_km ?? 0;
   const posthog = usePostHog();
+  const { location: userLocation } = useUserLocation();
+
+  // When radius_km is set and user location is available, use paged pipeline
+  const usePipeline = radius_km > 0;
+
+  // Pipeline-based approach (paged, with predictive buffering)
+  const pipeline = useJobsPipeline(
+    usePipeline
+      ? {
+          radius_km,
+          userLat: userLocation?.latitude,
+          userLng: userLocation?.longitude,
+        }
+      : undefined,
+  );
+
+  // Traditional full-fetch approach (no radius filtering)
   const deckQuery = useQuery<Job[], Error>({
     queryKey: ['job-deck'],
     queryFn: fetchJobDeck,
     staleTime: 2 * 60 * 1000, // 2 minutes
+    enabled: !usePipeline,
   });
+
   const [jobs, setJobs] = useState<Job[]>(deckQuery.data ?? []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -68,14 +99,31 @@ export function useJobDeck() {
 
   const { swipe: doSwipe } = useSwipe();
 
+  // Apply distance filtering when fetching completes and radius is active (non-pipeline mode)
   useEffect(() => {
-    if (deckQuery.data) {
-      setJobs(deckQuery.data);
-    }
-  }, [deckQuery.data]);
+    if (usePipeline) return; // Pipeline handles its own filtering
 
-  const remainingJobs = jobs.slice(currentIndex);
+    let filtered = deckQuery.data ?? [];
+
+    if (radius_km > 0 && userLocation) {
+      filtered = filterJobsByDistance(
+        filtered,
+        userLocation.latitude,
+        userLocation.longitude,
+        radius_km,
+      );
+    }
+
+    if (filtered !== jobs) {
+      setJobs(filtered);
+      setCurrentIndex(0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckQuery.data, radius_km, userLocation?.latitude, userLocation?.longitude, usePipeline]);
+
+  const remainingJobs = usePipeline ? pipeline.jobs : jobs.slice(currentIndex);
   const topJob = remainingJobs[0] ?? null;
+  const allJobs = usePipeline ? pipeline.jobs : jobs;
 
   const swipe = useCallback(async (direction: 'left' | 'right') => {
     if (!topJob) return;
@@ -86,7 +134,12 @@ export function useJobDeck() {
     // Optimistic advance
     const prevJobs = jobs;
     const prevIndex = currentIndex;
-    setCurrentIndex((i) => i + 1);
+
+    if (usePipeline) {
+      pipeline.advanceIndex();
+    } else {
+      setCurrentIndex((i) => i + 1);
+    }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -111,26 +164,34 @@ export function useJobDeck() {
     } finally {
       setIsSwiping(false);
     }
-  }, [topJob, jobs, currentIndex, doSwipe, posthog]);
+  }, [topJob, jobs, currentIndex, doSwipe, posthog, usePipeline, pipeline]);
 
   const reset = useCallback(() => {
-    setJobs(deckQuery.data ?? []);
-    setCurrentIndex(0);
+    if (usePipeline) {
+      pipeline.refresh();
+    } else {
+      setJobs(deckQuery.data ?? []);
+      setCurrentIndex(0);
+    }
     setSwipeError(null);
-  }, [deckQuery.data]);
+  }, [deckQuery.data, usePipeline, pipeline]);
 
-  const error = swipeError ?? deckQuery.error ?? null;
-  const isLoading = isSwiping || deckQuery.isLoading;
+  const error = swipeError ?? (usePipeline ? pipeline.error : deckQuery.error) ?? null;
+  const isLoading = isSwiping || (usePipeline ? pipeline.isLoading : deckQuery.isLoading);
 
   return {
     jobs: remainingJobs,
-    allJobs: jobs,
-    currentIndex,
+    allJobs,
+    currentIndex: usePipeline ? pipeline.currentIndex : currentIndex,
     topJob,
     isLoading,
     error,
     swipe,
     reset,
     isEmpty: remainingJobs.length === 0 && !isLoading,
+    /** Current user location (for distance badge display) */
+    userLocation,
   };
 }
+
+export type { UserLocation };

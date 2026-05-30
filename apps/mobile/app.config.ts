@@ -51,6 +51,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         photosPermission: 'Allow Hi-Hired to access your photos for profile pictures.',
       },
     ],
+    [
+      'expo-location',
+      {
+        locationAlwaysAndWhenInUsePermission: 'Hi-Hired uses your location to show nearby jobs.',
+        locationWhenInUsePermission: 'Hi-Hired uses your location to show nearby jobs.',
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,

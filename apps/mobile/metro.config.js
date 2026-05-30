@@ -1,12 +1,12 @@
 const { getDefaultConfig } = require("expo/metro-config");
-const { withNativewind } = require("nativewind/metro");
+const { withNativeWind } = require("nativewind/metro");
 const path = require("path");
 const fs = require("fs");
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
 
-const nativewindConfig = withNativewind(config, {
+const nativewindConfig = withNativeWind(config, {
   inlineVariables: false,
   globalClassNamePolyfill: true,
 });
@@ -51,7 +51,6 @@ const nativeOnlyPackages = new Set([
   "@posthog/core",
   "@posthog/core/surveys",
   "@opentelemetry/api",
-  "react-native-screens",
 ]);
 
 // Intercept ALL module resolution on web to stub native-only packages.

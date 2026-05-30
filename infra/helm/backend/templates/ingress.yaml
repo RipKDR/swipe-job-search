@@ -1,0 +1,30 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "hi-hired-backend.fullname" . }}-api
+  labels:
+    {{- include "hi-hired-backend.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "hi-hired-backend.fullname" $ }}-api
+                port:
+                  number: {{ $.Values.service.api.port }}
+          {{- end }}
+    {{- end }}
+{{- end }}

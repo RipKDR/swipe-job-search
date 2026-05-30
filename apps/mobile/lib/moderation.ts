@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import type { Database } from '@hi-hired/shared'
 
 export type ReportReason =
   | 'spam'
@@ -22,23 +23,27 @@ export async function submitReport({
   jobId?: string
   matchId?: string
 }) {
-  const { error } = await supabase.from('reports').insert({
+  const payload: Database['public']['Tables']['reports']['Insert'] = {
     reporter_id: reporterId,
     reported_id: reportedId,
     reason,
     details: details?.trim() || null,
     job_id: jobId ?? null,
     match_id: matchId ?? null,
-  })
+  }
+
+  const { error } = await (supabase as any).from('reports').insert(payload)
 
   if (error) throw error
 }
 
 export async function blockUser(blockerId: string, blockedId: string) {
-  const { error } = await supabase.from('blocks').insert({
+  const payload: Database['public']['Tables']['blocks']['Insert'] = {
     blocker_id: blockerId,
     blocked_id: blockedId,
-  })
+  }
+
+  const { error } = await (supabase as any).from('blocks').insert(payload)
 
   if (error) throw error
 }

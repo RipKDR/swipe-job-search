@@ -21,6 +21,8 @@ const mockProfile = {
   availability_text: null,
   work_rights: null,
   onboarding_completed_at: null,
+  bulk_swipe_consent: false,
+  consent_granted_at: null,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 }

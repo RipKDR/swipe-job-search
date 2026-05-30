@@ -1,0 +1,222 @@
+# ---------------------------------------------------------------------------
+# CD Pipeline — push to main
+# ---------------------------------------------------------------------------
+# Triggered on pushes to the main branch. Runs Terraform plan/apply for
+# infrastructure changes, builds and pushes the backend Docker image to ECR,
+# and triggers an EAS build for the mobile app.
+# ---------------------------------------------------------------------------
+name: CD
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - '.github/**'
+      - '!.github/workflows/cd.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-2
+  ECR_REPOSITORY: hi-hired-staging-backend
+  EKS_CLUSTER_NAME: hi-hired-staging
+  TERRAFORM_DIR: infra/terraform
+  BACKEND_DIR: backend
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Terraform: Plan (staging)
+  # ---------------------------------------------------------------------------
+  terraform-plan:
+    name: Terraform Plan (staging)
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      plan_has_changes: ${{ steps.plan.outputs.has_changes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+
+      - name: Terraform Init
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          terraform init \
+            -backend-config="bucket=hi-hired-staging-terraform-state" \
+            -backend-config="key=staging/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="dynamodb_table=hi-hired-staging-terraform-locks"
+
+      - name: Terraform Plan
+        id: plan
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          terraform plan \
+            -var-file="environments/staging/terraform.tfvars" \
+            -out=tfplan \
+            -detailed-exitcode \
+            -no-color 2>&1 | tee plan_output.txt
+          EXIT_CODE=${PIPESTATUS[0]}
+          if [ $EXIT_CODE -eq 2 ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
+
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        if: steps.plan.outputs.has_changes == 'true'
+        with:
+          name: terraform-plan-staging
+          path: ${{ env.TERRAFORM_DIR }}/tfplan
+
+  # ---------------------------------------------------------------------------
+  # Terraform: Apply (staging) — only if plan has changes
+  # ---------------------------------------------------------------------------
+  terraform-apply:
+    name: Terraform Apply (staging)
+    runs-on: ubuntu-latest
+    environment: staging
+    needs: [terraform-plan]
+    if: needs.terraform-plan.outputs.plan_has_changes == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-staging
+          path: ${{ env.TERRAFORM_DIR }}
+
+      - name: Terraform Init
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: |
+          terraform init \
+            -backend-config="bucket=hi-hired-staging-terraform-state" \
+            -backend-config="key=staging/terraform.tfstate" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="dynamodb_table=hi-hired-staging-terraform-locks"
+
+      - name: Terraform Apply
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+  # ---------------------------------------------------------------------------
+  # Backend Docker: Build, Scan, Push to ECR
+  # ---------------------------------------------------------------------------
+  backend-docker:
+    name: Backend Docker Build & Push
+    runs-on: ubuntu-latest
+    environment: staging
+    needs: [terraform-plan]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Extract short SHA
+        id: sha
+        run: echo "short=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Build, tag, and push Docker image
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ steps.sha.outputs.short }}
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: |
+          docker build \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG-$(date +%Y%m%d%H%M%S) \
+            .
+          docker push --all-tags $ECR_REGISTRY/$ECR_REPOSITORY
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+
+      - name: Upload Trivy scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: backend-container
+
+  # ---------------------------------------------------------------------------
+  # Mobile: EAS Build (preview profile)
+  # ---------------------------------------------------------------------------
+  eas-build:
+    name: EAS Build (Preview)
+    runs-on: ubuntu-latest
+    needs: [backend-docker]
+    if: false  # Enable when EXPO_TOKEN is configured in secrets
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --config.engine-strict=false
+
+      - name: Build with EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: eas build --profile preview --platform all --non-interactive
+        working-directory: apps/mobile

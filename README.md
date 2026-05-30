@@ -1,8 +1,8 @@
 # Hi-Hired
 
-**A job finder like SEEK, but built for humans.** No keywords. No black holes. No bullshit.
+**Dismantling the staffing mill economy.** One swipe at a time.
 
-Job seekers swipe local jobs with transparent pay and hours. Employers review who's interested and start a chat. Both sides confirm when someone's hired.
+Hi-Hired is a mobile-first job marketplace that replaces opaque, high-fee recruitment agencies with direct, transparent hiring. Every card shows real pay and hours. Every applicant is a real person. No ghosting, no black holes, no commission-chasing middlemen.
 
 **Tagline:** *The algorithm is you.*
 

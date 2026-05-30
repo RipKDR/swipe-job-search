@@ -3,8 +3,8 @@ import { cleanup } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
 
 // Make fireEvent.press an alias for fireEvent.click (DOM equivalent of RN press)
-import { fireEvent } from '@testing-library/react';
-fireEvent.press = fireEvent.click;
+import { fireEvent } from '@testing-library/react'
+;(fireEvent as any).press = fireEvent.click
 
 // --- Shared props normaliser for all RN mocks ---
 // Flattens RN-specific props to DOM equivalents so vitest/happy-dom can render them.
@@ -155,6 +155,7 @@ vi.mock('react-native-reanimated', () => ({
   useAnimatedStyle: () => ({}),
   runOnJS: (fn: any) => fn,
   withSpring: (val: any) => val,
+  withTiming: (val: any) => val,
   Animated: { View: normalizedDiv },
 }))
 
@@ -164,6 +165,7 @@ vi.mock('react-native-gesture-handler', () => ({
     Pan: () => {
       const handlers: any = {};
       const pan = {
+        enabled: (val: boolean) => { handlers.enabled = val; return pan; },
         onUpdate: (fn: any) => { handlers.onUpdate = fn; return pan; },
         onEnd: (fn: any) => { handlers.onEnd = fn; return pan; },
       };
@@ -193,6 +195,15 @@ vi.mock('@/components/tw', () => {
     useCSSVariable: (v: string) => v,
   };
 })
+
+// Mock expo-location — native module cannot load in Node/vitest
+vi.mock('expo-location', () => ({
+  requestForegroundPermissionsAsync: vi.fn().mockResolvedValue({ granted: true }),
+  getCurrentPositionAsync: vi.fn().mockResolvedValue({
+    coords: { latitude: -37.767, longitude: 144.961, accuracy: 100 },
+  }),
+  Accuracy: { Balanced: 3 },
+}))
 
 afterEach(() => {
   cleanup()

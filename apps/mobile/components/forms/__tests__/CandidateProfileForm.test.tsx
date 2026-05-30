@@ -55,9 +55,6 @@ describe('CandidateProfileForm', () => {
     fireEvent.click(screen.getByText('Submit'))
 
     expect(await screen.findByText('Full name is required')).toBeTruthy()
-    // The suburb errorMap only fires for invalid strings, not undefined;
-    // Zod's default for undefined enum input is "Invalid option: expected one of …"
-    const errors = screen.getAllByText(/Invalid option: expected one of/)
-    expect(errors.length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Please select a suburb')).toBeTruthy()
   })
 })

@@ -3,6 +3,11 @@ import { z } from 'zod';
 import { JOB_TYPES } from '../constants/job-types';
 import { BEACHHEAD_SUBURBS } from '../constants';
 
+const BEACHHEAD_SUBURB_VALUES = [...BEACHHEAD_SUBURBS] as [
+  (typeof BEACHHEAD_SUBURBS)[number],
+  ...(typeof BEACHHEAD_SUBURBS)[number][],
+];
+
 // Job status from BACKEND.md enum
 export const JobStatusSchema = z.enum(['active', 'hired', 'expired', 'paused']);
 export type JobStatus = z.infer<typeof JobStatusSchema>;
@@ -23,6 +28,8 @@ export const JobSchema = z.object({
   pay_period: PayPeriodSchema,
   hours_text: z.string(),
   suburb: z.string(),
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
   description: z.string().nullable(),
   photo_url: z.string().url().nullable(),
   status: JobStatusSchema,
@@ -39,7 +46,7 @@ export type Job = z.infer<typeof JobSchema>;
 export const JobCreateSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(100),
   job_type: z.enum(JOB_TYPES, {
-    errorMap: () => ({ message: 'Please select a job type' }),
+    error: 'Please select a job type',
   }),
   pay_display: z
     .string()
@@ -52,8 +59,8 @@ export const JobCreateSchema = z.object({
     .string()
     .min(5, 'Please describe the hours')
     .max(200, 'Hours description too long'),
-  suburb: z.enum(BEACHHEAD_SUBURBS, {
-    errorMap: () => ({ message: 'Please select a valid suburb' }),
+  suburb: z.enum(BEACHHEAD_SUBURB_VALUES, {
+    error: 'Please select a valid suburb',
   }),
   description: z.string().max(2000, 'Description too long').nullable().optional(),
   photo_url: z.string().url().nullable().optional(),

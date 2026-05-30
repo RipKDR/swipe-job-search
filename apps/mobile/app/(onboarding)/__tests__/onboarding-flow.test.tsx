@@ -77,12 +77,9 @@ describe('Onboarding submit payload builders', () => {
       availability_text: 'Weekdays after 4pm',
       work_rights: 'citizen' as const,
       avatar_url: 'https://example.com/avatar.jpg',
-    };
+    } satisfies Parameters<typeof buildCandidateProfileUpdate>[0];
 
-    const payload = buildCandidateProfileUpdate(
-      data as Parameters<typeof buildCandidateProfileUpdate>[0],
-      '2026-01-01T00:00:00.000Z'
-    );
+    const payload = buildCandidateProfileUpdate(data, '2026-01-01T00:00:00.000Z');
 
     expect(payload.role).toBe('candidate');
     expect(payload.full_name).toBe(data.full_name);
@@ -96,7 +93,7 @@ describe('Onboarding submit payload builders', () => {
       suburb: 'Moonee Ponds',
       contact_name: 'Jane Employer',
       avatar_url: 'https://example.com/logo.jpg',
-    };
+    } satisfies Parameters<typeof buildEmployerProfileUpdate>[0];
 
     const profilePayload = buildEmployerProfileUpdate(data, '2026-01-01T00:00:00.000Z');
     const employerPayload = buildEmployerProfileInsert('user-1', data);

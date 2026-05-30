@@ -12,7 +12,7 @@ import { TabWebShell } from '@/components/ui/TabWebShell';
 
 export default function DeckScreen() {
   const router = useRouter();
-  const { jobs, isLoading, error, swipe, isEmpty, reset } = useJobDeck();
+  const { jobs, isLoading, error, swipe, isEmpty, reset, userLocation } = useJobDeck();
 
   const handleSwipe = useCallback(
     async (_jobId: string, direction: 'left' | 'right') => {
@@ -61,6 +61,7 @@ export default function DeckScreen() {
             onSwipe={handleSwipe}
             onCardPress={handleCardPress}
             isLoading={isLoading}
+            userLocation={userLocation}
           />
         </View>
       </TabWebShell>

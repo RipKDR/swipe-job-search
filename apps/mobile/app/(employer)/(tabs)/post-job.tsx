@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { JobForm, type JobFormValues } from '@/components/employer/JobForm';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
-
+import type { Database } from '@hi-hired/shared';
 function buildPayDisplay(amount: number, period: 'hour' | 'week' | 'year') {
   const suffix = period === 'hour' ? '/hr' : period === 'week' ? '/wk' : '/yr';
   return `$${amount.toFixed(2)}${suffix}`;
@@ -60,7 +60,7 @@ export default function PostJobScreen() {
       const payAmount = Number(values.payAmount);
       const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-      const { error } = await supabase.from('jobs').insert({
+      const jobPayload: Database['public']['Tables']['jobs']['Insert'] = {
         employer_id: profile.id,
         circle_id: membership.circle_id,
         title: values.title.trim(),
@@ -73,7 +73,9 @@ export default function PostJobScreen() {
         description: values.description.trim() ? values.description.trim() : null,
         photo_url: photoUrl,
         expires_at: expiresAt,
-      });
+      };
+
+      const { error } = await (supabase as any).from('jobs').insert(jobPayload);
 
       if (error) throw error;
 

@@ -1,0 +1,20 @@
+Hi-Hired Backend
+{{- .Chart.Version | repeat 1 }}
+{{- .Chart.AppVersion | repeat 1 }}
+
+1. Verify the deployment:
+   kubectl get pods -n {{ .Release.Namespace }}
+   kubectl get svc -n {{ .Release.Namespace }}
+
+2. Get the ALB DNS name:
+   kubectl get ingress -n {{ .Release.Namespace }} \
+     -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}'
+
+3. Check API health:
+   curl http://<ALB-DNS>/health
+
+4. Monitor logs:
+   kubectl logs -n {{ .Release.Namespace }} -l app=hi-hired-backend,component=api --tail=50
+
+5. If using IRSA, verify IAM roles:
+   kubectl describe sa -n {{ .Release.Namespace }} backend-api

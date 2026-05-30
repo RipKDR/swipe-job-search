@@ -16,6 +16,10 @@ vi.mock('expo-haptics', () => ({
 
 vi.mock('@tanstack/react-query', () => ({
   useQuery: (...args: unknown[]) => mockUseQuery(...args),
+  useQueryClient: () => ({
+    prefetchQuery: vi.fn(),
+    invalidateQueries: vi.fn(),
+  }),
 }));
 
 describe('useJobDeck', () => {
@@ -38,7 +42,7 @@ describe('useJobDeck', () => {
         status: 'open',
         expires_at: '2026-06-30T00:00:00.000Z',
         created_at: '2026-05-28T00:00:00.000Z',
-      } as Job,
+      } as unknown as Job,
     ];
 
     mockUseQuery.mockReturnValue({
@@ -48,7 +52,7 @@ describe('useJobDeck', () => {
     });
 
     const { useJobDeck } = await import('../useJobDeck');
-    let latest: ReturnType<typeof useJobDeck> | null = null;
+    let latest: any = null;
     const HookProbe = () => {
       latest = useJobDeck();
       return null;

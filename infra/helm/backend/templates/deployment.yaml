@@ -1,0 +1,269 @@
+{{- /*
+Hi-Hired Backend Deployment Templates
+Includes: API, Worker, and Scraper deployments
+*/ -}}
+
+# ---------------------------------------------------------------------------
+# API Deployment
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hi-hired-backend.fullname" . }}-api
+  labels:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: api
+    environment: {{ .Values.environment | default "staging" }}
+spec:
+  replicas: {{ .Values.replicaCount.api }}
+  selector:
+    matchLabels:
+      app: {{ include "hi-hired-backend.name" . }}
+      component: api
+  template:
+    metadata:
+      labels:
+        app: {{ include "hi-hired-backend.name" . }}
+        component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      serviceAccountName: {{ include "hi-hired-backend.serviceAccountName" . }}-api
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: {{ include "hi-hired-backend.fullname" . }}-config
+          env:
+            - name: SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: SUPABASE_SERVICE_KEY
+                  optional: true
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: MLFLOW_TRACKING_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: MLFLOW_TRACKING_URI
+                  optional: true
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: AWS_ACCESS_KEY_ID
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+                  optional: true
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.api.liveness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.api.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.api.liveness.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.api.readiness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.api.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.api.readiness.periodSeconds }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.probes.api.startup.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.api.startup.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.api.startup.periodSeconds }}
+            failureThreshold: {{ .Values.probes.api.startup.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources.api | nindent 12 }}
+
+---
+# ---------------------------------------------------------------------------
+# Worker Deployment (Celery)
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hi-hired-backend.fullname" . }}-worker
+  labels:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: worker
+    environment: {{ .Values.environment | default "staging" }}
+spec:
+  replicas: {{ .Values.replicaCount.worker }}
+  selector:
+    matchLabels:
+      app: {{ include "hi-hired-backend.name" . }}
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: {{ include "hi-hired-backend.name" . }}
+        component: worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      serviceAccountName: {{ include "hi-hired-backend.serviceAccountName" . }}-worker
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - celery
+            - -A
+            - src.workers.celery_app.celery_app
+            - worker
+            - --loglevel=info
+            - --concurrency={{ .Values.celery.workerConcurrency }}
+            - --max-tasks-per-child=100
+          envFrom:
+            - configMapRef:
+                name: {{ include "hi-hired-backend.fullname" . }}-config
+          env:
+            - name: SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: SUPABASE_SERVICE_KEY
+                  optional: true
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: MLFLOW_TRACKING_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: MLFLOW_TRACKING_URI
+                  optional: true
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: AWS_ACCESS_KEY_ID
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+                  optional: true
+          resources:
+            {{- toYaml .Values.resources.worker | nindent 12 }}
+
+---
+# ---------------------------------------------------------------------------
+# Scraper Deployment (Celery — scrapers queue)
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hi-hired-backend.fullname" . }}-scraper
+  labels:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: scraper
+    environment: {{ .Values.environment | default "staging" }}
+spec:
+  replicas: {{ .Values.replicaCount.scraper }}
+  selector:
+    matchLabels:
+      app: {{ include "hi-hired-backend.name" . }}
+      component: scraper
+  template:
+    metadata:
+      labels:
+        app: {{ include "hi-hired-backend.name" . }}
+        component: scraper
+    spec:
+      serviceAccountName: {{ include "hi-hired-backend.serviceAccountName" . }}-scraper
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: scraper
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - celery
+            - -A
+            - src.workers.celery_app.celery_app
+            - worker
+            - --loglevel=info
+            - --concurrency={{ .Values.celery.scraperConcurrency }}
+            - --max-tasks-per-child=50
+            - -Q
+            - scrapers
+          envFrom:
+            - configMapRef:
+                name: {{ include "hi-hired-backend.fullname" . }}-config
+          env:
+            - name: SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: SUPABASE_SERVICE_KEY
+                  optional: true
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: AWS_ACCESS_KEY_ID
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+                  optional: true
+          resources:
+            {{- toYaml .Values.resources.scraper | nindent 12 }}

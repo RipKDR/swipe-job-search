@@ -92,4 +92,20 @@ export const supabase = createClient<Database>(
   }
 );
 
+// Auth state listener — stores/clears tokens in SecureStore on auth events
+if (Platform.OS !== 'web') {
+  supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      const { storeTokens } = require('@/lib/auth/token-refresh');
+      await storeTokens(session.access_token, session.refresh_token);
+    } else if (event === 'SIGNED_OUT') {
+      const { clearTokens } = require('@/lib/auth/token-refresh');
+      await clearTokens();
+    } else if (event === 'TOKEN_REFRESHED' && session) {
+      const { storeTokens } = require('@/lib/auth/token-refresh');
+      await storeTokens(session.access_token, session.refresh_token);
+    }
+  });
+}
+
 export default supabase;

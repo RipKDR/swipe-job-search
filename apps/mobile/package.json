@@ -19,6 +19,7 @@
     "expo-image-picker": "^56.0.14",
     "expo-linking": "^56.0.12",
     "expo-localization": "^56.0.6",
+    "expo-location": "^56.0.15",
     "expo-notifications": "^56.0.14",
     "expo-router": "^56.2.7",
     "expo-secure-store": "^56.0.4",
@@ -75,7 +76,7 @@
     "ios": "expo start --ios",
     "lint": "eslint . --ext .ts,.tsx",
     "start": "expo start",
-    "test": "vitest run --config vitest.config.mjs",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "web": "bash scripts/web-dev.sh",
     "web:dev": "mkdir -p .expo/tmp && TMPDIR=.expo/tmp expo start --web --port 8081"

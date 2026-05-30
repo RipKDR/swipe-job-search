@@ -17,6 +17,8 @@ export type Database = {
           availability_text: string | null;
           work_rights: string | null;
           onboarding_completed_at: string | null;
+          bulk_swipe_consent: boolean;
+          consent_granted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -113,6 +115,8 @@ export type Database = {
           pay_period: 'hour' | 'week' | 'year';
           hours_text: string;
           suburb: string;
+          lat: number | null;
+          lng: number | null;
           description: string | null;
           photo_url: string | null;
           status: 'active' | 'hired' | 'expired' | 'paused';
@@ -132,6 +136,8 @@ export type Database = {
           pay_period: 'hour' | 'week' | 'year';
           hours_text: string;
           suburb: string;
+          lat?: number | null;
+          lng?: number | null;
           description?: string | null;
           photo_url?: string | null;
           status?: 'active' | 'hired' | 'expired' | 'paused';
@@ -151,6 +157,8 @@ export type Database = {
           pay_period?: 'hour' | 'week' | 'year';
           hours_text?: string;
           suburb?: string;
+          lat?: number | null;
+          lng?: number | null;
           description?: string | null;
           photo_url?: string | null;
           status?: 'active' | 'hired' | 'expired' | 'paused';
@@ -261,8 +269,115 @@ export type Database = {
           created_at?: string;
         };
       };
+      salary_reports: {
+        Row: {
+          id: string;
+          job_id: string;
+          hourly_rate: number;
+          report_type: 'actual' | 'offer' | 'estimate';
+          reported_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          hourly_rate: number;
+          report_type: 'actual' | 'offer' | 'estimate';
+          reported_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          job_id?: string;
+          hourly_rate?: number;
+          report_type?: 'actual' | 'offer' | 'estimate';
+          reported_by?: string;
+          created_at?: string;
+        };
+      };
+      compliance_reports: {
+        Row: {
+          id: string;
+          candidate_id: string;
+          provider_id: string;
+          period_start: string;
+          period_end: string;
+          report_type: string;
+          storage_path: string | null;
+          report_data: Record<string, unknown> | null;
+          status: string;
+          error_message: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          candidate_id: string;
+          provider_id: string;
+          period_start: string;
+          period_end: string;
+          report_type?: string;
+          storage_path?: string | null;
+          report_data?: Record<string, unknown> | null;
+          status?: string;
+          error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          candidate_id?: string;
+          provider_id?: string;
+          period_start?: string;
+          period_end?: string;
+          report_type?: string;
+          storage_path?: string | null;
+          report_data?: Record<string, unknown> | null;
+          status?: string;
+          error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      bulk_swipe_log: {
+        Row: {
+          id: string;
+          provider_id: string;
+          candidate_id: string;
+          job_id: string;
+          direction: 'right' | 'left';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          provider_id: string;
+          candidate_id: string;
+          job_id: string;
+          direction: 'right' | 'left';
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          provider_id?: string;
+          candidate_id?: string;
+          job_id?: string;
+          direction?: 'right' | 'left';
+          created_at?: string;
+        };
+      };
     };
-    Views: Record<string, never>;
+    Views: {
+      salary_aggregates: {
+        Row: {
+          job_id: string;
+          avg_hourly_rate: number;
+          min_hourly_rate: number;
+          max_hourly_rate: number;
+          report_count: number;
+          updated_at: string;
+        };
+      };
+    };
     Functions: {
       create_match: {
         Args: {
@@ -281,6 +396,10 @@ export type Database = {
         };
         Returns: Database['public']['Tables']['profiles']['Row'];
       };
+      refresh_salary_aggregates: {
+        Args: Record<string, never>;
+        Returns: void;
+      };
     };
     Enums: {
       user_role: 'candidate' | 'employer';
@@ -288,6 +407,7 @@ export type Database = {
       job_status: 'active' | 'hired' | 'expired' | 'paused';
       swipe_direction: 'right' | 'left';
       match_status: 'chatting' | 'hire_pending' | 'hired' | 'unmatched' | 'archived';
+      compliance_report_type: 'weekly_summary' | 'fortnightly' | 'monthly' | 'bulk_swipe_audit' | 'other';
     };
   };
 };
