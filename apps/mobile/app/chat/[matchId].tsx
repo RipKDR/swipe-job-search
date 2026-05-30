@@ -158,7 +158,18 @@ export default function ChatScreen() {
         disabled={!canSend || match?.status === 'unmatched'}
         loading={send.isPending}
         onSend={async (body) => {
-          await send.mutateAsync(body);
+          try {
+            await send.mutateAsync(body);
+            posthog.capture('message_sent', { match_id: matchId });
+          } catch (error) {
+            posthog.capture('$exception', {
+              $exception_message: getErrorMessage(error, 'send message failed'),
+              $exception_type: error instanceof Error ? error.name : 'UnknownError',
+              context: 'chat_send_message',
+              match_id: matchId,
+            });
+            throw error;
+          }
         }}
       />
 

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePostHog } from '@/hooks/usePostHog';
 import { useSwipe } from '@/hooks/useSwipe';
@@ -178,6 +178,21 @@ export function useJobDeck(options?: UseJobDeckOptions) {
 
   const error = swipeError ?? (usePipeline ? pipeline.error : deckQuery.error) ?? null;
   const isLoading = isSwiping || (usePipeline ? pipeline.isLoading : deckQuery.isLoading);
+
+  // Churn signal: fire once when the candidate has swiped through every job and
+  // the deck is now empty (had jobs, finished loading, nothing left).
+  const deckEmptiedRef = useRef(false);
+  useEffect(() => {
+    const isEmpty = remainingJobs.length === 0 && !isLoading;
+    if (isEmpty && allJobs.length > 0 && !deckEmptiedRef.current) {
+      deckEmptiedRef.current = true;
+      posthog.capture('job_deck_emptied', { jobs_seen: allJobs.length });
+    }
+    // Allow a fresh "emptied" event after the deck is refilled.
+    if (remainingJobs.length > 0) {
+      deckEmptiedRef.current = false;
+    }
+  }, [remainingJobs.length, isLoading, allJobs.length, posthog]);
 
   return {
     jobs: remainingJobs,

@@ -1,0 +1,92 @@
+# ---------------------------------------------------------------------------
+# ⚠️  ACTIVATION REQUIRED — this file is parked outside `.github/workflows/`.
+# Move it into place to activate it (one-time):
+#     git mv .github/android-build.workflow.yml .github/workflows/android-build.yml
+#     git commit -m "ci: activate Android EAS build workflow" && git push
+# (It lives here because the session's OAuth credential could not push files
+#  under `.github/workflows/` without the `workflow` scope.)
+# ---------------------------------------------------------------------------
+# Android build (EAS)
+# ---------------------------------------------------------------------------
+# On-demand Android build via Expo Application Services (EAS). EAS compiles the
+# native app on Expo's servers (where Google's Maven/SDK mirrors are reachable),
+# so this does not need the Android SDK on the runner.
+#
+# Prerequisites (one-time):
+#   1. Add an `EXPO_TOKEN` repo secret (Expo account → Settings → Access tokens).
+#   2. Link the project to EAS so a projectId exists, e.g. run locally:
+#        cd apps/mobile && eas init
+#      (writes `extra.eas.projectId` into the Expo config). Without this,
+#      `eas build --non-interactive` fails because it can't resolve the project.
+#
+# Trigger from the Actions tab ("Run workflow") and pick a build profile.
+# The signed artifact (.apk / .aab) is available on the EAS build page linked
+# in the job logs.
+# ---------------------------------------------------------------------------
+name: Android Build (EAS)
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS build profile (see apps/mobile/eas.json)'
+        type: choice
+        default: preview
+        options:
+          - preview
+          - production
+          - development
+      wait:
+        description: 'Wait for the EAS build to finish (vs. queue and exit)'
+        type: boolean
+        default: true
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  android:
+    name: EAS Build (Android · ${{ inputs.profile }})
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify EXPO_TOKEN is configured
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::EXPO_TOKEN secret is not set. Add it under Settings → Secrets and variables → Actions before running this workflow."
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --config.engine-strict=false
+
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: EAS Build (Android)
+        working-directory: apps/mobile
+        run: |
+          eas build \
+            --platform android \
+            --profile "${{ inputs.profile }}" \
+            --non-interactive \
+            ${{ inputs.wait && '--wait' || '--no-wait' }}
