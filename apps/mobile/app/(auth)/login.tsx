@@ -20,6 +20,7 @@ import {
 } from '@/lib/otp-cooldown';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
+import { usePostHog } from '@/hooks/usePostHog';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -32,6 +33,7 @@ export default function Login() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const otpInFlightRef = useRef(false);
+  const posthog = usePostHog();
 
   useEffect(() => {
     const storedUntil = getOtpCooldownUntil();
@@ -111,6 +113,7 @@ export default function Login() {
     setLoading(true);
     setOtpHint(null);
     setLoginError(null);
+    posthog.capture('magic_link_requested');
     try {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim().toLowerCase(),
@@ -121,6 +124,12 @@ export default function Login() {
           const cooldownMs = resolveRateLimitCooldownMs(error);
           applyCooldown(cooldownMs, true);
           console.warn('[login] Magic link rate limited (429):', error.message, { redirectUrl });
+          posthog.capture('login_failed', {
+            method: 'magic_link',
+            reason: 'rate_limited',
+            rate_limited: true,
+            status: error.status,
+          });
         } else {
           const message = formatSupabaseAuthError(error, { redirectUrl });
           console.warn(
@@ -131,10 +140,17 @@ export default function Login() {
             { redirectUrl },
           );
           showAuthError(message);
+          posthog.capture('login_failed', {
+            method: 'magic_link',
+            reason: error.code ?? 'unknown',
+            rate_limited: false,
+            status: error.status ?? 0,
+          });
         }
       } else {
         applyCooldown(OTP_RESEND_COOLDOWN_MS, false);
         setMagicLinkSent(true);
+        posthog.capture('magic_link_sent');
         if (Platform.OS !== 'web') {
           Alert.alert('Check your email', 'We sent you a magic link. Click it to sign in.');
         }
@@ -146,6 +162,12 @@ export default function Login() {
           : getErrorMessage(err, 'Something went wrong. Please try again.');
       showAuthError(message);
       console.error('[login] Magic link error:', err);
+      posthog.capture('$exception', {
+        $exception_message: getErrorMessage(err, 'magic link error'),
+        $exception_type: err instanceof Error ? err.name : 'UnknownError',
+        context: 'magic_link',
+      });
+      posthog.capture('login_failed', { method: 'magic_link', reason: 'exception' });
     } finally {
       otpInFlightRef.current = false;
       setLoading(false);
@@ -166,6 +188,7 @@ export default function Login() {
     const redirectUrl = getAuthRedirectUrl();
     setLoading(true);
     setLoginError(null);
+    posthog.capture('oauth_sign_in_started', { provider });
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -175,6 +198,11 @@ export default function Login() {
         const message = formatSupabaseAuthError(error, { redirectUrl });
         console.warn(`[login] ${provider} OAuth failed:`, error.status, error.message, { redirectUrl });
         showAuthError(message);
+        posthog.capture('login_failed', {
+          method: provider,
+          reason: error.code ?? 'oauth_error',
+          status: error.status ?? 0,
+        });
         return;
       }
       if (data?.url) {
@@ -188,18 +216,27 @@ export default function Login() {
         const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
         if (result.type === 'cancel') {
           Alert.alert('Cancelled', 'Sign in was cancelled');
+          posthog.capture('login_failed', { method: provider, reason: 'cancelled' });
           return;
         }
         if (result.type === 'success' && result.url) {
           const { error: authError } = await completeAuthCallback(supabase, parseAuthCallbackUrl(result.url));
           if (authError) {
             showAuthError(authError);
+            posthog.capture('login_failed', { method: provider, reason: 'callback_error' });
           }
         }
       }
     } catch (err) {
       showAuthError('Something went wrong. Please try again.');
       console.error(`[login] ${provider} OAuth error:`, err);
+      posthog.capture('$exception', {
+        $exception_message: getErrorMessage(err, `${provider} oauth error`),
+        $exception_type: err instanceof Error ? err.name : 'UnknownError',
+        context: 'oauth',
+        provider,
+      });
+      posthog.capture('login_failed', { method: provider, reason: 'exception' });
     } finally {
       setLoading(false);
     }

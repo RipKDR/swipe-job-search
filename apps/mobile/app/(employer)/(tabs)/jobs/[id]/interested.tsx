@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { Text } from '@/components/tw';
 import { FlatList } from 'react-native';
 import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
@@ -12,6 +12,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { TabWebShell } from '@/components/ui/TabWebShell';
 import { useListColumns } from '@/hooks/useListColumns';
 import { getErrorMessage } from '@/lib/errors';
+import { usePostHog } from '@/hooks/usePostHog';
 
 type CandidateData = {
   id: string;
@@ -52,6 +53,18 @@ export default function InterestedListScreen() {
   const [states, setStates] = useState<Record<string, InterestedActionState>>({});
   const [message, setMessage] = useState<string | null>(null);
   const numColumns = useListColumns(2);
+  const posthog = usePostHog();
+
+  // Top of the employer-side match funnel: fire once per job once the list loads.
+  const viewedRef = useRef(false);
+  useEffect(() => {
+    if (!jobId || isLoading || viewedRef.current) return;
+    viewedRef.current = true;
+    posthog.capture('interested_candidates_viewed', {
+      job_id: jobId,
+      candidate_count: candidates.length,
+    });
+  }, [jobId, isLoading, candidates.length, posthog]);
 
   const sortedCandidates = useMemo(() => candidates, [candidates]);
 
