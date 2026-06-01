@@ -4,7 +4,7 @@
  * Web-safe: all native notification APIs are gated behind Platform.OS.
  */
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 
 export type NotificationData = {
@@ -53,7 +53,10 @@ export function configureNotificationHandler(): void {
   const Notifications = require('expo-notifications');
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true,
+      // Suppress system banner when app is foregrounded — the in-app
+      // Alert from useNotificationObserver handles that case instead.
+      // Fixes ARCHITECTURE_AUDIT.md HIGH-1: app presence detection.
+      shouldShowAlert: AppState.currentState !== 'active',
       shouldPlaySound: true,
       shouldSetBadge: true,
     }),
