@@ -26,6 +26,7 @@ ROLE_HIERARCHY: dict[str, int] = {
     "anonymous": 0,
     "jobseeker": 1,
     "employer": 2,
+    "provider": 2,
     "admin": 3,
 }
 

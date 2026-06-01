@@ -32,6 +32,7 @@ ROLE_RATE_LIMITS: dict[str, int] = {
     "anonymous": 30,
     "jobseeker": 100,
     "employer": 50,
+    "provider": 30,
     "admin": 200,
 }
 

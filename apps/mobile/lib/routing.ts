@@ -8,6 +8,7 @@ export const ROUTES = {
   onboardingRole: '/(onboarding)/role',
   candidateDeck: '/(candidate)/(tabs)/deck',
   employerJobs: '/(employer)/(tabs)/jobs',
+  providerCompliance: '/(provider)/compliance',
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
@@ -16,9 +17,10 @@ function routerHref(route: AppRoute): Href {
   return route as Href;
 }
 
-export function getRoleHomeRoute(role: 'candidate' | 'employer' | null | undefined): AppRoute {
+export function getRoleHomeRoute(role: 'candidate' | 'employer' | 'provider' | null | undefined): AppRoute {
   if (role === 'candidate') return ROUTES.candidateDeck;
   if (role === 'employer') return ROUTES.employerJobs;
+  if (role === 'provider') return ROUTES.providerCompliance;
   return ROUTES.onboardingRole;
 }
 
@@ -53,12 +55,13 @@ export function getAuthRedirectUrl(): string {
   return scheme ? `${scheme}://auth/callback` : 'hi-hired://auth/callback';
 }
 
-type AppRole = 'candidate' | 'employer';
+type AppRole = 'candidate' | 'employer' | 'provider';
 
 /** Route group that requires a specific role once onboarding is complete. */
 export function getRequiredRoleForGroup(group: string | undefined): AppRole | null {
   if (group === '(candidate)') return 'candidate';
   if (group === '(employer)') return 'employer';
+  if (group === '(provider)') return 'provider';
   return null;
 }
 

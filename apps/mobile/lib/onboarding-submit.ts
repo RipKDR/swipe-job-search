@@ -1,11 +1,11 @@
 import type { CandidateOnboarding, EmployerOnboarding } from '@hi-hired/shared';
 
-export type OnboardingRole = 'candidate' | 'employer';
+export type OnboardingRole = 'candidate' | 'employer' | 'provider';
 
 export function getOnboardingRouteForRole(role: OnboardingRole): string {
-  return role === 'candidate'
-    ? '/(onboarding)/candidate-profile'
-    : '/(onboarding)/employer-profile';
+  if (role === 'candidate') return '/(onboarding)/candidate-profile';
+  if (role === 'provider') return '/(provider)/compliance';
+  return '/(onboarding)/employer-profile';
 }
 
 export function buildCandidateProfileUpdate(

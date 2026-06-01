@@ -6,7 +6,7 @@ export type Database = {
       profiles: {
         Row: {
           id: string;
-          role: 'candidate' | 'employer' | null;
+          role: 'candidate' | 'employer' | 'provider' | null;
           full_name: string | null;
           email: string | null;
           phone: string | null;
@@ -24,7 +24,7 @@ export type Database = {
         };
         Insert: {
           id: string;
-          role?: 'candidate' | 'employer' | null;
+          role?: 'candidate' | 'employer' | 'provider' | null;
           full_name?: string | null;
           email?: string | null;
           phone?: string | null;
@@ -40,7 +40,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          role?: 'candidate' | 'employer' | null;
+          role?: 'candidate' | 'employer' | 'provider' | null;
           full_name?: string | null;
           email?: string | null;
           phone?: string | null;
@@ -402,7 +402,7 @@ export type Database = {
       };
     };
     Enums: {
-      user_role: 'candidate' | 'employer';
+      user_role: 'candidate' | 'employer' | 'provider';
       job_type: 'casual' | 'part_time' | 'permanent';
       job_status: 'active' | 'hired' | 'expired' | 'paused';
       swipe_direction: 'right' | 'left';

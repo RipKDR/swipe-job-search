@@ -11,6 +11,7 @@ import { shouldConfirmUnmatch, useHireConfirm } from '@/hooks/useHireConfirm';
 import { MessageList } from '@/components/chat/MessageList';
 import { MessageInput } from '@/components/chat/MessageInput';
 import { HireBar } from '@/components/chat/HireBar';
+import { PostHireSurvey } from '@/components/forms/PostHireSurvey';
 import { UnmatchSheet } from '@/components/chat/UnmatchSheet';
 import { ReportSheet } from '@/components/moderation/ReportSheet';
 import { BlockConfirm } from '@/components/moderation/BlockConfirm';
@@ -18,6 +19,7 @@ import { blockUser, submitReport, type ReportReason } from '@/lib/moderation';
 import { AmbientBackground } from '@/components/ui/AmbientBackground';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { getErrorMessage } from '@/lib/errors';
+import { contentMaxWidthChat, screenPadding } from '@/lib/responsive-layout';
 
 function ChatAction({ label, onPress, tone }: { label: string; onPress: () => void; tone?: 'danger' | 'muted' }) {
   const color = tone === 'danger' ? 'text-rose-300' : 'text-slate-400';
@@ -46,6 +48,12 @@ export default function ChatScreen() {
   const [showReport, setShowReport] = useState(false);
   const [showBlock, setShowBlock] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [surveyDone, setSurveyDone] = useState(false);
+
+  const handleSurveySettled = () => {
+    setSurveyDone(true);
+    void refetchMatch();
+  };
 
   if (!matchId || !user || !profile) {
     return <LoadingScreen message="Loading chat…" />;
@@ -139,6 +147,20 @@ export default function ChatScreen() {
         currentUserId={user.id}
         isLoading={matchLoading || messagesLoading}
       />
+
+      {/* Candidate salary survey — shown once after hire is confirmed by both parties */}
+      {match && profile?.role === 'candidate' && match.status === 'hired' && !surveyDone ? (
+        <View className={`w-full items-center ${screenPadding} border-t border-emerald-900`}>
+          <View className={`w-full ${contentMaxWidthChat} py-3 gap-2`}>
+            <PostHireSurvey
+              jobId={match.jobId}
+              jobTitle={match.jobTitle}
+              onComplete={handleSurveySettled}
+              onSkip={handleSurveySettled}
+            />
+          </View>
+        </View>
+      ) : null}
 
       {match ? (
         <HireBar
