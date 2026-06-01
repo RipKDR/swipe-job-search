@@ -4,6 +4,11 @@
  * Generates weekly Centrelink/DEWR compliance reports for provider mentors.
  * Aggregates candidate swipes, matches, and hires per week.
  *
+ * Uses the same schema as the FastAPI compliance endpoint:
+ * - compliance_report_runs: batch run tracking (retry-safe)
+ * - compliance_report_rows: per-candidate data persistence
+ * - compliance_reports: report metadata
+ *
  * Triggered by:
  *  - Cron: every Monday 07:00 Australia/Melbourne
  *  - Manual: HTTP POST with optional { provider_id, candidate_id, period_start, period_end }
@@ -33,6 +38,7 @@ interface CandidateAggregation {
   left_swipes: number
   active_matches: number
   hires_completed: number
+  total_earnings: number
   jobs_applied_to: { job_id: string; title: string; direction: string; swiped_at: string }[]
 }
 
@@ -57,18 +63,18 @@ serve(async (req) => {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
     const body: ReportInput = await req.json().catch(() => ({}))
 
-    // Determine date range: default to last Monday midnight AEST → now
+    // Determine date range
     const now = new Date()
     const defaultPeriodEnd = now.toISOString().split('T')[0]
 
-    // Compute last Monday 00:00 AEST
     const lastMonday = new Date(now)
-    lastMonday.setDate(lastMonday.getDate() - ((lastMonday.getDay() + 6) % 7) - 7) // previous Monday
+    lastMonday.setDate(lastMonday.getDate() - ((lastMonday.getDay() + 6) % 7) - 7)
     lastMonday.setHours(0, 0, 0, 0)
 
     const periodStart = body.period_start || lastMonday.toISOString().split('T')[0]
     const periodEnd = body.period_end || defaultPeriodEnd
     const reportType = body.report_type || 'weekly_summary'
+    const nowISO = new Date().toISOString()
 
     const errors: string[] = []
 
@@ -78,7 +84,6 @@ serve(async (req) => {
     if (body.candidate_id) {
       candidateIds = [body.candidate_id]
     } else if (body.provider_id) {
-      // Get candidates that have swiped on this provider's jobs
       const { data: candidates, error: candErr } = await supabase
         .from('swipes')
         .select('candidate_id')
@@ -98,7 +103,6 @@ serve(async (req) => {
         candidateIds = [...new Set((candidates || []).map(c => c.candidate_id))]
       }
     } else {
-      // Cron mode: all candidates with activity in period
       const { data: activeCandidates, error: activeErr } = await supabase
         .from('swipes')
         .select('candidate_id')
@@ -119,7 +123,7 @@ serve(async (req) => {
       )
     }
 
-    // --- Step 2: For each candidate, aggregate their data ---
+    // --- Step 2: Aggregate data for each candidate ---
     const candidates: CandidateAggregation[] = []
 
     for (const candidateId of candidateIds) {
@@ -131,11 +135,11 @@ serve(async (req) => {
       }
     }
 
-    // --- Step 3: Build report ---
+    // --- Step 3: Build aggregate report ---
     const providerId = body.provider_id || candidates[0]?.jobs_applied_to?.[0]?.job_id || 'unknown'
 
     const reportData: ComplianceReportData = {
-      generated_at: new Date().toISOString(),
+      generated_at: nowISO,
       provider_id: providerId,
       period_start: periodStart,
       period_end: periodEnd,
@@ -150,47 +154,97 @@ serve(async (req) => {
       },
     }
 
-    // --- Step 4: Generate PDF bytes ---
-    const pdfBytes = generateSimplePdf(reportData)
+    // --- Step 4: Generate PDF ---
+    const pdfBytes = generateCompliancePdf(reportData)
 
-    // --- Step 5: Save compliance report for each candidate ---
-    let reportsCreated = 0
-
+    // --- Step 5: Create run tracking row ---
+    // Group candidates by provider for separate reports per provider
+    const providerGroups = new Map<string, CandidateAggregation[]>()
     for (const candidate of candidates) {
-      // Determine which provider this candidate interacted with (use first job's employer)
       const { data: firstJob } = await supabase
         .from('jobs')
         .select('employer_id')
         .eq('id', candidate.jobs_applied_to[0]?.job_id || '')
-        .single()
+        .maybeSingle()
 
-      const effectiveProviderId = firstJob?.employer_id || providerId
+      const effectiveProvider = firstJob?.employer_id || providerId
+      const group = providerGroups.get(effectiveProvider) || []
+      group.push(candidate)
+      providerGroups.set(effectiveProvider, group)
+    }
 
-      // Insert compliance_reports record
-      const fileName = `compliance_${effectiveProviderId}_${candidate.candidate_id}_${periodStart}_${periodEnd}.pdf`
-      const storagePath = `${effectiveProviderId}/${candidate.candidate_id}/${fileName}`
+    // Create a single run for this export batch
+    const { data: runRecord, error: runErr } = await supabase
+      .from('compliance_report_runs')
+      .insert({
+        status: 'generating',
+        total_candidates: candidates.length,
+        started_at: nowISO,
+        created_at: nowISO,
+        updated_at: nowISO,
+      })
+      .select('id')
+      .single()
+
+    if (runErr) {
+      errors.push(`Failed to create run record: ${runErr.message}`)
+      return new Response(
+        JSON.stringify({ reports_created: 0, candidates_processed: 0, errors }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const runId = runRecord.id
+
+    // --- Step 6: Save reports + rows ---
+    let reportsCreated = 0
+    let completedCandidates = 0
+    let failedCandidates = 0
+
+    for (const [effectiveProviderId, candidateGroup] of providerGroups) {
+      // Create a single compliance_reports row for this provider's group of candidates
+      const reportDataAgg = {
+        activity_summary: {
+          total_swipes: candidateGroup.reduce((s, c) => s + c.total_swipes, 0),
+          right_swipes: candidateGroup.reduce((s, c) => s + c.right_swipes, 0),
+          unique_jobs_interacted: candidateGroup.reduce(
+            (s, c) => s + c.jobs_applied_to.length, 0
+          ),
+          total_matches: candidateGroup.reduce((s, c) => s + c.active_matches, 0),
+          total_hires: candidateGroup.reduce((s, c) => s + c.hires_completed, 0),
+          candidate_rows: candidateGroup.length,
+        },
+        generated_at: nowISO,
+      }
 
       const { data: reportRecord, error: insertErr } = await supabase
         .from('compliance_reports')
         .insert({
-          candidate_id: candidate.candidate_id,
+          candidate_id: candidateGroup[0].candidate_id, // primary candidate
           provider_id: effectiveProviderId,
           period_start: periodStart,
           period_end: periodEnd,
           report_type: reportType,
-          report_data: candidate as any,
-          storage_path: storagePath,
+          report_data: reportDataAgg,
           status: 'generating',
+          created_at: nowISO,
+          updated_at: nowISO,
         })
         .select('id')
         .single()
 
       if (insertErr) {
-        errors.push(`Failed to insert report for ${candidate.candidate_id}: ${insertErr.message}`)
+        errors.push(`Failed to insert report for provider ${effectiveProviderId}: ${insertErr.message}`)
+        failedCandidates += candidateGroup.length
         continue
       }
 
-      // Upload PDF to Supabase Storage
+      const reportId = reportRecord.id
+
+      // Upload combined PDF to storage
+      const fileName = `compliance_${effectiveProviderId}_${periodStart}_${periodEnd}.pdf`
+      const storagePath = `${effectiveProviderId}/${fileName}`
+
       const { error: uploadErr } = await supabase
         .storage
         .from('compliance-reports')
@@ -200,28 +254,70 @@ serve(async (req) => {
         })
 
       if (uploadErr) {
-        errors.push(`Failed to upload PDF for ${candidate.candidate_id}: ${uploadErr.message}`)
-        // Mark report as failed
-        await supabase
-          .from('compliance_reports')
-          .update({ status: 'failed', error_message: uploadErr.message })
-          .eq('id', reportRecord!.id)
-        continue
+        errors.push(`Failed to upload PDF for provider ${effectiveProviderId}: ${uploadErr.message}`)
+      }
+
+      // Create per-candidate rows (compliance_report_rows)
+      for (const candidate of candidateGroup) {
+        const uniqueJobs = new Set(candidate.jobs_applied_to.map(j => j.job_id))
+
+        const { error: rowErr } = await supabase
+          .from('compliance_report_rows')
+          .insert({
+            report_id: reportId,
+            run_id: runId,
+            candidate_id: candidate.candidate_id,
+            status: 'completed',
+            swipe_count: candidate.total_swipes,
+            right_swipe_count: candidate.right_swipes,
+            unique_jobs_interacted: uniqueJobs.size,
+            match_count: candidate.active_matches,
+            hire_count: candidate.hires_completed,
+            total_earnings: candidate.total_earnings || null,
+            swipes_data: candidate.jobs_applied_to,
+            created_at: nowISO,
+            updated_at: nowISO,
+          })
+
+        if (rowErr) {
+          errors.push(`Failed to insert row for ${candidate.candidate_id}: ${rowErr.message}`)
+          failedCandidates++
+        } else {
+          completedCandidates++
+        }
       }
 
       // Mark report as completed
       await supabase
         .from('compliance_reports')
-        .update({ status: 'completed' })
-        .eq('id', reportRecord!.id)
+        .update({
+          status: 'completed',
+          storage_path: uploadErr ? null : storagePath,
+          updated_at: nowISO,
+        })
+        .eq('id', reportId)
 
       reportsCreated++
     }
 
+    // Mark run as completed
+    await supabase
+      .from('compliance_report_runs')
+      .update({
+        status: failedCandidates > 0 && completedCandidates === 0 ? 'failed' : 'completed',
+        completed_candidates: completedCandidates,
+        failed_candidates: failedCandidates,
+        completed_at: nowISO,
+        updated_at: nowISO,
+      })
+      .eq('id', runId)
+
     return new Response(
       JSON.stringify({
         reports_created: reportsCreated,
-        candidates_processed: candidates.length,
+        candidates_processed: completedCandidates,
+        candidates_failed: failedCandidates > 0 ? failedCandidates : undefined,
+        run_id: runId,
         errors: errors.length > 0 ? errors : undefined,
       }),
       { headers: { 'Content-Type': 'application/json' } }
@@ -244,7 +340,6 @@ async function aggregateCandidate(
   periodStart: string,
   periodEnd: string
 ): Promise<CandidateAggregation | null> {
-  // Fetch profile
   const { data: profile } = await supabase
     .from('profiles')
     .select('full_name')
@@ -253,7 +348,6 @@ async function aggregateCandidate(
 
   if (!profile) return null
 
-  // Fetch swipes in period
   const { data: swipes } = await supabase
     .from('swipes')
     .select('id, job_id, direction, created_at')
@@ -265,11 +359,10 @@ async function aggregateCandidate(
   const rightSwipes = swipes?.filter(s => s.direction === 'right').length || 0
   const leftSwipes = swipes?.filter(s => s.direction === 'left').length || 0
 
-  // Fetch job titles for swiped jobs
   const jobIds = [...new Set((swipes || []).map(s => s.job_id))]
   const { data: jobs } = await supabase
     .from('jobs')
-    .select('id, title')
+    .select('id, title, pay_amount, pay_period')
     .in('id', jobIds.length > 0 ? jobIds : ['00000000-0000-0000-0000-000000000000'])
 
   const jobTitles = new Map((jobs || []).map(j => [j.id, j.title]))
@@ -281,7 +374,6 @@ async function aggregateCandidate(
     swiped_at: s.created_at,
   }))
 
-  // Fetch active matches (chatting or hire_pending)
   const { data: activeMatches } = await supabase
     .from('matches')
     .select('id')
@@ -290,7 +382,6 @@ async function aggregateCandidate(
     .gte('created_at', periodStart)
     .lte('created_at', periodEnd + 'T23:59:59Z')
 
-  // Fetch hires completed in period
   const { data: hires } = await supabase
     .from('matches')
     .select('id')
@@ -298,6 +389,18 @@ async function aggregateCandidate(
     .eq('status', 'hired')
     .gte('hired_at', periodStart)
     .lte('hired_at', periodEnd + 'T23:59:59Z')
+
+  // Estimate earnings: for hired matches, sum job pay
+  let totalEarnings = 0
+  if (hires && hires.length > 0) {
+    // We already have jobs data from the swipes query
+    for (const job of jobs || []) {
+      if (job.pay_amount) {
+        const amount = parseFloat(job.pay_amount)
+        totalEarnings += isNaN(amount) ? 0 : amount
+      }
+    }
+  }
 
   return {
     candidate_id: candidateId,
@@ -307,56 +410,69 @@ async function aggregateCandidate(
     left_swipes: leftSwipes,
     active_matches: activeMatches?.length || 0,
     hires_completed: hires?.length || 0,
+    total_earnings: totalEarnings,
     jobs_applied_to: jobsAppliedTo,
   }
 }
 
 /**
- * Generate a simple PDF report with candidate compliance data.
- * Uses raw PDF construction (no heavy dependencies).
+ * Generate a structured PDF report with candidate compliance data.
+ * Uses raw PDF construction — no external dependencies needed in Deno.
+ * Designed to match the reportlab-based backend PDF format.
  */
-function generateSimplePdf(report: ComplianceReportData): Uint8Array {
-  const lines: string[] = []
-  const pageWidth = 595 // A4 width in points
-  const pageHeight = 842 // A4 height
+function generateCompliancePdf(report: ComplianceReportData): Uint8Array {
+  const pageWidth = 595  // A4
+  const pageHeight = 842
   const margin = 50
-  const usableWidth = pageWidth - 2 * margin
+  const lineHeight = 14
 
-  // Metadata
-  lines.push(`Centrelink Compliance Report`)
+  // Build text content
+  const lines: string[] = []
+  lines.push(`Workforce Australia Compliance Report`)
   lines.push(`Generated: ${report.generated_at}`)
   lines.push(`Period: ${report.period_start} to ${report.period_end}`)
   lines.push(`Report Type: ${report.report_type}`)
   lines.push('')
-  lines.push(`--- Summary ---`)
-  lines.push(`Total Candidates: ${report.summary.total_candidates}`)
-  lines.push(`Total Swipes: ${report.summary.total_swipes}`)
-  lines.push(`Total Right Swipes (Interest): ${report.summary.total_right_swipes}`)
-  lines.push(`Total Active Matches: ${report.summary.total_matches}`)
-  lines.push(`Total Hires: ${report.summary.total_hires}`)
+  lines.push(`ACTIVITY SUMMARY`)
+  lines.push(`${'='.repeat(60)}`)
+  lines.push(`  Total Candidates:    ${report.summary.total_candidates}`)
+  lines.push(`  Total Swipes:        ${report.summary.total_swipes}`)
+  lines.push(`  Applications:        ${report.summary.total_right_swipes}`)
+  lines.push(`  Active Matches:      ${report.summary.total_matches}`)
+  lines.push(`  Hires Completed:     ${report.summary.total_hires}`)
+  lines.push(`${'='.repeat(60)}`)
   lines.push('')
 
-  // Per-candidate detail
   for (const candidate of report.candidates) {
-    lines.push(`--- ${candidate.full_name} (${candidate.candidate_id}) ---`)
-    lines.push(`  Swipes: ${candidate.total_swipes} total (${candidate.right_swipes} right, ${candidate.left_swipes} left)`)
-    lines.push(`  Active Matches: ${candidate.active_matches}`)
-    lines.push(`  Hires Completed: ${candidate.hires_completed}`)
+    lines.push(`CANDIDATE: ${candidate.full_name}`)
+    lines.push(`${'-'.repeat(60)}`)
+    lines.push(`  Swipes:   ${candidate.total_swipes} total (${candidate.right_swipes} applied, ${candidate.left_swipes} passed)`)
+    lines.push(`  Matches:  ${candidate.active_matches} active`)
+    lines.push(`  Hires:    ${candidate.hires_completed}`)
+    if (candidate.total_earnings > 0) {
+      lines.push(`  Earnings: $${candidate.total_earnings.toFixed(2)}`)
+    }
     if (candidate.jobs_applied_to.length > 0) {
-      lines.push(`  Jobs Applied To:`)
-      for (const job of candidate.jobs_applied_to) {
-        const dir = job.direction === 'right' ? 'INTERESTED' : 'PASS'
-        lines.push(`    - ${job.title} (${dir}) — ${job.swiped_at}`)
+      lines.push(`  Jobs:`)
+      for (const job of candidate.jobs_applied_to.slice(0, 20)) {
+        const dir = job.direction === 'right' ? 'APPLIED' : 'PASS'
+        lines.push(`    - ${job.title} [${dir}] ${job.swiped_at?.slice(0, 10) || ''}`)
+      }
+      if (candidate.jobs_applied_to.length > 20) {
+        lines.push(`    ... and ${candidate.jobs_applied_to.length - 20} more`)
       }
     }
     lines.push('')
   }
 
-  // Build text content
+  lines.push(`${'='.repeat(60)}`)
+  lines.push('End of Report')
+  lines.push(`Report generated by Hi-Hired Platform`)
+  lines.push(`Report Type: ${report.report_type} | Period: ${report.period_start} to ${report.period_end}`)
+
   const textContent = lines.join('\n')
 
-  // Simple PDF construction using PDF 1.4 spec
-  // This creates a valid PDF with text content
+  // --- Build PDF document (PDF 1.4) ---
   const objects: string[] = []
   let objectNum = 0
 
@@ -365,16 +481,13 @@ function generateSimplePdf(report: ComplianceReportData): Uint8Array {
     return ++objectNum
   }
 
-  // Object 1: Catalog
   addObject(`1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj`)
-
-  // Object 2: Pages
   addObject(`2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj`)
+  addObject(
+    `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] ` +
+    `/Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj`
+  )
 
-  // Object 3: Page
-  addObject(`3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj`)
-
-  // Escape PDF string special characters
   function escapePdfString(s: string): string {
     return s
       .replace(/\\/g, '\\\\')
@@ -383,53 +496,35 @@ function generateSimplePdf(report: ComplianceReportData): Uint8Array {
       .replace(/\n/g, '\\n')
   }
 
-  // Build content stream for text on the page
-  let streamContent = ''
-  streamContent += 'BT\n'
-  streamContent += '/F1 10 Tf\n'
+  let streamContent = 'BT\n'
+  streamContent += '/F1 9 Tf\n'
   streamContent += `${margin} ${pageHeight - margin - 20} Td\n`
 
-  const textLines = textContent.split('\n')
-  const lineHeight = 14
-
-  for (const line of textLines) {
-    // Check if we need a new page (very basic)
-    const y = pageHeight - margin - 20 - (textLines.indexOf(line) + 1) * lineHeight
-    if (y < margin) {
-      // For simplicity, just truncate
-      break
-    }
+  for (const line of textContent.split('\n')) {
     streamContent += `(${escapePdfString(line)}) Tj\n`
     streamContent += `0 -${lineHeight} Td\n`
   }
 
   streamContent += 'ET\n'
 
-  // Object 4: Content stream
   const streamLength = streamContent.length
   addObject(`4 0 obj\n<< /Length ${streamLength} >>\nstream\n${streamContent}\nendstream\nendobj`)
-
-  // Object 5: Font
   addObject(`5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>\nendobj`)
 
-  // Build final PDF
   const pdfHeader = '%PDF-1.4\n%\xFF\xFF\xFF\xFF\n'
   const body = objects.join('\n') + '\n'
   const xrefOffset = pdfHeader.length + body.length
 
-  const xref = `xref\n0 ${objectNum + 1}\n0000000000 65535 f \n`
+  let xref = `xref\n0 ${objectNum + 1}\n0000000000 65535 f \n`
   let currentOffset = pdfHeader.length
   for (let i = 0; i < objectNum; i++) {
     const objStart = currentOffset
-    // Find the end of this object
-    const objEnd = body.indexOf('\nendobj', objStart)
-    const line = `${String(objStart).padStart(10, '0')} 00000 n \n`
-    xref += line
-    currentOffset = objEnd + 7 // +7 for '\nendobj'
+    const objEndMarker = body.indexOf('\nendobj', objStart)
+    xref += `${String(objStart).padStart(10, '0')} 00000 n \n`
+    currentOffset = objEndMarker + 7
   }
 
   const trailer = `trailer\n<< /Size ${objectNum + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`
 
-  const pdf = pdfHeader + body + xref + trailer
-  return new TextEncoder().encode(pdf)
+  return new TextEncoder().encode(pdfHeader + body + xref + trailer)
 }
