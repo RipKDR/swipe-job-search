@@ -3,6 +3,7 @@ name = "hi-hired-backend"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "reportlab>=4.2.0",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.32.0",
     "pydantic>=2.10.0",

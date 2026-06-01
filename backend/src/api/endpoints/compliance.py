@@ -11,14 +11,18 @@ before the report is marked completed. This ensures partial-failure recovery
 
 from __future__ import annotations
 
+import os
 from datetime import date, datetime, timezone
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import Response
 from pydantic import BaseModel, field_validator
 from supabase import create_client
 
 from src.api.middleware.auth import AuthClaims, require_role
 from src.core.config import get_settings
+from src.services.pdf_generator import generate_compliance_pdf
 
 router = APIRouter(tags=["compliance"])
 
@@ -569,4 +573,131 @@ async def get_compliance_report(
         rows=rows,
         run_status=run["status"] if run else None,
         created_at=r["created_at"],
+    )
+
+
+@router.get(
+    "/compliance/reports/{report_id}/pdf",
+    summary="Download a compliance report as PDF",
+    description=(
+        "Generates and returns a Workforce Australia-style compliance report "
+        "PDF from the persisted report data. The PDF is generated on-demand "
+        "and returned as application/pdf."
+    ),
+)
+async def get_compliance_report_pdf(
+    report_id: str,
+    claims: AuthClaims = Depends(require_role("provider")),
+) -> Response:
+    """Generate and download a PDF for a compliance report."""
+    if not claims.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authenticated provider not identified",
+        )
+
+    supabase = _get_service_client()
+
+    # 1. Fetch report — must be owned by the requesting provider
+    report_resp = (
+        supabase.table("compliance_reports")
+        .select("*")
+        .eq("id", report_id)
+        .eq("provider_id", claims.user_id)
+        .maybe_single()
+        .execute()
+    )
+
+    if not report_resp.data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Report not found or access denied",
+        )
+
+    r = report_resp.data
+
+    if r["status"] != "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Report is not completed (status: {r['status']}). Cannot generate PDF.",
+        )
+
+    # 2. Fetch candidate name for display
+    candidate_name: str | None = None
+    profile_resp = (
+        supabase.table("profiles")
+        .select("full_name")
+        .eq("id", r["candidate_id"])
+        .maybe_single()
+        .execute()
+    )
+    if profile_resp.data:
+        candidate_name = profile_resp.data.get("full_name")
+
+    # 3. Fetch provider display name
+    provider_name: str | None = None
+    provider_profile = (
+        supabase.table("profiles")
+        .select("company_name, full_name")
+        .eq("id", claims.user_id)
+        .maybe_single()
+        .execute()
+    )
+    if provider_profile.data:
+        provider_name = (
+            provider_profile.data.get("company_name")
+            or provider_profile.data.get("full_name")
+        )
+
+    # 4. Fetch detail rows
+    rows_resp = (
+        supabase.table("compliance_report_rows")
+        .select("*")
+        .eq("report_id", report_id)
+        .execute()
+    )
+    detail_rows: list[dict[str, Any]] = rows_resp.data or []
+
+    # 5. Extract activity summary from report_data
+    report_data = r.get("report_data") or {}
+    activity_summary = report_data.get("activity_summary")
+
+    # 6. Generate PDF
+    try:
+        pdf_bytes = generate_compliance_pdf(
+            report_id=r["id"],
+            provider_name=provider_name,
+            candidate_name=candidate_name,
+            period_start=r["period_start"],
+            period_end=r["period_end"],
+            report_type=r["report_type"],
+            generated_at=r.get("created_at"),
+            rows=detail_rows,
+            activity_summary=activity_summary,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"PDF generation failed: {exc}",
+        )
+
+    # 7. Optionally store the storage path (not blocking)
+    pdf_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "pdfs")
+    os.makedirs(pdf_dir, exist_ok=True)
+    pdf_path = os.path.join(pdf_dir, f"compliance-{report_id}.pdf")
+    try:
+        with open(pdf_path, "wb") as f:
+            f.write(pdf_bytes)
+        supabase.table("compliance_reports").update({
+            "storage_path": pdf_path,
+        }).eq("id", report_id).execute()
+    except Exception:
+        pass  # Non-blocking — PDF is still returned
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="compliance-{report_id}.pdf"',
+        },
     )
