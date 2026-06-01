@@ -23,6 +23,7 @@ from src.api.middleware.auth import (
     require_role,
     verify_access_token,
 )
+from src.core.errors import APIException, api_error_handler
 from src.api.middleware.rate_limit import (
     ROLE_RATE_LIMITS,
     TokenBucket,
@@ -329,6 +330,9 @@ class TestRequireRoleIntegration:
     def _make_test_app_no_rate_limit() -> FastAPI:
         """Test app without the rate limiter, for auth-specific tests."""
         test_app = FastAPI()
+
+        # Register standardised error handler so APIException is caught
+        test_app.add_exception_handler(APIException, api_error_handler)
 
         @test_app.get("/public")
         async def public_endpoint(

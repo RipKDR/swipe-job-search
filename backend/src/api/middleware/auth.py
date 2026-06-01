@@ -11,12 +11,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
 
 from src.core.config import get_settings
+from src.core.errors import APIException, ErrorCode
 
 settings = get_settings()
 security = HTTPBearer(auto_error=False)
@@ -115,9 +116,10 @@ async def get_current_user(
 
     claims = verify_access_token(credentials.credentials)
     if claims is None:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired authentication token",
+            code=ErrorCode.UNAUTHORIZED,
+            message="Invalid or expired authentication token",
             headers={"WWW-Authenticate": "Bearer"},
         )
     return claims
@@ -152,9 +154,10 @@ def require_role(min_role: str):
     def _check_role(claims: AuthClaims = Depends(get_current_user)) -> AuthClaims:
         user_level = ROLE_HIERARCHY.get(claims.role, -1)
         if user_level < min_level:
-            raise HTTPException(
+            raise APIException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=(f"Requires role '{min_role}' or higher (current: '{claims.role}')"),
+                code=ErrorCode.ROLE_REQUIRED,
+                message=f"Requires role '{min_role}' or higher (current: '{claims.role}')",
             )
         return claims
 
