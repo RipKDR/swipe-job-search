@@ -5,6 +5,12 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader'
 import { TabWebShell } from '@/components/ui/TabWebShell'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import {
+  buildCompliancePdfFilename,
+  buildCompliancePdfUrl,
+  downloadCompliancePdfNative,
+  extractComplianceApiErrorMessage,
+} from '@/lib/compliance'
 import type { Database } from '@hi-hired/shared'
 import { useEffect, useState, useCallback } from 'react'
 import { View, Text, Pressable, TextInput } from '@/components/tw'
@@ -12,6 +18,24 @@ import { FlatList, Platform, Alert } from 'react-native'
 
 type ComplianceReport = Database['public']['Tables']['compliance_reports']['Row']
 type ComplianceReportRow = Database['public']['Tables']['compliance_report_rows']['Row']
+
+type ComplianceActivitySummary = {
+  total_swipes?: number
+  right_swipes?: number
+  unique_jobs_interacted?: number
+  total_matches?: number
+  total_hires?: number
+  candidate_rows?: number
+}
+
+type ComplianceReportData = {
+  activity_summary?: ComplianceActivitySummary
+}
+
+function asComplianceReportData(value: unknown): ComplianceReportData | null {
+  if (!value || typeof value !== 'object') return null
+  return value as ComplianceReportData
+}
 
 const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000'
 
@@ -96,8 +120,10 @@ export default function ComplianceScreen() {
       )
 
       if (!resp.ok) {
-        const errBody = await resp.json().catch(() => ({ detail: resp.statusText }))
-        throw new Error(errBody.detail || `Server error (${resp.status})`)
+        const errBody = await resp.json().catch(() => null)
+        throw new Error(
+          extractComplianceApiErrorMessage(errBody, `Server error (${resp.status})`)
+        )
       }
 
       setShowForm(false)
@@ -127,6 +153,9 @@ export default function ComplianceScreen() {
           <Pressable
             className="bg-indigo-600 py-3 px-4 rounded-xl active:opacity-80"
             onPress={() => setShowForm(!showForm)}
+            accessibilityRole="button"
+            accessibilityLabel={showForm ? 'Cancel compliance report generation' : 'Generate a compliance report'}
+            accessibilityState={{ expanded: showForm }}
           >
             <Text className="text-white font-semibold text-center">
               {showForm ? 'Cancel' : '+ Generate Report'}
@@ -139,6 +168,8 @@ export default function ComplianceScreen() {
             <View>
               <Text className="text-slate-400 text-xs mb-1">Candidate ID</Text>
               <TextInput
+                accessibilityLabel="Candidate ID for compliance report"
+                accessibilityHint="Enter the candidate UUID to generate a report for"
                 className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
                 placeholder="UUID of the candidate"
                 placeholderTextColor="#64748b"
@@ -150,6 +181,8 @@ export default function ComplianceScreen() {
             <View>
               <Text className="text-slate-400 text-xs mb-1">Report period (days back)</Text>
               <TextInput
+                accessibilityLabel="Compliance report period in days"
+                accessibilityHint="Enter a number between 1 and 90"
                 className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white text-sm"
                 placeholder="7"
                 placeholderTextColor="#64748b"
@@ -162,6 +195,9 @@ export default function ComplianceScreen() {
               className={`py-3 px-4 rounded-xl ${generating ? 'bg-indigo-800/50' : 'bg-emerald-600'} active:opacity-80`}
               onPress={handleGenerate}
               disabled={generating}
+              accessibilityRole="button"
+              accessibilityLabel="Submit compliance report generation request"
+              accessibilityState={{ disabled: generating, busy: generating }}
             >
               <Text className="text-white font-semibold text-center">
                 {generating ? 'Generating…' : 'Generate Report'}
@@ -174,7 +210,12 @@ export default function ComplianceScreen() {
           <View className="mt-2 px-4">
             <View className="bg-red-900/30 border border-red-800/50 rounded-xl p-4">
               <Text className="text-red-300 text-sm">{error}</Text>
-              <Pressable onPress={fetchReports} className="mt-2">
+              <Pressable
+                onPress={fetchReports}
+                className="mt-2"
+                accessibilityRole="button"
+                accessibilityLabel="Retry loading compliance reports"
+              >
                 <Text className="text-indigo-400 font-medium">Retry</Text>
               </Pressable>
             </View>
@@ -237,7 +278,7 @@ function ReportCard({ report }: { report: ComplianceReport }) {
   const [detailRows, setDetailRows] = useState<ComplianceReportRow[]>([])
   const [loadingRows, setLoadingRows] = useState(false)
 
-  const reportData = report.report_data as Record<string, any> | null
+  const reportData = asComplianceReportData(report.report_data)
 
   // Fetch per-candidate rows when the card is expanded
   const fetchRows = useCallback(async () => {
@@ -264,7 +305,12 @@ function ReportCard({ report }: { report: ComplianceReport }) {
 
   return (
     <View className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 mx-4">
-      <Pressable onPress={handleToggle}>
+      <Pressable
+        onPress={handleToggle}
+        accessibilityRole="button"
+        accessibilityLabel={`Compliance report for candidate ${report.candidate_id.slice(0, 8)}. ${statusLabel}. ${expanded ? 'Collapse details' : 'Expand details'}`}
+        accessibilityState={{ expanded }}
+      >
         <View className="flex-row items-center justify-between mb-2">
           <Text className="text-white font-semibold text-base">
             {report.report_type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
@@ -351,6 +397,8 @@ function ReportCard({ report }: { report: ComplianceReport }) {
       {expanded && report.status === 'completed' && (
         <Pressable
           className="mt-3 bg-indigo-600/20 border border-indigo-500/30 rounded-lg py-2 px-3 active:opacity-80"
+          accessibilityRole="button"
+          accessibilityLabel="Download compliance report PDF"
           onPress={async () => {
             try {
               const { data: sessionData } = await supabase.auth.getSession()
@@ -361,20 +409,21 @@ function ReportCard({ report }: { report: ComplianceReport }) {
               }
 
               const apiBase = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000'
-              const resp = await fetch(
-                `${apiBase}/api/v1/compliance/reports/${report.id}/pdf`,
-                {
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
-                }
-              )
+              const pdfUrl = buildCompliancePdfUrl(apiBase, report.id)
+              const resp = await fetch(pdfUrl, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              })
 
               if (!resp.ok) {
-                throw new Error(`PDF generation failed (${resp.status})`)
+                const errBody = await resp.json().catch(() => null)
+                throw new Error(
+                  extractComplianceApiErrorMessage(errBody, `PDF generation failed (${resp.status})`)
+                )
               }
 
-              const filename = `compliance-${report.id}.pdf`
+              const filename = buildCompliancePdfFilename(report.id)
 
               if (Platform.OS === 'web') {
                 // Web: trigger browser download via blob URL
@@ -386,18 +435,16 @@ function ReportCard({ report }: { report: ComplianceReport }) {
                 a.click()
                 URL.revokeObjectURL(url)
               } else {
-                // Native: download using expo-file-system, then share
-                const FileSystem = await import('expo-file-system')
-                const localUri = FileSystem.cacheDirectory + filename
-                await FileSystem.downloadAsync(
-                  `${apiBase}/api/v1/compliance/reports/${report.id}/pdf`,
-                  localUri,
-                  { headers: { Authorization: `Bearer ${token}` } }
-                )
+                // Native: download using Expo FileSystem legacy API, then share
+                const FileSystem = await import('expo-file-system/legacy')
                 const Sharing = await import('expo-sharing')
-                if (await Sharing.isAvailableAsync()) {
-                  await Sharing.shareAsync(localUri)
-                }
+                await downloadCompliancePdfNative({
+                  apiBase,
+                  reportId: report.id,
+                  token,
+                  fileSystem: FileSystem,
+                  sharing: Sharing,
+                })
               }
             } catch (err) {
               Alert.alert('Download Failed', err instanceof Error ? err.message : 'Unknown error')
