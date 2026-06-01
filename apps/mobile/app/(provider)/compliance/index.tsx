@@ -11,6 +11,7 @@ import { View, Text, Pressable, TextInput } from '@/components/tw'
 import { FlatList, Platform, Alert } from 'react-native'
 
 type ComplianceReport = Database['public']['Tables']['compliance_reports']['Row']
+type ComplianceReportRow = Database['public']['Tables']['compliance_report_rows']['Row']
 
 const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000'
 
@@ -233,11 +234,37 @@ function ReportCard({ report }: { report: ComplianceReport }) {
   }
 
   const [expanded, setExpanded] = useState(false)
+  const [detailRows, setDetailRows] = useState<ComplianceReportRow[]>([])
+  const [loadingRows, setLoadingRows] = useState(false)
+
   const reportData = report.report_data as Record<string, any> | null
+
+  // Fetch per-candidate rows when the card is expanded
+  const fetchRows = useCallback(async () => {
+    if (detailRows.length > 0 || report.status !== 'completed') return
+    setLoadingRows(true)
+    try {
+      const { data } = await supabase
+        .from('compliance_report_rows')
+        .select('*')
+        .eq('report_id', report.id)
+      setDetailRows((data as ComplianceReportRow[]) || [])
+    } catch {
+      // Silently fail — rows are supplementary
+    } finally {
+      setLoadingRows(false)
+    }
+  }, [report.id, report.status, detailRows.length])
+
+  const handleToggle = () => {
+    const next = !expanded
+    setExpanded(next)
+    if (next) fetchRows()
+  }
 
   return (
     <View className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-4 mx-4">
-      <Pressable onPress={() => setExpanded(!expanded)}>
+      <Pressable onPress={handleToggle}>
         <View className="flex-row items-center justify-between mb-2">
           <Text className="text-white font-semibold text-base">
             {report.report_type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
@@ -283,26 +310,40 @@ function ReportCard({ report }: { report: ComplianceReport }) {
             </>
           )}
 
-          {reportData.matches && reportData.matches.length > 0 && (
-            <>
-              <Text className="text-indigo-300 font-medium text-sm mt-1">Matches</Text>
-              {reportData.matches.slice(0, 5).map((m: any, i: number) => (
-                <Text key={i} className="text-slate-300 text-xs">
-                  {m.status} — {m.created_at ? formatDate(m.created_at) : 'N/A'}
-                </Text>
-              ))}
-            </>
+          {/* Per-candidate detail rows (from compliance_report_rows) */}
+          {loadingRows && (
+            <Text className="text-slate-500 text-xs italic">Loading detail rows…</Text>
           )}
 
-          {reportData.hires && reportData.hires.length > 0 && (
-            <>
-              <Text className="text-emerald-300 font-medium text-sm mt-1">Hires</Text>
-              {reportData.hires.slice(0, 5).map((h: any, i: number) => (
-                <Text key={i} className="text-slate-300 text-xs">
-                  Hire {i + 1} — {h.created_at ? formatDate(h.created_at) : 'N/A'}
+          {detailRows.map((row, i) => (
+            <View key={row.id} className="mt-2 pt-2 border-t border-slate-700/30">
+              <Text className="text-indigo-300 font-medium text-xs">
+                Candidate Row {i + 1} — {row.status}
+              </Text>
+              <Text className="text-slate-300 text-xs mt-1">
+                Swipes: {row.swipe_count} ({row.right_swipe_count} right)
+              </Text>
+              <Text className="text-slate-300 text-xs">
+                Unique Jobs: {row.unique_jobs_interacted}
+              </Text>
+              <Text className="text-slate-300 text-xs">
+                Matches: {row.match_count} | Hires: {row.hire_count}
+              </Text>
+              {row.total_earnings != null && (
+                <Text className="text-emerald-300 text-xs">
+                  Est. Earnings: ${Number(row.total_earnings).toFixed(2)}
                 </Text>
-              ))}
-            </>
+              )}
+              {row.error_message && (
+                <Text className="text-red-400/70 text-xs mt-1">{row.error_message}</Text>
+              )}
+            </View>
+          ))}
+
+          {reportData.activity_summary?.candidate_rows != null && detailRows.length === 0 && !loadingRows && (
+            <Text className="text-slate-500 text-xs italic">
+              {reportData.activity_summary.candidate_rows} candidate row(s) — no detail rows synced
+            </Text>
           )}
         </View>
       )}
