@@ -47,6 +47,7 @@ const nativeOnlyPackages = new Set([
   "expo-localization",
   "expo-image-picker",
   "expo-image",
+  "@sentry/react-native",
   "posthog-react-native",
   "@posthog/core",
   "@posthog/core/surveys",

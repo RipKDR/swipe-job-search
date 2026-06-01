@@ -4,6 +4,7 @@ import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
 import type { Database } from '@hi-hired/shared';
 
 const supabaseUrl =
@@ -70,12 +71,10 @@ function getStorageAdapter() {
   if (Platform.OS === 'web') {
     return WebStorageAdapter;
   }
-  // Lazy import SecureStore on native only
-  const SecureStore = require('expo-secure-store');
   return {
-    getItem: async (key: string): Promise<string | null> => SecureStore.getItemAsync(key),
-    setItem: async (key: string, value: string): Promise<void> => SecureStore.setItemAsync(key, value),
-    removeItem: async (key: string): Promise<void> => SecureStore.deleteItemAsync(key),
+    getItem: SecureStore.getItemAsync,
+    setItem: SecureStore.setItemAsync,
+    removeItem: SecureStore.deleteItemAsync,
   };
 }
 

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@hi-hired/shared';
 
@@ -24,7 +25,6 @@ function mapSwipeError(error: { message?: string } | null): string {
 async function triggerHaptic(type?: 'selection' | 'success' | 'warning') {
   if (Platform.OS === 'web') return;
   try {
-    const Haptics = await import('expo-haptics');
     if (type === 'selection') {
       await Haptics.selectionAsync();
     } else if (type === 'success') {

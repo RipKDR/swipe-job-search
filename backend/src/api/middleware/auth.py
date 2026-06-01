@@ -15,6 +15,7 @@ from fastapi import Depends, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
+from supabase import create_client
 
 from src.core.config import get_settings
 from src.core.errors import APIException, ErrorCode
@@ -30,6 +31,9 @@ ROLE_HIERARCHY: dict[str, int] = {
     "provider": 2,
     "admin": 3,
 }
+
+# Employer/provider are peer roles, not interchangeable privileges.
+STRICT_PEER_ROLES = {"employer", "provider"}
 
 
 class AuthClaims(BaseModel):
@@ -79,16 +83,15 @@ def verify_access_token(token: str) -> AuthClaims | None:
 
         return None
 
-    # Extract claims from the verified payload
+    # Extract application role from trusted custom claims. Supabase's standard
+    # payload["role"] is usually the Postgres role ("authenticated"), not the
+    # Hi-Hired app role; only use it when it contains a known app role.
     user_id: str | None = payload.get("sub")
     app_metadata: dict[str, Any] = payload.get("app_metadata", {}) or {}
-    user_role: str = (
-        app_metadata.get("role") or payload.get("user_role") or payload.get("role", "jobseeker")
+    raw_role: str | None = (
+        app_metadata.get("role") or payload.get("user_role") or payload.get("role")
     )
-
-    # Validate role against known hierarchy; fall back to jobseeker
-    if user_role not in ROLE_HIERARCHY:
-        user_role = "jobseeker"
+    user_role = raw_role if raw_role in ROLE_HIERARCHY else "jobseeker"
 
     return AuthClaims(
         user_id=user_id,
@@ -125,10 +128,57 @@ async def get_current_user(
     return claims
 
 
+def _get_service_client():
+    """Return a Supabase service client for server-side role lookups."""
+    return create_client(settings.supabase_url, settings.supabase_service_key)
+
+
+def _get_profile_role(user_id: str | None) -> str | None:
+    """Fetch the current role from profiles, which reflects onboarding changes.
+
+    JWT app_metadata can be stale until token refresh. For peer app roles
+    (employer/provider), the profiles row is the backend source of truth when it
+    is available. If Supabase is unavailable or misconfigured, return None so
+    callers can fall back to the already-verified JWT claim.
+    """
+    if not user_id:
+        return None
+
+    try:
+        resp = (
+            _get_service_client()
+            .table("profiles")
+            .select("role")
+            .eq("id", user_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception:
+        return None
+
+    role = (resp.data or {}).get("role")
+    return role if role in ROLE_HIERARCHY else None
+
+
+def _role_satisfies(role: str, min_role: str, min_level: int) -> bool:
+    """Return whether an app role satisfies a role requirement.
+
+    Employer and provider share hierarchy level 2, but they are lateral peer
+    roles. A provider-only endpoint must not admit an employer just because the
+    hierarchy level matches. Admin remains the only cross-role override.
+    """
+    if role == "admin":
+        return True
+    if min_role in STRICT_PEER_ROLES:
+        return role == min_role
+    return ROLE_HIERARCHY.get(role, -1) >= min_level
+
+
 def require_role(min_role: str):
     """Factory returning a FastAPI dependency that enforces a minimum role.
 
-    The role hierarchy (low → high): anonymous, jobseeker, employer, admin.
+    The role hierarchy (low → high): anonymous, jobseeker, employer/provider, admin.
+    Employer and provider are peer roles: same level, different privileges.
 
     Args:
         min_role: Minimum role required to access the endpoint.
@@ -151,14 +201,23 @@ def require_role(min_role: str):
     if min_level is None:
         raise ValueError(f"Unknown role: {min_role!r}. Valid: {list(ROLE_HIERARCHY)}")
 
-    def _check_role(claims: AuthClaims = Depends(get_current_user)) -> AuthClaims:
-        user_level = ROLE_HIERARCHY.get(claims.role, -1)
-        if user_level < min_level:
+    async def _check_role(claims: AuthClaims = Depends(get_current_user)) -> AuthClaims:
+        effective_claims = claims
+        if (
+            min_role in STRICT_PEER_ROLES
+            and claims.role != "admin"
+            and not _role_satisfies(claims.role, min_role, min_level)
+        ):
+            profile_role = _get_profile_role(claims.user_id)
+            if profile_role:
+                effective_claims = claims.model_copy(update={"role": profile_role})
+
+        if not _role_satisfies(effective_claims.role, min_role, min_level):
             raise APIException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 code=ErrorCode.ROLE_REQUIRED,
-                message=f"Requires role '{min_role}' or higher (current: '{claims.role}')",
+                message=f"Requires role '{min_role}' or higher (current: '{effective_claims.role}')",
             )
-        return claims
+        return effective_claims
 
     return _check_role

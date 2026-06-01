@@ -19,8 +19,6 @@ from __future__ import annotations
 
 import os
 from datetime import date, datetime, timezone
-from typing import Any
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import Response
@@ -39,12 +37,14 @@ settings = get_settings()
 
 # ── Request / Response schemas (Contract-first per skill principle) ────────
 
+
 class GenerateReportRequest(BaseModel):
     """Input: what the caller provides to generate a compliance report.
 
     Only period_start and period_end are required beyond candidate_id.
     report_type defaults to weekly_summary.
     """
+
     candidate_id: str
     period_start: date
     period_end: date
@@ -69,6 +69,7 @@ class GenerateReportRequest(BaseModel):
 
 class ComplianceRowResponse(BaseModel):
     """Output: per-candidate detail row within a compliance report."""
+
     id: str
     report_id: str
     run_id: str
@@ -85,6 +86,7 @@ class ComplianceRowResponse(BaseModel):
 
 class ComplianceReportResponse(BaseModel):
     """Output: a single compliance report with its detail rows."""
+
     id: str
     candidate_id: str
     provider_id: str
@@ -101,6 +103,7 @@ class ComplianceReportResponse(BaseModel):
 
 class PaginationMeta(BaseModel):
     """Standard pagination metadata for list endpoints."""
+
     page: int
     page_size: int
     total_items: int
@@ -111,11 +114,13 @@ class PaginationMeta(BaseModel):
 
 class ComplianceReportListResponse(BaseModel):
     """Output: paginated list of compliance reports."""
+
     data: list[ComplianceReportResponse]
     pagination: PaginationMeta
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
+
 
 def _get_service_client():
     """Return a Supabase client with service_role for backend operations."""
@@ -300,10 +305,7 @@ def _fetch_rows(
 ) -> list[dict]:
     """Fetch all compliance_report_rows for a report."""
     rows_resp = (
-        supabase.table("compliance_report_rows")
-        .select("*")
-        .eq("report_id", report_id)
-        .execute()
+        supabase.table("compliance_report_rows").select("*").eq("report_id", report_id).execute()
     )
     return rows_resp.data or []
 
@@ -376,15 +378,17 @@ async def generate_compliance_report(
     # 2. Create the compliance_reports row
     report_insert = (
         supabase.table("compliance_reports")
-        .insert({
-            "candidate_id": body.candidate_id,
-            "provider_id": claims.user_id,
-            **periods,
-            "report_type": body.report_type,
-            "status": "generating",
-            "created_at": now,
-            "updated_at": now,
-        })
+        .insert(
+            {
+                "candidate_id": body.candidate_id,
+                "provider_id": claims.user_id,
+                **periods,
+                "report_type": body.report_type,
+                "status": "generating",
+                "created_at": now,
+                "updated_at": now,
+            }
+        )
         .execute()
     )
 
@@ -401,24 +405,28 @@ async def generate_compliance_report(
     # 3. Create a compliance_report_runs row
     run_insert = (
         supabase.table("compliance_report_runs")
-        .insert({
-            "report_id": report_id,
-            "status": "generating",
-            "total_candidates": 1,
-            "started_at": now,
-            "created_at": now,
-            "updated_at": now,
-        })
+        .insert(
+            {
+                "report_id": report_id,
+                "status": "generating",
+                "total_candidates": 1,
+                "started_at": now,
+                "created_at": now,
+                "updated_at": now,
+            }
+        )
         .execute()
     )
 
     if not run_insert.data or len(run_insert.data) == 0:
         # Mark report as failed
-        supabase.table("compliance_reports").update({
-            "status": "failed",
-            "error_message": "Failed to create run tracking record",
-            "updated_at": now,
-        }).eq("id", report_id).execute()
+        supabase.table("compliance_reports").update(
+            {
+                "status": "failed",
+                "error_message": "Failed to create run tracking record",
+                "updated_at": now,
+            }
+        ).eq("id", report_id).execute()
         raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             code=ErrorCode.INTERNAL_ERROR,
@@ -439,15 +447,17 @@ async def generate_compliance_report(
 
         row_insert = (
             supabase.table("compliance_report_rows")
-            .insert({
-                "report_id": report_id,
-                "run_id": run_id,
-                "candidate_id": body.candidate_id,
-                "status": "completed",
-                **row_data,
-                "created_at": now,
-                "updated_at": now,
-            })
+            .insert(
+                {
+                    "report_id": report_id,
+                    "run_id": run_id,
+                    "candidate_id": body.candidate_id,
+                    "status": "completed",
+                    **row_data,
+                    "created_at": now,
+                    "updated_at": now,
+                }
+            )
             .execute()
         )
 
@@ -455,46 +465,56 @@ async def generate_compliance_report(
             row_result = row_insert.data[0]
 
         # 5. Mark run as completed
-        supabase.table("compliance_report_runs").update({
-            "status": "completed",
-            "completed_candidates": 1,
-            "completed_at": now,
-            "updated_at": now,
-        }).eq("id", run_id).execute()
+        supabase.table("compliance_report_runs").update(
+            {
+                "status": "completed",
+                "completed_candidates": 1,
+                "completed_at": now,
+                "updated_at": now,
+            }
+        ).eq("id", run_id).execute()
 
         # 6. Build aggregate report data
         report_aggregate = _build_report_aggregate([row_data])
 
         # 7. Update report as completed
-        supabase.table("compliance_reports").update({
-            "status": "completed",
-            "report_data": report_aggregate,
-            "updated_at": now,
-        }).eq("id", report_id).execute()
+        supabase.table("compliance_reports").update(
+            {
+                "status": "completed",
+                "report_data": report_aggregate,
+                "updated_at": now,
+            }
+        ).eq("id", report_id).execute()
 
     except Exception as exc:
         # Mark row as failed if created
         if row_result:
-            supabase.table("compliance_report_rows").update({
+            supabase.table("compliance_report_rows").update(
+                {
+                    "status": "failed",
+                    "error_message": str(exc),
+                    "updated_at": now,
+                }
+            ).eq("id", row_result["id"]).execute()
+
+        # Mark run as failed
+        supabase.table("compliance_report_runs").update(
+            {
+                "status": "failed",
+                "error_message": str(exc),
+                "completed_at": now,
+                "updated_at": now,
+            }
+        ).eq("id", run_id).execute()
+
+        # Mark report as failed
+        supabase.table("compliance_reports").update(
+            {
                 "status": "failed",
                 "error_message": str(exc),
                 "updated_at": now,
-            }).eq("id", row_result["id"]).execute()
-
-        # Mark run as failed
-        supabase.table("compliance_report_runs").update({
-            "status": "failed",
-            "error_message": str(exc),
-            "completed_at": now,
-            "updated_at": now,
-        }).eq("id", run_id).execute()
-
-        # Mark report as failed
-        supabase.table("compliance_reports").update({
-            "status": "failed",
-            "error_message": str(exc),
-            "updated_at": now,
-        }).eq("id", report_id).execute()
+            }
+        ).eq("id", report_id).execute()
 
         raise APIException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -680,10 +700,7 @@ async def get_compliance_report_pdf(
         raise APIException(
             status_code=status.HTTP_400_BAD_REQUEST,
             code=ErrorCode.INVALID_STATE,
-            message=(
-                f"Report is not completed (status: {r['status']}). "
-                "Cannot generate PDF."
-            ),
+            message=(f"Report is not completed (status: {r['status']}). Cannot generate PDF."),
         )
 
     # Fetch candidate name
@@ -708,9 +725,8 @@ async def get_compliance_report_pdf(
         .execute()
     )
     if provider_profile.data:
-        provider_name = (
-            provider_profile.data.get("company_name")
-            or provider_profile.data.get("full_name")
+        provider_name = provider_profile.data.get("company_name") or provider_profile.data.get(
+            "full_name"
         )
 
     # Fetch detail rows
@@ -747,9 +763,11 @@ async def get_compliance_report_pdf(
     try:
         with open(pdf_path, "wb") as f:
             f.write(pdf_bytes)
-        supabase.table("compliance_reports").update({
-            "storage_path": pdf_path,
-        }).eq("id", report_id).execute()
+        supabase.table("compliance_reports").update(
+            {
+                "storage_path": pdf_path,
+            }
+        ).eq("id", report_id).execute()
     except Exception:
         pass
 

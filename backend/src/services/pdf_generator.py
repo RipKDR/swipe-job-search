@@ -15,12 +15,11 @@ from datetime import date, datetime, timezone
 from typing import Any
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.platypus import (
-    PageBreak,
     Paragraph,
     SimpleDocTemplate,
     Spacer,
@@ -95,6 +94,7 @@ STYLE_FOOTER = ParagraphStyle(
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
+
 
 def _fmt_date(d: str | date) -> str:
     """Format a date string or date object to AU format."""
@@ -200,10 +200,14 @@ def generate_compliance_pdf(
         _info_row("Period", f"{_fmt_date(period_start)} — {_fmt_date(period_end)}"),
     ]
     info_table = Table(info_data, colWidths=[45 * mm, 120 * mm])
-    info_table.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
-    ]))
+    info_table.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            ]
+        )
+    )
     story.append(info_table)
     story.append(Spacer(1, 6 * mm))
 
@@ -247,19 +251,21 @@ def generate_compliance_pdf(
             candidate_id = row.get("candidate_id", "—")
             status = row.get("status", "unknown")
 
-            story.append(Paragraph(
-                f"Candidate {i + 1}: {candidate_id[:8]}…  "
-                f"<font color='{'#059669' if status == 'completed' else '#dc2626'}'>"
-                f"[{status.upper()}]</font>",
-                ParagraphStyle(
-                    "CandidateSub",
-                    parent=STYLE_BODY,
-                    fontSize=10,
-                    textColor=INDIGO,
-                    spaceBefore=4 * mm,
-                    spaceAfter=2 * mm,
-                ),
-            ))
+            story.append(
+                Paragraph(
+                    f"Candidate {i + 1}: {candidate_id[:8]}…  "
+                    f"<font color='{'#059669' if status == 'completed' else '#dc2626'}'>"
+                    f"[{status.upper()}]</font>",
+                    ParagraphStyle(
+                        "CandidateSub",
+                        parent=STYLE_BODY,
+                        fontSize=10,
+                        textColor=INDIGO,
+                        spaceBefore=4 * mm,
+                        spaceAfter=2 * mm,
+                    ),
+                )
+            )
 
             detail_rows = [
                 [
@@ -292,16 +298,20 @@ def generate_compliance_pdf(
 
     # ── Footer ─────────────────────────────────────────────────────────
     story.append(Spacer(1, 12 * mm))
-    story.append(Paragraph(
-        "— End of Report —",
-        ParagraphStyle("EndMark", parent=STYLE_FOOTER, fontSize=8, textColor=SLATE_600),
-    ))
+    story.append(
+        Paragraph(
+            "— End of Report —",
+            ParagraphStyle("EndMark", parent=STYLE_FOOTER, fontSize=8, textColor=SLATE_600),
+        )
+    )
     story.append(Spacer(1, 4 * mm))
-    story.append(Paragraph(
-        f"Hi-Hired Compliance Report • {report_id} • Generated {_fmt_date(generated_at or datetime.now(timezone.utc).isoformat())} • "
-        "This is a system-generated report. Data sourced from Hi-Hired platform activity records.",
-        STYLE_FOOTER,
-    ))
+    story.append(
+        Paragraph(
+            f"Hi-Hired Compliance Report • {report_id} • Generated {_fmt_date(generated_at or datetime.now(timezone.utc).isoformat())} • "
+            "This is a system-generated report. Data sourced from Hi-Hired platform activity records.",
+            STYLE_FOOTER,
+        )
+    )
 
     # Build
     doc.build(story)

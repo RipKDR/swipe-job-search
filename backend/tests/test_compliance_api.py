@@ -10,7 +10,7 @@ Tests cover:
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 from unittest.mock import MagicMock, patch
 
@@ -18,7 +18,6 @@ import jwt
 from fastapi.testclient import TestClient
 
 from src.main import app
-from src.core.config import get_settings
 from src.api.middleware.auth import settings as auth_settings
 
 client = TestClient(app)
@@ -58,9 +57,36 @@ def _make_jobseeker_token() -> str:
     )
 
 
-# ── Fixture setup / teardown ────────────────────────────────────────────
+def _make_employer_token() -> str:
+    """Create a JWT for an employer peer role — should be denied for provider endpoints."""
+    return jwt.encode(
+        {
+            "sub": str(uuid4()),
+            "app_metadata": {"role": "employer"},
+            "role": "authenticated",
+            "iat": datetime.now(tz=timezone.utc),
+            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
+        },
+        TEST_JWT_SECRET,
+        algorithm="HS256",
+    )
 
-from datetime import timedelta
+
+def _make_stale_provider_token() -> str:
+    """Create a JWT before provider app_metadata has refreshed; profile row is source of truth."""
+    return jwt.encode(
+        {
+            "sub": PROVIDER_USER_ID,
+            "role": "authenticated",
+            "iat": datetime.now(tz=timezone.utc),
+            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
+        },
+        TEST_JWT_SECRET,
+        algorithm="HS256",
+    )
+
+
+# ── Fixture setup / teardown ────────────────────────────────────────────
 
 
 def _set_jwt_secret() -> None:
@@ -79,6 +105,7 @@ def _mock_supabase_client(
     has_matches: bool = True,
     has_hires: bool = True,
     report_id: str | None = None,
+    provider_role: str | None = "provider",
 ) -> MagicMock:
     """Build a fully mocked Supabase client for compliance endpoint tests.
 
@@ -88,9 +115,9 @@ def _mock_supabase_client(
     rid = report_id or str(uuid4())
 
     # ── profiles lookup ──────────────────────────────────────────────
-    mock_profile_exec_result = MagicMock()
+    mock_candidate_profile_exec_result = MagicMock()
     if candidate_exists:
-        mock_profile_exec_result.data = {
+        mock_candidate_profile_exec_result.data = {
             "id": CANDIDATE_USER_ID,
             "full_name": "Test Candidate",
             "suburb": "Sunshine",
@@ -101,14 +128,27 @@ def _mock_supabase_client(
             "consent_granted_at": "2026-05-01T00:00:00+00:00",
         }
     else:
-        mock_profile_exec_result.data = None
+        mock_candidate_profile_exec_result.data = None
 
-    mock_profile_maybe_single = MagicMock()
-    mock_profile_maybe_single.execute.return_value = mock_profile_exec_result
-    mock_profile_query = MagicMock()
-    mock_profile_query.maybe_single.return_value = mock_profile_maybe_single
+    mock_provider_role_exec_result = MagicMock()
+    mock_provider_role_exec_result.data = {"role": provider_role} if provider_role else None
+
+    def make_profile_query_result(row: dict | None):
+        mock_exec_result = MagicMock()
+        mock_exec_result.data = row
+        mock_maybe_single = MagicMock()
+        mock_maybe_single.execute.return_value = mock_exec_result
+        mock_query = MagicMock()
+        mock_query.maybe_single.return_value = mock_maybe_single
+        return mock_query
+
+    def profile_eq_side_effect(column: str, value: str):
+        if column == "id" and value == PROVIDER_USER_ID:
+            return make_profile_query_result(mock_provider_role_exec_result.data)
+        return make_profile_query_result(mock_candidate_profile_exec_result.data)
+
     mock_profile_select = MagicMock()
-    mock_profile_select.eq.return_value = mock_profile_query
+    mock_profile_select.eq.side_effect = profile_eq_side_effect
 
     # ── swipes query ─────────────────────────────────────────────────
     mock_swipes_data = MagicMock()
@@ -166,17 +206,19 @@ def _mock_supabase_client(
 
     # ── compliance_reports insert ────────────────────────────────────
     mock_insert_data = MagicMock()
-    mock_insert_data.data = [{
-        "id": rid,
-        "candidate_id": CANDIDATE_USER_ID,
-        "provider_id": PROVIDER_USER_ID,
-        "period_start": "2026-05-01",
-        "period_end": "2026-05-08",
-        "report_type": "weekly_summary",
-        "status": "generating",
-        "created_at": "2026-05-08T12:00:00+00:00",
-        "updated_at": "2026-05-08T12:00:00+00:00",
-    }]
+    mock_insert_data.data = [
+        {
+            "id": rid,
+            "candidate_id": CANDIDATE_USER_ID,
+            "provider_id": PROVIDER_USER_ID,
+            "period_start": "2026-05-01",
+            "period_end": "2026-05-08",
+            "report_type": "weekly_summary",
+            "status": "generating",
+            "created_at": "2026-05-08T12:00:00+00:00",
+            "updated_at": "2026-05-08T12:00:00+00:00",
+        }
+    ]
     mock_insert = MagicMock()
     mock_insert.execute.return_value = mock_insert_data
 
@@ -193,15 +235,17 @@ def _mock_supabase_client(
     # ── compliance_report_runs insert ─────────────────────────────────
     run_id = str(uuid4())
     mock_run_insert_data = MagicMock()
-    mock_run_insert_data.data = [{
-        "id": run_id,
-        "report_id": rid,
-        "status": "generating",
-        "total_candidates": 1,
-        "started_at": "2026-05-08T12:00:00+00:00",
-        "created_at": "2026-05-08T12:00:00+00:00",
-        "updated_at": "2026-05-08T12:00:00+00:00",
-    }]
+    mock_run_insert_data.data = [
+        {
+            "id": run_id,
+            "report_id": rid,
+            "status": "generating",
+            "total_candidates": 1,
+            "started_at": "2026-05-08T12:00:00+00:00",
+            "created_at": "2026-05-08T12:00:00+00:00",
+            "updated_at": "2026-05-08T12:00:00+00:00",
+        }
+    ]
     mock_run_insert = MagicMock()
     mock_run_insert.execute.return_value = mock_run_insert_data
 
@@ -215,25 +259,27 @@ def _mock_supabase_client(
     # ── compliance_report_rows insert ────────────────────────────────
     row_id = str(uuid4())
     mock_row_insert_data = MagicMock()
-    mock_row_insert_data.data = [{
-        "id": row_id,
-        "report_id": rid,
-        "run_id": run_id,
-        "candidate_id": CANDIDATE_USER_ID,
-        "status": "completed",
-        "swipe_count": 2,
-        "right_swipe_count": 1,
-        "unique_jobs_interacted": 2,
-        "match_count": 1,
-        "hire_count": 1,
-        "total_earnings": None,
-        "error_message": None,
-        "created_at": "2026-05-08T12:00:00+00:00",
-        "updated_at": "2026-05-08T12:00:00+00:00",
-        "swipes_data": [],
-        "matches_data": [],
-        "hires_data": [],
-    }]
+    mock_row_insert_data.data = [
+        {
+            "id": row_id,
+            "report_id": rid,
+            "run_id": run_id,
+            "candidate_id": CANDIDATE_USER_ID,
+            "status": "completed",
+            "swipe_count": 2,
+            "right_swipe_count": 1,
+            "unique_jobs_interacted": 2,
+            "match_count": 1,
+            "hire_count": 1,
+            "total_earnings": None,
+            "error_message": None,
+            "created_at": "2026-05-08T12:00:00+00:00",
+            "updated_at": "2026-05-08T12:00:00+00:00",
+            "swipes_data": [],
+            "matches_data": [],
+            "hires_data": [],
+        }
+    ]
     mock_row_insert = MagicMock()
     mock_row_insert.execute.return_value = mock_row_insert_data
 
@@ -247,7 +293,9 @@ def _mock_supabase_client(
     mock_runs_table = MagicMock()
     mock_runs_table.insert.return_value = mock_run_insert
     mock_runs_table.update.return_value = mock_runs_update
-    mock_runs_table.select.return_value.order.return_value.limit.return_value.execute.return_value = MagicMock(data=None)
+    mock_runs_table.select.return_value.order.return_value.limit.return_value.execute.return_value = MagicMock(
+        data=None
+    )
 
     # ── compliance_report_rows table ─────────────────────────────────
     mock_rows_table = MagicMock()
@@ -288,11 +336,14 @@ class TestComplianceAuth:
         """Missing Authorization header returns 403 (anonymous role denied)."""
         _set_jwt_secret()
         try:
-            resp = client.post("/api/v1/compliance/generate", json={
-                "candidate_id": str(uuid4()),
-                "period_start": "2026-05-01",
-                "period_end": "2026-05-08",
-            })
+            resp = client.post(
+                "/api/v1/compliance/generate",
+                json={
+                    "candidate_id": str(uuid4()),
+                    "period_start": "2026-05-01",
+                    "period_end": "2026-05-08",
+                },
+            )
             assert resp.status_code == 403
         finally:
             _clear_jwt_secret()
@@ -312,6 +363,62 @@ class TestComplianceAuth:
                 headers={"Authorization": f"Bearer {token}"},
             )
             assert resp.status_code == 403
+        finally:
+            _clear_jwt_secret()
+
+    @patch("src.api.middleware.auth._get_service_client")
+    @patch("src.api.endpoints.compliance._get_service_client")
+    def test_employer_token_returns_403(
+        self,
+        mock_compliance_get_client: MagicMock,
+        mock_auth_get_client: MagicMock,
+    ) -> None:
+        """Employer is a peer role, not a provider role, and must be denied."""
+        mock_client = _mock_supabase_client(provider_role="employer")
+        mock_compliance_get_client.return_value = mock_client
+        mock_auth_get_client.return_value = mock_client
+
+        _set_jwt_secret()
+        try:
+            token = _make_employer_token()
+            resp = client.post(
+                "/api/v1/compliance/generate",
+                json={
+                    "candidate_id": CANDIDATE_USER_ID,
+                    "period_start": "2026-05-01",
+                    "period_end": "2026-05-08",
+                },
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            assert resp.status_code == 403
+        finally:
+            _clear_jwt_secret()
+
+    @patch("src.api.middleware.auth._get_service_client")
+    @patch("src.api.endpoints.compliance._get_service_client")
+    def test_stale_provider_jwt_uses_profile_role(
+        self,
+        mock_compliance_get_client: MagicMock,
+        mock_auth_get_client: MagicMock,
+    ) -> None:
+        """A freshly onboarded provider can call compliance before JWT app_metadata refreshes."""
+        mock_client = _mock_supabase_client(provider_role="provider")
+        mock_compliance_get_client.return_value = mock_client
+        mock_auth_get_client.return_value = mock_client
+
+        _set_jwt_secret()
+        try:
+            token = _make_stale_provider_token()
+            resp = client.post(
+                "/api/v1/compliance/generate",
+                json={
+                    "candidate_id": CANDIDATE_USER_ID,
+                    "period_start": "2026-05-01",
+                    "period_end": "2026-05-08",
+                },
+                headers={"Authorization": f"Bearer {token}"},
+            )
+            assert resp.status_code == 201, f"Expected 201, got {resp.status_code}: {resp.text}"
         finally:
             _clear_jwt_secret()
 

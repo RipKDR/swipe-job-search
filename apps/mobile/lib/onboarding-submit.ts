@@ -1,6 +1,7 @@
-import type { CandidateOnboarding, EmployerOnboarding } from '@hi-hired/shared';
+import type { CandidateOnboarding, Database, EmployerOnboarding } from '@hi-hired/shared';
 
 export type OnboardingRole = 'candidate' | 'employer' | 'provider';
+type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 export function getOnboardingRouteForRole(role: OnboardingRole): string {
   if (role === 'candidate') return '/(onboarding)/candidate-profile';
@@ -33,6 +34,13 @@ export function buildEmployerProfileUpdate(
     role: 'employer',
     suburb: data.suburb,
     avatar_url: data.avatar_url ?? null,
+    onboarding_completed_at: nowIso,
+  };
+}
+
+export function buildProviderProfileUpdate(nowIso: string): ProfileUpdate {
+  return {
+    role: 'provider',
     onboarding_completed_at: nowIso,
   };
 }

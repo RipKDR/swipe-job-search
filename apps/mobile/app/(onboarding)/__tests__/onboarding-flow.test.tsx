@@ -1,5 +1,27 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+
+import RoleSelection from '../role';
+import {
+  buildCandidateProfileUpdate,
+  buildEmployerProfileInsert,
+  buildEmployerProfileUpdate,
+  buildProviderProfileUpdate,
+  getOnboardingRouteForRole,
+} from '@/lib/onboarding-submit';
+
+const mocks = vi.hoisted(() => ({
+  authUser: null as null | { id: string },
+  applyProfile: vi.fn(),
+  capture: vi.fn(),
+  eq: vi.fn(),
+  from: vi.fn(),
+  push: vi.fn(),
+  replace: vi.fn(),
+  select: vi.fn(),
+  single: vi.fn(),
+  update: vi.fn(),
+}));
 
 vi.mock('@/components/ui/Button', () => ({
   Button: ({ title, onPress, disabled }: { title: string; onPress?: () => void; disabled?: boolean }) => {
@@ -8,29 +30,47 @@ vi.mock('@/components/ui/Button', () => ({
   },
 }));
 
-import RoleSelection from '../role';
-import {
-  buildCandidateProfileUpdate,
-  buildEmployerProfileInsert,
-  buildEmployerProfileUpdate,
-  getOnboardingRouteForRole,
-} from '@/lib/onboarding-submit';
-
-const mockPush = vi.fn();
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: mocks.authUser,
+    applyProfile: mocks.applyProfile,
+  }),
+}));
 
 vi.mock('@/hooks/usePostHog', () => ({
-  usePostHog: () => ({ capture: vi.fn() }),
+  usePostHog: () => ({ capture: mocks.capture }),
+}));
+
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    from: (table: string) => mocks.from(table),
+  },
 }));
 
 vi.mock('expo-router', () => ({
   useRouter: () => ({
-    push: mockPush,
+    push: mocks.push,
+    replace: mocks.replace,
   }),
 }));
 
 describe('Onboarding role selection', () => {
   beforeEach(() => {
-    mockPush.mockClear();
+    mocks.authUser = null;
+    mocks.applyProfile.mockClear();
+    mocks.capture.mockClear();
+    mocks.eq.mockReset();
+    mocks.from.mockReset();
+    mocks.push.mockClear();
+    mocks.replace.mockClear();
+    mocks.select.mockReset();
+    mocks.single.mockReset();
+    mocks.update.mockReset();
+
+    mocks.update.mockReturnValue({ eq: mocks.eq });
+    mocks.eq.mockReturnValue({ select: mocks.select });
+    mocks.select.mockReturnValue({ single: mocks.single });
+    mocks.from.mockReturnValue({ update: mocks.update });
   });
 
   it('routes candidate role to candidate profile onboarding', () => {
@@ -41,11 +81,16 @@ describe('Onboarding role selection', () => {
     expect(getOnboardingRouteForRole('employer')).toBe('/(onboarding)/employer-profile');
   });
 
+  it('routes provider role to provider compliance onboarding', () => {
+    expect(getOnboardingRouteForRole('provider')).toBe('/(provider)/compliance');
+  });
+
   it('starts with Continue disabled until a role is chosen', () => {
     render(<RoleSelection />);
 
     fireEvent.click(screen.getByText('Continue'));
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 
   it('routes candidates to candidate profile onboarding', () => {
@@ -54,7 +99,7 @@ describe('Onboarding role selection', () => {
     fireEvent.click(screen.getByText("I'm looking for work"));
     fireEvent.click(screen.getByText('Continue'));
 
-    expect(mockPush).toHaveBeenCalledWith('/(onboarding)/candidate-profile');
+    expect(mocks.push).toHaveBeenCalledWith('/(onboarding)/candidate-profile');
   });
 
   it('routes employers to employer profile onboarding', () => {
@@ -63,7 +108,49 @@ describe('Onboarding role selection', () => {
     fireEvent.click(screen.getByText("I'm hiring"));
     fireEvent.click(screen.getByText('Continue'));
 
-    expect(mockPush).toHaveBeenCalledWith('/(onboarding)/employer-profile');
+    expect(mocks.push).toHaveBeenCalledWith('/(onboarding)/employer-profile');
+  });
+
+  it('updates provider role, applies the returned profile, and replaces to compliance', async () => {
+    const updatedProfile = {
+      id: 'provider-1',
+      role: 'provider',
+      onboarding_completed_at: '2026-01-01T00:00:00.000Z',
+    };
+    mocks.authUser = { id: 'provider-1' };
+    mocks.single.mockResolvedValue({ data: updatedProfile, error: null });
+
+    render(<RoleSelection />);
+
+    fireEvent.click(screen.getByText("I'm a provider / mentor"));
+    fireEvent.click(screen.getByText('Continue'));
+
+    await waitFor(() => {
+      expect(mocks.from).toHaveBeenCalledWith('profiles');
+      expect(mocks.update).toHaveBeenCalledWith(
+        expect.objectContaining({ role: 'provider', onboarding_completed_at: expect.any(String) })
+      );
+      expect(mocks.eq).toHaveBeenCalledWith('id', 'provider-1');
+      expect(mocks.select).toHaveBeenCalled();
+      expect(mocks.applyProfile).toHaveBeenCalledWith(updatedProfile);
+      expect(mocks.replace).toHaveBeenCalledWith('/(provider)/compliance');
+    });
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it('keeps providers on role selection if direct role update fails', async () => {
+    mocks.authUser = { id: 'provider-1' };
+    mocks.single.mockResolvedValue({ data: null, error: new Error('network unavailable') });
+
+    render(<RoleSelection />);
+
+    fireEvent.click(screen.getByText("I'm a provider / mentor"));
+    fireEvent.click(screen.getByText('Continue'));
+
+    expect(await screen.findByText('Could not activate provider mode. Please try again.')).toBeTruthy();
+    expect(mocks.applyProfile).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(mocks.replace).not.toHaveBeenCalled();
   });
 });
 
@@ -105,5 +192,12 @@ describe('Onboarding submit payload builders', () => {
     expect(employerPayload.profile_id).toBe('user-1');
     expect(employerPayload.business_name).toBe('Little Lane Cafe');
     expect(employerPayload.contact_name).toBe('Jane Employer');
+  });
+
+  it('builds provider profile update with role and completion timestamp', () => {
+    const payload = buildProviderProfileUpdate('2026-01-01T00:00:00.000Z');
+
+    expect(payload.role).toBe('provider');
+    expect(payload.onboarding_completed_at).toBe('2026-01-01T00:00:00.000Z');
   });
 });

@@ -1,7 +1,7 @@
 /**
  * Sentry error tracking — web-safe version.
  * On native: uses @sentry/react-native.
- * On web: no-op stub (@sentry/react can be added later).
+ * On web: no-op stub (telemtry disabled).
  */
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
@@ -9,49 +9,17 @@ import { Platform } from 'react-native';
 let initialized = false;
 let sdkReady = false;
 
-type SentryScope = {
-  setContext: (key: string, context: Record<string, unknown>) => void;
-};
-
-type SentryModule = {
-  init: (options: Record<string, unknown>) => void;
-  wrap: <T>(component: T) => T;
-  captureException: (error: unknown) => unknown;
-  withScope: (callback: (scope: SentryScope) => void) => void;
-};
-
 // Web stub — Sentry React Native doesn't bundle for web
-const sentryStub: SentryModule = {
+const sentryStub = {
   init: () => {},
   wrap: <T>(component: T) => component,
   captureException: () => '',
-  withScope: (callback: (scope: SentryScope) => void) =>
-    callback({
-      setContext: () => {},
-    }),
-};
+  withScope: (_callback: (scope: { setContext: () => void }) => void) =>
+    _callback({ setContext: () => {} }),
+} as const;
 
-function getSentryModule(): SentryModule {
-  if (Platform.OS === 'web') {
-    return sentryStub;
-  }
-  try {
-    return require('@sentry/react-native') as SentryModule;
-  } catch {
-    return sentryStub;
-  }
-}
-
-function getOptionalIntegration(name: string) {
-  if (Platform.OS === 'web') return null;
-  try {
-    const Sentry = require('@sentry/react-native');
-    const factory = (Sentry as Record<string, unknown>)[name];
-    if (typeof factory !== 'function') return null;
-    return (factory as () => unknown)();
-  } catch {
-    return null;
-  }
+function isWeb() {
+  return Platform.OS === 'web';
 }
 
 export function initSentry(): void {

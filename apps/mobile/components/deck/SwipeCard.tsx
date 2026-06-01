@@ -9,7 +9,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { Dimensions } from 'react-native';
+import { Dimensions, type ViewStyle } from 'react-native';
 import { JobCard } from './JobCard';
 import { computeRotation, computeOverlayOpacity, shouldSwipe } from '@/lib/swipe-engine';
 import type { Job } from '@hi-hired/shared';
@@ -38,6 +38,15 @@ const STACK_CONFIG = {
   1: { scale: 0.95, opacity: 0.9, translateY: -8 },
   2: { scale: 0.9, opacity: 0.8, translateY: -16 },
 } as const;
+
+/** Shared style base for PASS/APPLY swipe overlays. */
+const OVERLAY_BADGE_STYLE: ViewStyle = {
+  position: 'absolute',
+  top: '33%',
+  paddingHorizontal: 16,
+  paddingVertical: 4,
+  borderRadius: 9999,
+};
 
 /**
  * SwipeCard — A production-ready swipe card using Reanimated v3 + Gesture Handler.
@@ -159,15 +168,7 @@ export function SwipeCard({
           pointerEvents="none"
           style={[
             leftOverlayStyle,
-            {
-              position: 'absolute',
-              top: '33%',
-              left: 24,
-              backgroundColor: '#475569',
-              paddingHorizontal: 16,
-              paddingVertical: 4,
-              borderRadius: 9999,
-            },
+            { ...OVERLAY_BADGE_STYLE, left: 24, backgroundColor: '#475569' },
           ]}
         >
           <Text className="text-white text-2xl font-bold tracking-[3px]">PASS</Text>
@@ -176,15 +177,7 @@ export function SwipeCard({
           pointerEvents="none"
           style={[
             rightOverlayStyle,
-            {
-              position: 'absolute',
-              top: '33%',
-              right: 24,
-              backgroundColor: '#166534',
-              paddingHorizontal: 16,
-              paddingVertical: 4,
-              borderRadius: 9999,
-            },
+            { ...OVERLAY_BADGE_STYLE, right: 24, backgroundColor: '#166534' },
           ]}
         >
           <Text className="text-white text-2xl font-bold tracking-[3px]">APPLY</Text>

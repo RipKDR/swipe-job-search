@@ -72,28 +72,6 @@ export default {
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "build": {
-      "development": {
-        "credentialsSource": "remote",
-        "distribution": "store",
-        "autoIncrement": true
-      },
-      "preview": {
-        "distribution": "internal",
-        "autoIncrement": true
-      },
-      "production": {
-        "credentialsSource": "remote",
-        "distribution": "store",
-        "autoIncrement": true
-      }
-    },
-    "submit": {
-      "production": {
-        "ios": { "appleId": "...", "ascAppId": "..." },
-        "android": { "serviceAccountKey": "..." }
-      }
     }
   }
 }

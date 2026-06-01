@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { filterJobsByDistance } from '@/lib/distance';
 import type { Job } from '@hi-hired/shared';
 
 const PAGE_SIZE = 20;
@@ -108,7 +109,6 @@ export function useJobsPipeline(options?: JobsPipelineOptions): JobsPipelineStat
       // Apply distance filtering if options are provided
       let jobs = fetchedJobs;
       if (options?.radius_km && options.radius_km > 0 && options.userLat != null && options.userLng != null) {
-        const { filterJobsByDistance } = require('@/lib/distance');
         jobs = filterJobsByDistance(jobs, options.userLat, options.userLng, options.radius_km);
       }
       setBuffer(jobs);

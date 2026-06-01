@@ -1,3 +1,5 @@
+import { getRoleHomeRoute } from '@/lib/routing';
+
 type Role = 'candidate' | 'employer' | 'provider' | null;
 
 type GateSession = { user: { id: string } } | null;
@@ -41,16 +43,11 @@ export function resolveAuthRedirect({
   }
 
   if (profile.onboarding_completed_at && inAuth) {
-    if (profile.role === 'candidate') return '/(candidate)/(tabs)/deck';
-    if (profile.role === 'employer') return '/(employer)/(tabs)/jobs';
-    if (profile.role === 'provider') return '/(provider)/compliance';
-    return '/(onboarding)/role';
+    return getRoleHomeRoute(profile.role) ?? '/(onboarding)/role';
   }
 
   if (profile.onboarding_completed_at && inOnboarding) {
-    if (profile.role === 'candidate') return '/(candidate)/(tabs)/deck';
-    if (profile.role === 'employer') return '/(employer)/(tabs)/jobs';
-    if (profile.role === 'provider') return '/(provider)/compliance';
+    return getRoleHomeRoute(profile.role) ?? '/(onboarding)/role';
   }
 
   return null;
