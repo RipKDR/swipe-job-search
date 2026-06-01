@@ -348,15 +348,64 @@ function ReportCard({ report }: { report: ComplianceReport }) {
         </View>
       )}
 
-      {expanded && report.status === 'completed' && report.storage_path && (
+      {expanded && report.status === 'completed' && (
         <Pressable
           className="mt-3 bg-indigo-600/20 border border-indigo-500/30 rounded-lg py-2 px-3 active:opacity-80"
-          onPress={() => {
-            // PDF download — requires signed URL from backend
+          onPress={async () => {
+            try {
+              const { data: sessionData } = await supabase.auth.getSession()
+              const token = sessionData?.session?.access_token
+              if (!token) {
+                Alert.alert('Auth Error', 'Not authenticated. Please re-login.')
+                return
+              }
+
+              const apiBase = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000'
+              const resp = await fetch(
+                `${apiBase}/api/v1/compliance/reports/${report.id}/pdf`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              )
+
+              if (!resp.ok) {
+                throw new Error(`PDF generation failed (${resp.status})`)
+              }
+
+              const filename = `compliance-${report.id}.pdf`
+
+              if (Platform.OS === 'web') {
+                // Web: trigger browser download via blob URL
+                const blob = await resp.blob()
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = filename
+                a.click()
+                URL.revokeObjectURL(url)
+              } else {
+                // Native: download using expo-file-system, then share
+                const FileSystem = await import('expo-file-system')
+                const localUri = FileSystem.cacheDirectory + filename
+                await FileSystem.downloadAsync(
+                  `${apiBase}/api/v1/compliance/reports/${report.id}/pdf`,
+                  localUri,
+                  { headers: { Authorization: `Bearer ${token}` } }
+                )
+                const Sharing = await import('expo-sharing')
+                if (await Sharing.isAvailableAsync()) {
+                  await Sharing.shareAsync(localUri)
+                }
+              }
+            } catch (err) {
+              Alert.alert('Download Failed', err instanceof Error ? err.message : 'Unknown error')
+            }
           }}
         >
           <Text className="text-indigo-300 text-sm font-medium text-center">
-            View Report PDF
+            Download PDF
           </Text>
         </Pressable>
       )}
