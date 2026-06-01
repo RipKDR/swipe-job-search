@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { Job } from '@hi-hired/shared';
@@ -26,6 +27,8 @@ export interface JobsPipelineState {
   advanceIndex: () => void;
   refresh: () => void;
   isEmpty: boolean;
+  /** Manually trigger prefetch of the next page (e.g. on app foreground). */
+  prefetchNextPage: () => void;
 }
 
 /**
@@ -114,18 +117,38 @@ export function useJobsPipeline(options?: JobsPipelineOptions): JobsPipelineStat
     }
   }, [fetchedJobs, buffer.length, options?.radius_km, options?.userLat, options?.userLng]);
 
+  /** Trigger prefetch of the next page. */
+  const prefetchNextPage = useCallback(() => {
+    const nextPage = currentPage + 1;
+    queryClient.prefetchQuery({
+      queryKey: jobsQueryKey(nextPage),
+      queryFn: () => fetchJobsPage(nextPage),
+      staleTime: STALE_TIME_MS,
+    });
+    hasPrefetchedRef.current = true;
+  }, [currentPage, queryClient]);
+
   // Pre-fetch next page when currentIndex reaches 50%
   useEffect(() => {
     if (currentIndex >= PRE_FETCH_AT && !hasPrefetchedRef.current) {
-      const nextPage = currentPage + 1;
-      queryClient.prefetchQuery({
-        queryKey: jobsQueryKey(nextPage),
-        queryFn: () => fetchJobsPage(nextPage),
-        staleTime: STALE_TIME_MS,
-      });
-      hasPrefetchedRef.current = true;
+      prefetchNextPage();
     }
-  }, [currentIndex, currentPage, queryClient]);
+  }, [currentIndex, prefetchNextPage]);
+
+  // Re-prefetch on app foreground (reconnect/resume edge case)
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') {
+        const nextPage = currentPage + 1;
+        queryClient.prefetchQuery({
+          queryKey: jobsQueryKey(nextPage),
+          queryFn: () => fetchJobsPage(nextPage),
+          staleTime: STALE_TIME_MS,
+        });
+      }
+    });
+    return () => subscription.remove();
+  }, [currentPage, queryClient]);
 
   const advanceIndex = useCallback(() => {
     setCurrentIndex((prev) => {
@@ -167,6 +190,7 @@ export function useJobsPipeline(options?: JobsPipelineOptions): JobsPipelineStat
     advanceIndex,
     refresh,
     isEmpty,
+    prefetchNextPage,
   };
 }
 
