@@ -3,12 +3,11 @@
   "compilerOptions": {
     "strict": true,
     "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
-    "paths": {
+    "paths": {"*": ["./*"]},  
       "@/*": ["./*"],
-      "@hi-hired/shared": ["../../packages/shared/src/index.ts"],
-      "@hi-hired/shared/*": ["../../packages/shared/src/*"]
-    },
+    //   "@hi-hired/shared": ["../../packages/shared/src/index.ts"],
+    //   "@hi-hired/shared/*": ["../../packages/shared/src/*"]
+    // },
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "allowJs": true,

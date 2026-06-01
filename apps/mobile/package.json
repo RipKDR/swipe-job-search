@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@expo/ngrok": "^4.1.0",
     "@expo/vector-icons": "^15.1.1",
     "@hi-hired/shared": "workspace:*",
     "@hookform/resolvers": "^5.4.0",
@@ -8,7 +9,7 @@
     "@tailwindcss/postcss": "^4.3.0",
     "@tanstack/react-query": "^5.100.14",
     "clsx": "^2.1.1",
-    "expo": "~56.0.6",
+    "expo": "~56.0.8",
     "expo-application": "^56.0.3",
     "expo-constants": "^56.0.16",
     "expo-dev-client": "^56.0.16",
@@ -71,10 +72,10 @@
   "name": "@hi-hired/mobile",
   "private": true,
   "scripts": {
-    "android": "expo start --android",
+    "android": "expo run:android",
     "dev": "expo start",
-    "ios": "expo start --ios",
-    "lint": "eslint .",
+    "ios": "expo run:ios",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
     "start": "expo start",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

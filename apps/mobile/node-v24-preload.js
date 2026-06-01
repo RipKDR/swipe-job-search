@@ -1,7 +1,7 @@
 // Preload script for Node v24 compatibility.
 // Node v24 strictly enforces the "exports" field in package.json.
 // In pnpm, node_modules doesn't have a top-level package.json —
-// the preload only runs for root-level metro packages that need patching.
+// the preload osnly runs for root-level metro packages that need patching.
 // This is a no-op on pnpm installs; the real fix is ensuring all deps
 // have proper exports fields (handled by Expo SDK 56+).
 try {

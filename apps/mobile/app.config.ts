@@ -1,65 +1,99 @@
-import { ConfigContext } from 'expo/config';
-import type { ExpoConfig } from '@expo/config-types';
-
-export default ({ config }: ConfigContext): ExpoConfig => ({
-  ...(config as ExpoConfig),
-  name: 'Hi-Hired',
-  slug: 'hi-hired',
-  version: '0.0.1',
-  orientation: 'portrait',
-  icon: './assets/icon.png',
-  userInterfaceStyle: 'automatic',
-  scheme: 'hi-hired',
-  web: {
-    favicon: './assets/favicon.png',
-    bundler: 'metro',
-    output: 'single',
-  },
-  extra: {
-    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-    authRedirectOrigin: process.env.EXPO_PUBLIC_AUTH_REDIRECT_ORIGIN,
-    posthogKey: process.env.EXPO_PUBLIC_POSTHOG_KEY,
-    posthogHost: process.env.EXPO_PUBLIC_POSTHOG_HOST,
-    sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-    sentryOrg: process.env.EXPO_PUBLIC_SENTRY_ORG,
-    sentryProject: process.env.EXPO_PUBLIC_SENTRY_PROJECT,
-  },
-  plugins: [
-    'expo-dev-client',
-    'expo-router',
-    'expo-secure-store',
-    [
-      'expo-splash-screen',
-      {
-        image: './assets/splash.png',
-        resizeMode: 'contain',
-        backgroundColor: '#0f172a',
-      },
+export default {
+  expo: {
+    name: "Hi-Hired",
+    "slug": "hi-hired",
+    "version": "0.0.1",
+    "sdkVersion": "56.0.0",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
     ],
-    [
-      'expo-notifications',
-      {
-        icon: './assets/notification-icon.png',
-        color: '#6366f1',
-        defaultChannelName: 'default',
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "hi-hired",
+    "android": {
+      "package": "com.hihired.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0f172a"
       },
-    ],
-    [
-      'expo-image-picker',
-      {
-        photosPermission: 'Allow Hi-Hired to access your photos for profile pictures.',
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e3d8894d-8177-4a4a-9dc5-2824f74a5d27"
       },
+      "router": {}
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0f172a"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#6366f1",
+          "defaultChannelName": "default"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Hi-Hired to access your photos for profile pictures."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Hi-Hired uses your location to show nearby jobs.",
+          "locationWhenInUsePermission": "Hi-Hired uses your location to show nearby jobs."
+        }
+      ]
     ],
-    [
-      'expo-location',
-      {
-        locationAlwaysAndWhenInUsePermission: 'Hi-Hired uses your location to show nearby jobs.',
-        locationWhenInUsePermission: 'Hi-Hired uses your location to show nearby jobs.',
+    "experiments": {
+      "typedRoutes": true
+    },
+    "build": {
+      "development": {
+        "credentialsSource": "remote",
+        "distribution": "store",
+        "autoIncrement": true
       },
-    ],
-  ],
-  experiments: {
-    typedRoutes: true,
-  },
-});
+      "preview": {
+        "distribution": "internal",
+        "autoIncrement": true
+      },
+      "production": {
+        "credentialsSource": "remote",
+        "distribution": "store",
+        "autoIncrement": true
+      }
+    },
+    "submit": {
+      "production": {
+        "ios": { "appleId": "...", "ascAppId": "..." },
+        "android": { "serviceAccountKey": "..." }
+      }
+    }
+  }
+}
