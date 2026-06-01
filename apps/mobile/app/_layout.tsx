@@ -10,7 +10,7 @@ import { resolveAuthRedirect } from '@/lib/auth-gate';
 import { getRoleHomeRoute, ROUTES, shouldRedirectForRoleMismatch, type AppRoute } from '@/lib/routing';
 import { initSentry, wrapApp } from '@/lib/sentry';
 import { AuthProvider } from '@/providers/AuthProvider';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Slot, useGlobalSearchParams, usePathname, useRouter, useSegments, type Href } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
@@ -19,14 +19,7 @@ import '../global.css';
 initSentry();
 initAnalytics();
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
+import { queryClient } from '@/lib/queryClient';
 
 // Web-safe PostHogProvider — renders children directly on web
 function SafePostHogProvider({ children }: { children: ReactNode }) {

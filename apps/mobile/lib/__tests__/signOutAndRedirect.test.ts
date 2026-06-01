@@ -12,11 +12,12 @@ describe('signOutAndRedirect', () => {
     expect(replace).toHaveBeenCalledWith('/(auth)/login');
   });
 
-  it('does not redirect when sign out fails', async () => {
+  it('still redirects to login even when sign out fails (best-effort)', async () => {
     const signOut = vi.fn().mockRejectedValue(new Error('network'));
     const replace = vi.fn();
 
-    await expect(signOutAndRedirect({ signOut, replace })).rejects.toThrow('network');
-    expect(replace).not.toHaveBeenCalled();
+    // Should not throw — catches the error and redirects anyway
+    await expect(signOutAndRedirect({ signOut, replace })).resolves.toBeUndefined();
+    expect(replace).toHaveBeenCalledWith('/(auth)/login');
   });
 });

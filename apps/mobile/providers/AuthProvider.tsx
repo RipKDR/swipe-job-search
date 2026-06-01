@@ -4,6 +4,7 @@ import React, { createContext, useEffect, useState, useCallback, useMemo, useRef
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { posthog } from '@/lib/posthog';
+import { queryClient } from '@/lib/queryClient';
 import type { Database } from '@hi-hired/shared';
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -112,6 +113,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user_id: profile?.id ?? undefined,
     });
     void posthog.reset();
+    // Clear cached server state so a subsequent login doesn't show stale data
+    queryClient.clear();
     setSession(null);
     setProfile(null);
     setProfileLoadFailed(false);
