@@ -1,5 +1,3 @@
-import { signOut } from '@/lib/auth/oauth';
-
 type SignOutAndRedirectInput = {
   signOut: () => Promise<void>;
   replace: (route: string) => void;
