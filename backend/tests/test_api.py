@@ -29,7 +29,7 @@ class TestIngestJob:
                 "source_url": "https://test.com/job/1",
             },
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 201
         data = resp.json()
         assert data["title"] == "Barista"
         assert data["location"]["suburb"] == "Tullamarine"
@@ -56,7 +56,7 @@ class TestIngestJob:
                 "source_url": "https://test.com/job/2",
             },
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 201
         data = resp.json()
         assert data["company_name"] == "Tech Co"
         assert data["employment_type"] == "contract"
@@ -79,7 +79,8 @@ class TestIngestJob:
             },
         )
         assert resp.status_code == 422
-        assert "blocked" in resp.json()["detail"].lower()
+        body = resp.json()
+        assert "blocked" in body["error"]["message"].lower() or "blocked" in str(body).lower()
 
     def test_ingest_part_time(self):
         resp = client.post(
@@ -91,7 +92,7 @@ class TestIngestJob:
                 "salary_raw": "Competitive",
             },
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 201
         data = resp.json()
         assert data["employment_type"] == "part_time"
         assert data["salary"] is None
@@ -105,7 +106,7 @@ class TestIngestJob:
                 "description_raw": "Requirements:\n• 3+ years Python\n• AWS experience required",
             },
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 201
         data = resp.json()
         assert len(data["requirements"]) > 0
         # At least one requirement should mention Python or AWS
@@ -121,5 +122,5 @@ class TestIngestJob:
                 "location_raw": "Adelaide SA 5000",
             },
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 201
         assert resp.json()["employment_type"] == "casual"

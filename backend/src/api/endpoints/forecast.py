@@ -10,9 +10,10 @@ import time
 from collections import OrderedDict
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, status
 from pydantic import BaseModel, Field
 
+from src.core.errors import APIException, ErrorCode
 from src.schemas.jobs import NormalizedJob
 from src.schemas.profile import UserProfile
 from src.services.match_scorer import LogisticMatchScorer
@@ -60,26 +61,22 @@ class _LRUCache:
 
 
 _cache = _LRUCache()
-
-# Shared scorer instance (model loading happens once)
 _scorer = LogisticMatchScorer()
 
 # ---------------------------------------------------------------------------
-# Request / response schemas
+# Request / response schemas (Contract-first per api-and-interface-design)
 # ---------------------------------------------------------------------------
 
 
 class ScoreRequest(BaseModel):
-    """Request body for POST /api/v1/forecast/score."""
-
+    """Input: a job and user profile to score."""
     job_id: str = Field(..., description="UUID of the job to score")
     user_profile: UserProfile
     job: NormalizedJob = Field(..., description="Full job details for scoring")
 
 
 class ScoredJobItem(BaseModel):
-    """A single job with its computed match score."""
-
+    """Output: a single job with its computed match score."""
     job: NormalizedJob
     score: float
     matching_skills: list[str] = Field(default_factory=list)
@@ -87,8 +84,7 @@ class ScoredJobItem(BaseModel):
 
 
 class ScoreResponse(BaseModel):
-    """Response for a single score request."""
-
+    """Output: match score result with skill analysis."""
     score: float
     matching_skills: list[str] = Field(default_factory=list)
     missing_skills: list[str] = Field(default_factory=list)
@@ -97,15 +93,13 @@ class ScoreResponse(BaseModel):
 
 
 class BatchScoreRequest(BaseModel):
-    """Request body for GET /api/v1/forecast/batch."""
-
+    """Input: a user profile and list of jobs to score (max 100)."""
     user_profile: UserProfile
     jobs: list[NormalizedJob] = Field(..., min_length=1, max_length=100)
 
 
 class BatchScoreResponse(BaseModel):
-    """Response for a batch score request."""
-
+    """Output: scored jobs sorted by descending match score."""
     results: list[ScoredJobItem] = Field(default_factory=list)
     total: int = 0
 
@@ -129,11 +123,7 @@ def _compute_skills_match(
 
 
 def _compute_confidence(score: float) -> str:
-    """Qualitative confidence label from a numeric score.
-
-    Uses the same feature-space reasoning the scorer does internally,
-    expressed as a human-readable label.
-    """
+    """Qualitative confidence label from a numeric score."""
     if score >= 0.85:
         return "high"
     if score >= 0.6:
@@ -171,42 +161,48 @@ def _compute_reasoning(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/forecast/score", response_model=ScoreResponse)
+@router.post(
+    "/forecast/score",
+    response_model=ScoreResponse,
+    summary="Score a single job against a user profile",
+    description=(
+        "Returns a match score (0–1), matching and missing skills, "
+        "confidence label, and reasoning. Results are cached by "
+        "(user_id, job_id) for 5 minutes."
+    ),
+)
 async def score_job(req: ScoreRequest) -> ScoreResponse:
-    """Score a single job against a user profile.
-
-    Returns the match score (0–1), matching and missing skills,
-    a confidence label, and a human-readable reasoning string.
-    Results are cached by ``(user_id, job_id)`` for 5 minutes.
-    """
+    """Score a single job against a user profile."""
     user_id = req.user_profile.user_id
     job_id = req.job_id
 
-    # --- Check cache ---
+    # Validate
+    if not job_id.strip():
+        raise APIException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            code=ErrorCode.VALIDATION_ERROR,
+            message="job_id must not be empty",
+        )
+
+    # Check cache
     cache_key: _ScoreKey = (user_id, job_id)
     cached = _cache.get(cache_key)
     if cached is not None:
         return cached
 
-    # --- Validate ---
-    if not job_id.strip():
-        raise HTTPException(status_code=422, detail="job_id must not be empty")
-
-    # --- Score ---
+    # Score
     try:
         profile_dict = req.user_profile.model_dump()
         score = _scorer.score(profile_dict, req.job)
     except Exception as exc:
         logger.exception("score_job_failed", job_id=job_id, user_id=user_id)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Scoring failed: {exc}",
+        raise APIException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            code=ErrorCode.DEPENDENCY_FAILURE,
+            message=f"Scoring failed: {exc}",
         )
 
-    # --- Skills match ---
     matching, missing = _compute_skills_match(req.user_profile, req.job)
-
-    # --- Build response ---
     confidence = _compute_confidence(score)
     reasoning = _compute_reasoning(score, matching, missing)
 
@@ -218,20 +214,22 @@ async def score_job(req: ScoreRequest) -> ScoreResponse:
         reasoning=reasoning,
     )
 
-    # --- Cache ---
     _cache.set(cache_key, response)
-
     return response
 
 
-@router.post("/forecast/batch", response_model=BatchScoreResponse)
+@router.post(
+    "/forecast/batch",
+    response_model=BatchScoreResponse,
+    summary="Score multiple jobs against a user profile in one call",
+    description=(
+        "Accepts a user_profile and up to 100 jobs. Returns each job "
+        "with its computed score, matching skills, and missing skills, "
+        "sorted by descending score."
+    ),
+)
 async def batch_score_post(req: BatchScoreRequest) -> BatchScoreResponse:
-    """Score multiple jobs against a user profile in one call (POST variant).
-
-    Accepts a ``user_profile`` and a list of ``jobs`` (max 100),
-    returns each job with its computed score, matching skills, and
-    missing skills, sorted by descending score.
-    """
+    """Score multiple jobs against a user profile."""
     profile_dict = req.user_profile.model_dump()
     results: list[ScoredJobItem] = []
 
@@ -253,8 +251,9 @@ async def batch_score_post(req: BatchScoreRequest) -> BatchScoreResponse:
                 job_id=str(job.id),
                 error=str(exc),
             )
-            results.append(ScoredJobItem(job=job, score=0.0, matching_skills=[], missing_skills=[]))
+            results.append(
+                ScoredJobItem(job=job, score=0.0, matching_skills=[], missing_skills=[])
+            )
 
     results.sort(key=lambda r: r.score, reverse=True)
-
     return BatchScoreResponse(results=results, total=len(results))
