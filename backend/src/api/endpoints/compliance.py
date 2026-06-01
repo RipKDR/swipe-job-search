@@ -7,6 +7,12 @@ for candidates who have granted bulk_swipe_consent.
 Architecture: per-candidate rows are persisted to compliance_report_rows
 before the report is marked completed. This ensures partial-failure recovery
 (retry-safe per ARCHITECTURE AUDIT HIGH-3).
+
+API design conventions (per api-and-interface-design skill):
+- All errors return structured { error: { code, message, details? } }
+- List endpoints include pagination metadata
+- Response fields are consistent across endpoints
+- New fields are additive and optional
 """
 
 from __future__ import annotations
@@ -14,14 +20,16 @@ from __future__ import annotations
 import os
 from datetime import date, datetime, timezone
 from typing import Any
+from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import Response
 from pydantic import BaseModel, field_validator
 from supabase import create_client
 
 from src.api.middleware.auth import AuthClaims, require_role
 from src.core.config import get_settings
+from src.core.errors import APIException, ErrorCode
 from src.services.pdf_generator import generate_compliance_pdf
 
 router = APIRouter(tags=["compliance"])
@@ -29,9 +37,14 @@ router = APIRouter(tags=["compliance"])
 settings = get_settings()
 
 
-# ── Request / Response schemas ─────────────────────────────────────────────
+# ── Request / Response schemas (Contract-first per skill principle) ────────
 
 class GenerateReportRequest(BaseModel):
+    """Input: what the caller provides to generate a compliance report.
+
+    Only period_start and period_end are required beyond candidate_id.
+    report_type defaults to weekly_summary.
+    """
     candidate_id: str
     period_start: date
     period_end: date
@@ -55,6 +68,7 @@ class GenerateReportRequest(BaseModel):
 
 
 class ComplianceRowResponse(BaseModel):
+    """Output: per-candidate detail row within a compliance report."""
     id: str
     report_id: str
     run_id: str
@@ -70,6 +84,7 @@ class ComplianceRowResponse(BaseModel):
 
 
 class ComplianceReportResponse(BaseModel):
+    """Output: a single compliance report with its detail rows."""
     id: str
     candidate_id: str
     provider_id: str
@@ -81,6 +96,23 @@ class ComplianceReportResponse(BaseModel):
     rows: list[ComplianceRowResponse] = []
     run_status: str | None = None
     created_at: str
+    updated_at: str | None = None
+
+
+class PaginationMeta(BaseModel):
+    """Standard pagination metadata for list endpoints."""
+    page: int
+    page_size: int
+    total_items: int
+    total_pages: int
+    has_next: bool
+    has_previous: bool
+
+
+class ComplianceReportListResponse(BaseModel):
+    """Output: paginated list of compliance reports."""
+    data: list[ComplianceReportResponse]
+    pagination: PaginationMeta
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────
@@ -180,6 +212,102 @@ def _build_report_aggregate(rows: list[dict]) -> dict:
     }
 
 
+def _build_report_response(
+    row: dict,
+    rows: list[ComplianceRowResponse],
+    run: dict | None,
+) -> ComplianceReportResponse:
+    """Build a ComplianceReportResponse from Supabase row data."""
+    return ComplianceReportResponse(
+        id=row["id"],
+        candidate_id=row["candidate_id"],
+        provider_id=row["provider_id"],
+        period_start=row["period_start"],
+        period_end=row["period_end"],
+        report_type=row["report_type"],
+        status=row["status"],
+        report_data=row.get("report_data"),
+        rows=rows,
+        run_status=run["status"] if run else None,
+        created_at=row["created_at"],
+        updated_at=row.get("updated_at"),
+    )
+
+
+def _build_row_responses(rows_data: list[dict]) -> list[ComplianceRowResponse]:
+    """Convert raw row dicts to ComplianceRowResponse objects."""
+    return [
+        ComplianceRowResponse(
+            id=row["id"],
+            report_id=row["report_id"],
+            run_id=row["run_id"],
+            candidate_id=row["candidate_id"],
+            status=row["status"],
+            swipe_count=row["swipe_count"],
+            right_swipe_count=row["right_swipe_count"],
+            unique_jobs_interacted=row["unique_jobs_interacted"],
+            match_count=row["match_count"],
+            hire_count=row["hire_count"],
+            total_earnings=row.get("total_earnings"),
+            error_message=row.get("error_message"),
+        )
+        for row in (rows_data or [])
+    ]
+
+
+def _fetch_report_with_owner_check(
+    supabase,
+    report_id: str,
+    provider_id: str,
+) -> dict:
+    """Fetch a compliance report, raising 404 if not found or not owned."""
+    resp = (
+        supabase.table("compliance_reports")
+        .select("*")
+        .eq("id", report_id)
+        .eq("provider_id", provider_id)
+        .maybe_single()
+        .execute()
+    )
+    if not resp.data:
+        raise APIException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            code=ErrorCode.NOT_FOUND,
+            message="Report not found or access denied",
+        )
+    return resp.data
+
+
+def _fetch_latest_run(
+    supabase,
+    report_id: str,
+) -> dict | None:
+    """Fetch the most recent run for a report, if any."""
+    run_resp = (
+        supabase.table("compliance_report_runs")
+        .select("*")
+        .eq("report_id", report_id)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    return run_resp.data[0] if run_resp.data else None
+
+
+def _fetch_rows(
+    supabase,
+    report_id: str,
+) -> list[dict]:
+    """Fetch all compliance_report_rows for a report."""
+    rows_resp = (
+        supabase.table("compliance_report_rows")
+        .select("*")
+        .eq("report_id", report_id)
+        .execute()
+    )
+    return rows_resp.data or []
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────
 
 
@@ -201,9 +329,10 @@ async def generate_compliance_report(
 ) -> ComplianceReportResponse:
     """Generate a compliance report with per-candidate row persistence."""
     if not claims.user_id:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authenticated provider not identified",
+            code=ErrorCode.UNAUTHORIZED,
+            message="Authenticated provider not identified",
         )
 
     supabase = _get_service_client()
@@ -222,15 +351,17 @@ async def generate_compliance_report(
 
     candidate = candidate_resp.data if candidate_resp.data else None
     if not candidate:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Candidate not found",
+            code=ErrorCode.NOT_FOUND,
+            message="Candidate not found",
         )
 
     if not candidate.get("bulk_swipe_consent"):
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=(
+            code=ErrorCode.CONSENT_REQUIRED,
+            message=(
                 "Candidate has not granted bulk swipe consent. "
                 "Consent is required before generating compliance reports."
             ),
@@ -242,7 +373,7 @@ async def generate_compliance_report(
     }
     now = datetime.now(timezone.utc).isoformat()
 
-    # 2. Create the compliance_reports row (pending)
+    # 2. Create the compliance_reports row
     report_insert = (
         supabase.table("compliance_reports")
         .insert({
@@ -258,9 +389,10 @@ async def generate_compliance_report(
     )
 
     if not report_insert.data or len(report_insert.data) == 0:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create compliance report record",
+            code=ErrorCode.INTERNAL_ERROR,
+            message="Failed to create compliance report record",
         )
 
     report_row = report_insert.data[0]
@@ -281,15 +413,16 @@ async def generate_compliance_report(
     )
 
     if not run_insert.data or len(run_insert.data) == 0:
-        # Clean up: mark report failed if run creation fails
+        # Mark report as failed
         supabase.table("compliance_reports").update({
             "status": "failed",
             "error_message": "Failed to create run tracking record",
             "updated_at": now,
         }).eq("id", report_id).execute()
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create compliance report run record",
+            code=ErrorCode.INTERNAL_ERROR,
+            message="Failed to create compliance report run record",
         )
 
     run_row = run_insert.data[0]
@@ -329,7 +462,7 @@ async def generate_compliance_report(
             "updated_at": now,
         }).eq("id", run_id).execute()
 
-        # 6. Build aggregate report data from rows
+        # 6. Build aggregate report data
         report_aggregate = _build_report_aggregate([row_data])
 
         # 7. Update report as completed
@@ -340,7 +473,7 @@ async def generate_compliance_report(
         }).eq("id", report_id).execute()
 
     except Exception as exc:
-        # Mark row as failed if it was created
+        # Mark row as failed if created
         if row_result:
             supabase.table("compliance_report_rows").update({
                 "status": "failed",
@@ -363,28 +496,13 @@ async def generate_compliance_report(
             "updated_at": now,
         }).eq("id", report_id).execute()
 
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Report generation failed: {exc}",
+        raise APIException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            code=ErrorCode.DEPENDENCY_FAILURE,
+            message=f"Report generation failed: {exc}",
         )
 
-    # Build the response
-    rows = []
-    if row_result:
-        rows.append(ComplianceRowResponse(
-            id=row_result["id"],
-            report_id=report_id,
-            run_id=run_id,
-            candidate_id=body.candidate_id,
-            status=row_result["status"],
-            swipe_count=row_result["swipe_count"],
-            right_swipe_count=row_result["right_swipe_count"],
-            unique_jobs_interacted=row_result["unique_jobs_interacted"],
-            match_count=row_result["match_count"],
-            hire_count=row_result["hire_count"],
-            total_earnings=row_result.get("total_earnings"),
-            error_message=row_result.get("error_message"),
-        ))
+    rows_responses = _build_row_responses([row_result]) if row_result else []
 
     return ComplianceReportResponse(
         id=report_id,
@@ -395,104 +513,92 @@ async def generate_compliance_report(
         report_type=body.report_type,
         status="completed",
         report_data=report_aggregate,
-        rows=rows,
+        rows=rows_responses,
         run_status="completed",
         created_at=now,
+        updated_at=now,
     )
 
 
 @router.get(
     "/compliance/reports",
-    response_model=list[ComplianceReportResponse],
+    response_model=ComplianceReportListResponse,
     summary="List compliance reports for the authenticated provider",
+    description=(
+        "Returns a paginated list of compliance reports owned by the "
+        "authenticated provider. Each report includes its latest run "
+        "status and detail rows."
+    ),
 )
 async def list_compliance_reports(
     claims: AuthClaims = Depends(require_role("provider")),
-    limit: int = 20,
-    offset: int = 0,
-) -> list[ComplianceReportResponse]:
-    """Return compliance reports generated by the authenticated provider."""
+    page: int = 1,
+    page_size: int = 20,
+) -> ComplianceReportListResponse:
+    """Return paginated compliance reports for the authenticated provider."""
     if not claims.user_id:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authenticated provider not identified",
+            code=ErrorCode.UNAUTHORIZED,
+            message="Authenticated provider not identified",
         )
+
+    if page < 1:
+        page = 1
+    if page_size < 1:
+        page_size = 20
+    if page_size > 100:
+        page_size = 100
 
     supabase = _get_service_client()
 
+    # Count total for pagination metadata
+    count_resp = (
+        supabase.table("compliance_reports")
+        .select("id", count="exact")
+        .eq("provider_id", claims.user_id)
+        .execute()
+    )
+    total_items = count_resp.count if hasattr(count_resp, "count") else 0
+
+    offset = (page - 1) * page_size
     resp = (
         supabase.table("compliance_reports")
         .select("*")
         .eq("provider_id", claims.user_id)
         .order("created_at", desc=True)
-        .range(offset, offset + limit - 1)
+        .range(offset, offset + page_size - 1)
         .execute()
     )
 
-    if not resp.data:
-        return []
-
-    # Fetch latest run + rows for each report
+    reports_data = resp.data or []
     result: list[ComplianceReportResponse] = []
-    for r in resp.data:
-        # Latest run for this report
-        run_resp = (
-            supabase.table("compliance_report_runs")
-            .select("*")
-            .eq("report_id", r["id"])
-            .order("created_at", desc=True)
-            .limit(1)
-            .execute()
-        )
-        run = run_resp.data[0] if run_resp.data else None
 
-        # Rows for this report
-        rows_resp = (
-            supabase.table("compliance_report_rows")
-            .select("*")
-            .eq("report_id", r["id"])
-            .execute()
-        )
+    for r in reports_data:
+        run = _fetch_latest_run(supabase, r["id"])
+        rows = _build_row_responses(_fetch_rows(supabase, r["id"]))
+        result.append(_build_report_response(r, rows, run))
 
-        rows = [
-            ComplianceRowResponse(
-                id=row["id"],
-                report_id=row["report_id"],
-                run_id=row["run_id"],
-                candidate_id=row["candidate_id"],
-                status=row["status"],
-                swipe_count=row["swipe_count"],
-                right_swipe_count=row["right_swipe_count"],
-                unique_jobs_interacted=row["unique_jobs_interacted"],
-                match_count=row["match_count"],
-                hire_count=row["hire_count"],
-                total_earnings=row.get("total_earnings"),
-                error_message=row.get("error_message"),
-            )
-            for row in (rows_resp.data or [])
-        ]
+    total_pages = max(1, (total_items + page_size - 1) // page_size)
 
-        result.append(ComplianceReportResponse(
-            id=r["id"],
-            candidate_id=r["candidate_id"],
-            provider_id=r["provider_id"],
-            period_start=r["period_start"],
-            period_end=r["period_end"],
-            report_type=r["report_type"],
-            status=r["status"],
-            report_data=r.get("report_data"),
-            rows=rows,
-            run_status=run["status"] if run else None,
-            created_at=r["created_at"],
-        ))
-
-    return result
+    return ComplianceReportListResponse(
+        data=result,
+        pagination=PaginationMeta(
+            page=page,
+            page_size=page_size,
+            total_items=total_items,
+            total_pages=total_pages,
+            has_next=page < total_pages,
+            has_previous=page > 1,
+        ),
+    )
 
 
 @router.get(
     "/compliance/reports/{report_id}",
     response_model=ComplianceReportResponse,
     summary="Get a single compliance report by ID",
+    description="Returns a single compliance report with its detail rows and run status.",
 )
 async def get_compliance_report(
     report_id: str,
@@ -500,80 +606,18 @@ async def get_compliance_report(
 ) -> ComplianceReportResponse:
     """Return a specific compliance report if the provider owns it."""
     if not claims.user_id:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authenticated provider not identified",
+            code=ErrorCode.UNAUTHORIZED,
+            message="Authenticated provider not identified",
         )
 
     supabase = _get_service_client()
+    r = _fetch_report_with_owner_check(supabase, report_id, claims.user_id)
+    run = _fetch_latest_run(supabase, report_id)
+    rows = _build_row_responses(_fetch_rows(supabase, report_id))
 
-    resp = (
-        supabase.table("compliance_reports")
-        .select("*")
-        .eq("id", report_id)
-        .eq("provider_id", claims.user_id)
-        .maybe_single()
-        .execute()
-    )
-
-    if not resp.data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Report not found or access denied",
-        )
-
-    r = resp.data
-
-    # Latest run
-    run_resp = (
-        supabase.table("compliance_report_runs")
-        .select("*")
-        .eq("report_id", r["id"])
-        .order("created_at", desc=True)
-        .limit(1)
-        .execute()
-    )
-    run = run_resp.data[0] if run_resp.data else None
-
-    # Rows
-    rows_resp = (
-        supabase.table("compliance_report_rows")
-        .select("*")
-        .eq("report_id", r["id"])
-        .execute()
-    )
-
-    rows = [
-        ComplianceRowResponse(
-            id=row["id"],
-            report_id=row["report_id"],
-            run_id=row["run_id"],
-            candidate_id=row["candidate_id"],
-            status=row["status"],
-            swipe_count=row["swipe_count"],
-            right_swipe_count=row["right_swipe_count"],
-            unique_jobs_interacted=row["unique_jobs_interacted"],
-            match_count=row["match_count"],
-            hire_count=row["hire_count"],
-            total_earnings=row.get("total_earnings"),
-            error_message=row.get("error_message"),
-        )
-        for row in (rows_resp.data or [])
-    ]
-
-    return ComplianceReportResponse(
-        id=r["id"],
-        candidate_id=r["candidate_id"],
-        provider_id=r["provider_id"],
-        period_start=r["period_start"],
-        period_end=r["period_end"],
-        report_type=r["report_type"],
-        status=r["status"],
-        report_data=r.get("report_data"),
-        rows=rows,
-        run_status=run["status"] if run else None,
-        created_at=r["created_at"],
-    )
+    return _build_report_response(r, rows, run)
 
 
 @router.get(
@@ -584,6 +628,38 @@ async def get_compliance_report(
         "PDF from the persisted report data. The PDF is generated on-demand "
         "and returned as application/pdf."
     ),
+    responses={
+        200: {
+            "description": "PDF file",
+            "content": {"application/pdf": {}},
+        },
+        400: {
+            "description": "Report not in completed state",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "INVALID_STATE",
+                            "message": "Report is not completed (status: generating). Cannot generate PDF.",
+                        },
+                    },
+                },
+            },
+        },
+        404: {
+            "description": "Report not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "error": {
+                            "code": "NOT_FOUND",
+                            "message": "Report not found or access denied",
+                        },
+                    },
+                },
+            },
+        },
+    },
 )
 async def get_compliance_report_pdf(
     report_id: str,
@@ -591,38 +667,26 @@ async def get_compliance_report_pdf(
 ) -> Response:
     """Generate and download a PDF for a compliance report."""
     if not claims.user_id:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authenticated provider not identified",
+            code=ErrorCode.UNAUTHORIZED,
+            message="Authenticated provider not identified",
         )
 
     supabase = _get_service_client()
-
-    # 1. Fetch report — must be owned by the requesting provider
-    report_resp = (
-        supabase.table("compliance_reports")
-        .select("*")
-        .eq("id", report_id)
-        .eq("provider_id", claims.user_id)
-        .maybe_single()
-        .execute()
-    )
-
-    if not report_resp.data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Report not found or access denied",
-        )
-
-    r = report_resp.data
+    r = _fetch_report_with_owner_check(supabase, report_id, claims.user_id)
 
     if r["status"] != "completed":
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Report is not completed (status: {r['status']}). Cannot generate PDF.",
+            code=ErrorCode.INVALID_STATE,
+            message=(
+                f"Report is not completed (status: {r['status']}). "
+                "Cannot generate PDF."
+            ),
         )
 
-    # 2. Fetch candidate name for display
+    # Fetch candidate name
     candidate_name: str | None = None
     profile_resp = (
         supabase.table("profiles")
@@ -634,7 +698,7 @@ async def get_compliance_report_pdf(
     if profile_resp.data:
         candidate_name = profile_resp.data.get("full_name")
 
-    # 3. Fetch provider display name
+    # Fetch provider display name
     provider_name: str | None = None
     provider_profile = (
         supabase.table("profiles")
@@ -649,20 +713,14 @@ async def get_compliance_report_pdf(
             or provider_profile.data.get("full_name")
         )
 
-    # 4. Fetch detail rows
-    rows_resp = (
-        supabase.table("compliance_report_rows")
-        .select("*")
-        .eq("report_id", report_id)
-        .execute()
-    )
-    detail_rows: list[dict[str, Any]] = rows_resp.data or []
+    # Fetch detail rows
+    detail_rows = _fetch_rows(supabase, report_id)
 
-    # 5. Extract activity summary from report_data
+    # Activity summary from report_data
     report_data = r.get("report_data") or {}
     activity_summary = report_data.get("activity_summary")
 
-    # 6. Generate PDF
+    # Generate PDF
     try:
         pdf_bytes = generate_compliance_pdf(
             report_id=r["id"],
@@ -676,12 +734,13 @@ async def get_compliance_report_pdf(
             activity_summary=activity_summary,
         )
     except Exception as exc:
-        raise HTTPException(
+        raise APIException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"PDF generation failed: {exc}",
+            code=ErrorCode.PDF_GENERATION_FAILED,
+            message=f"PDF generation failed: {exc}",
         )
 
-    # 7. Optionally store the storage path (not blocking)
+    # Persist storage path (non-blocking)
     pdf_dir = os.path.join(os.path.dirname(__file__), "..", "..", "..", "pdfs")
     os.makedirs(pdf_dir, exist_ok=True)
     pdf_path = os.path.join(pdf_dir, f"compliance-{report_id}.pdf")
@@ -692,7 +751,7 @@ async def get_compliance_report_pdf(
             "storage_path": pdf_path,
         }).eq("id", report_id).execute()
     except Exception:
-        pass  # Non-blocking — PDF is still returned
+        pass
 
     return Response(
         content=pdf_bytes,

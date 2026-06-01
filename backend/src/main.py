@@ -2,12 +2,13 @@
 
 import logging
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.middleware.rate_limit import RateLimitMiddleware
 from src.api.router import api_router
 from src.core.config import get_settings
+from src.core.errors import APIException, api_error_handler
 from src.core.telemetry import setup_telemetry
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,10 @@ app = FastAPI(
     version="0.1.0",
     description="Job search and matching API for Hi-Hired",
 )
+
+# Register standardised error handlers
+app.add_exception_handler(APIException, api_error_handler)
+app.add_exception_handler(HTTPException, api_error_handler)
 
 # Rate-limit middleware is added first (innermost, runs after CORS) so that
 # rate-limited requests receive proper CORS headers on the 429 response.
