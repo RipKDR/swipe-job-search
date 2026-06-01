@@ -124,6 +124,39 @@ vi.mock('react-native-safe-area-context', () => ({
 vi.mock('posthog-js', () => ({ default: { init: () => {}, capture: () => {} } }))
 vi.mock('@posthog/core', () => ({}))
 
+// Mock posthog-react-native: its native RN imports use Flow syntax the test
+// transformer can't parse. Tests run as web (Platform.OS === 'web'), so the
+// native client is never exercised — a stub keeps module evaluation parseable.
+vi.mock('posthog-react-native', () => {
+  const noop = () => {}
+  const hook = () => ({
+    capture: noop,
+    identify: noop,
+    screen: noop,
+    reset: noop,
+    getFeatureFlag: () => undefined,
+    isFeatureEnabled: () => false,
+    reloadFeatureFlags: () => Promise.resolve(),
+  })
+  class PostHog {
+    capture = noop
+    identify = noop
+    screen = noop
+    reset = noop
+    shutdown = noop
+    flush = () => Promise.resolve()
+    optIn = noop
+    optOut = noop
+  }
+  return {
+    __esModule: true,
+    default: PostHog,
+    PostHog,
+    usePostHog: hook,
+    PostHogProvider: ({ children }: any) => children,
+  }
+})
+
 vi.mock('expo-constants', () => ({
   default: {
     expoConfig: {
