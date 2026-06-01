@@ -1,13 +1,22 @@
 /**
  * Web-safe usePostHog hook.
- * On native: re-exports from posthog-react-native.
- * On web: returns a no-op capture stub (PostHog RN SDK doesn't bundle for web).
+ * posthog-react-native is stubbed on web via metro.config.js.
  */
 import { Platform } from 'react-native';
-import { posthog } from '@/lib/posthog';
+import { usePostHog as useNativePostHog } from 'posthog-react-native';
 
-// No-op hook for web
-function usePostHogWeb(): { capture: Function; identify: Function; screen: Function; reset: () => void; getFeatureFlag: () => undefined; isFeatureEnabled: () => boolean; reloadFeatureFlags: () => Promise<void> } {
+type PostHogHook = {
+  capture: (event: string, properties?: Record<string, unknown>) => void;
+  identify: (distinctId: string, properties?: Record<string, unknown>) => void;
+  screen: (screenName: string, properties?: Record<string, unknown>) => void;
+  reset: () => void;
+  getFeatureFlag: (key: string) => undefined;
+  isFeatureEnabled: (key: string) => boolean;
+  reloadFeatureFlags: () => Promise<void>;
+};
+
+/** No-op hook for web (PostHog provider isn't rendered). */
+function usePostHogWeb(): PostHogHook {
   return {
     capture: () => {},
     identify: () => {},
@@ -19,20 +28,9 @@ function usePostHogWeb(): { capture: Function; identify: Function; screen: Funct
   };
 }
 
-// Lazy-loaded native hook
-let nativeUsePostHog: typeof usePostHogWeb | null = null;
-
-function usePostHogNative() {
-  if (!nativeUsePostHog) {
-    try {
-      const { usePostHog } = require('posthog-react-native');
-      nativeUsePostHog = usePostHog;
-    } catch {
-      nativeUsePostHog = usePostHogWeb;
-    }
-  }
-  return nativeUsePostHog!();
+/** Native hook via posthog-react-native. */
+function usePostHogNative(): PostHogHook {
+  return useNativePostHog();
 }
 
-// Export the appropriate hook based on platform
 export const usePostHog = Platform.OS === 'web' ? usePostHogWeb : usePostHogNative;

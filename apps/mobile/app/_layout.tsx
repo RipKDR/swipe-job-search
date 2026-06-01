@@ -12,6 +12,7 @@ import { initSentry, wrapApp } from '@/lib/sentry';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Slot, useGlobalSearchParams, usePathname, useRouter, useSegments, type Href } from 'expo-router';
+import { PostHogProvider } from 'posthog-react-native';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import '../global.css';
@@ -21,29 +22,25 @@ initAnalytics();
 
 import { queryClient } from '@/lib/queryClient';
 
-// Web-safe PostHogProvider — renders children directly on web
+// Web-safe PostHogProvider — no-op on web, real provider on native
+// posthog-react-native is stubbed on web via metro.config.js
 function SafePostHogProvider({ children }: { children: ReactNode }) {
   if (Platform.OS === 'web') {
     return <>{children}</>;
   }
-  try {
-    const { PostHogProvider } = require('posthog-react-native');
-    return (
-      <PostHogProvider
-        client={posthog}
-        autocapture={{
-          captureScreens: false,
-          captureTouches: true,
-          propsToCapture: ['testID'],
-          maxElementsCaptured: 20,
-        }}
-      >
-        {children}
-      </PostHogProvider>
-    );
-  } catch {
-    return <>{children}</>;
-  }
+  return (
+    <PostHogProvider
+      client={posthog}
+      autocapture={{
+        captureScreens: false,
+        captureTouches: true,
+        propsToCapture: ['testID'],
+        maxElementsCaptured: 20,
+      }}
+    >
+      {children}
+    </PostHogProvider>
+  );
 }
 
 function RootLayoutNav() {
