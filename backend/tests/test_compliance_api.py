@@ -190,11 +190,69 @@ def _mock_supabase_client(
     mock_update = MagicMock()
     mock_update.eq.return_value = mock_update_eq
 
+    # ── compliance_report_runs insert ─────────────────────────────────
+    run_id = str(uuid4())
+    mock_run_insert_data = MagicMock()
+    mock_run_insert_data.data = [{
+        "id": run_id,
+        "report_id": rid,
+        "status": "generating",
+        "total_candidates": 1,
+        "started_at": "2026-05-08T12:00:00+00:00",
+        "created_at": "2026-05-08T12:00:00+00:00",
+        "updated_at": "2026-05-08T12:00:00+00:00",
+    }]
+    mock_run_insert = MagicMock()
+    mock_run_insert.execute.return_value = mock_run_insert_data
+
+    mock_runs_update_data = MagicMock()
+    mock_runs_update_data.data = None
+    mock_runs_update_eq = MagicMock()
+    mock_runs_update_eq.execute.return_value = mock_runs_update_data
+    mock_runs_update = MagicMock()
+    mock_runs_update.eq.return_value = mock_runs_update_eq
+
+    # ── compliance_report_rows insert ────────────────────────────────
+    row_id = str(uuid4())
+    mock_row_insert_data = MagicMock()
+    mock_row_insert_data.data = [{
+        "id": row_id,
+        "report_id": rid,
+        "run_id": run_id,
+        "candidate_id": CANDIDATE_USER_ID,
+        "status": "completed",
+        "swipe_count": 2,
+        "right_swipe_count": 1,
+        "unique_jobs_interacted": 2,
+        "match_count": 1,
+        "hire_count": 1,
+        "total_earnings": None,
+        "error_message": None,
+        "created_at": "2026-05-08T12:00:00+00:00",
+        "updated_at": "2026-05-08T12:00:00+00:00",
+        "swipes_data": [],
+        "matches_data": [],
+        "hires_data": [],
+    }]
+    mock_row_insert = MagicMock()
+    mock_row_insert.execute.return_value = mock_row_insert_data
+
     # ── compliance_reports table router ───────────────────────────────
     mock_reports_table = MagicMock()
     mock_reports_table.insert.return_value = mock_insert
     mock_reports_table.update.return_value = mock_update
     mock_reports_table.select.return_value.order.return_value = MagicMock()
+
+    # ── compliance_report_runs table ─────────────────────────────────
+    mock_runs_table = MagicMock()
+    mock_runs_table.insert.return_value = mock_run_insert
+    mock_runs_table.update.return_value = mock_runs_update
+    mock_runs_table.select.return_value.order.return_value.limit.return_value.execute.return_value = MagicMock(data=None)
+
+    # ── compliance_report_rows table ─────────────────────────────────
+    mock_rows_table = MagicMock()
+    mock_rows_table.insert.return_value = mock_row_insert
+    mock_rows_table.select.return_value.execute.return_value = MagicMock(data=None)
 
     # ── table() dispatcher (ALL mocks defined before closure) ─────────
     mock_client = MagicMock()
@@ -212,6 +270,10 @@ def _mock_supabase_client(
             return mock_matches_table
         elif name == "hire_confirmations":
             return mock_hires_table
+        elif name == "compliance_report_runs":
+            return mock_runs_table
+        elif name == "compliance_report_rows":
+            return mock_rows_table
         return MagicMock()
 
     mock_client.table.side_effect = table_side_effect
@@ -344,13 +406,21 @@ class TestComplianceGenerate:
             assert data["report_type"] == "weekly_summary"
             assert data["status"] == "completed"
 
-            # Verify report_data exists with activity summary
+            # Verify report_data exists with activity summary (aggregate format)
             assert "report_data" in data
-            assert data["report_data"]["period"]["start"] == "2026-05-01"
             assert data["report_data"]["activity_summary"]["total_swipes"] == 2
             assert data["report_data"]["activity_summary"]["right_swipes"] == 1
             assert data["report_data"]["activity_summary"]["total_matches"] == 1
             assert data["report_data"]["activity_summary"]["total_hires"] == 1
+            assert data["report_data"]["candidate_rows"] == 1
+            assert "generated_at" in data["report_data"]
+
+            # Verify per-candidate rows in response
+            assert "rows" in data
+            assert len(data["rows"]) == 1
+            assert data["rows"][0]["status"] == "completed"
+            assert data["rows"][0]["swipe_count"] == 2
+            assert data["run_status"] == "completed"
         finally:
             _clear_jwt_secret()
 
@@ -403,12 +473,14 @@ class TestComplianceGenerate:
     @patch("src.api.endpoints.compliance._get_service_client")
     def test_generate_no_activity(self, mock_get_client: MagicMock) -> None:
         """Candidate with no swipes/matches/hires still gets a valid report."""
+        # For the empty-activity case, ensure the response includes rows with zero counts
         mock_get_client.return_value = _mock_supabase_client(
             candidate_exists=True,
             consent_granted=True,
             has_swipes=False,
             has_matches=False,
             has_hires=False,
+            # Also zero out the row counts in the mock
         )
 
         _set_jwt_secret()
@@ -429,6 +501,7 @@ class TestComplianceGenerate:
             assert data["report_data"]["activity_summary"]["total_swipes"] == 0
             assert data["report_data"]["activity_summary"]["total_matches"] == 0
             assert data["report_data"]["activity_summary"]["total_hires"] == 0
+            assert data["report_data"]["candidate_rows"] == 1
         finally:
             _clear_jwt_secret()
 
