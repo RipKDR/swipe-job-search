@@ -11,8 +11,10 @@
     "build:mobile": "pnpm --filter @hi-hired/mobile build",
     "db:reset": "supabase db reset",
     "test:processor": "cd supabase/functions/notification-processor && deno test __tests__/",
-    "android": "expo run:android",
-    "ios": "expo run:ios"
+    "doctor": "pnpm --filter @hi-hired/mobile doctor",
+    "start": "pnpm --filter @hi-hired/mobile start",
+    "android": "pnpm --filter @hi-hired/mobile android",
+    "ios": "pnpm --filter @hi-hired/mobile ios"
   },
   "keywords": [
     "expo",
@@ -39,11 +41,5 @@
       "vite": ">=5.4.21",
       "lightningcss": "1.30.1"
     }
-  },
-  "dependencies": {
-    "@sentry/react-native": "8.13.0",
-    "expo": "~56.0.6",
-    "react": "19.2.6",
-    "react-native": "0.85.3"
   }
 }

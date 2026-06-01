@@ -6,8 +6,12 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-const apiKey = Constants.expoConfig?.extra?.posthogKey as string | undefined;
-const host = Constants.expoConfig?.extra?.posthogHost as string | undefined;
+const apiKey =
+  (Constants.expoConfig?.extra?.posthogKey as string | undefined) ??
+  process.env.EXPO_PUBLIC_POSTHOG_KEY;
+const host =
+  (Constants.expoConfig?.extra?.posthogHost as string | undefined) ??
+  process.env.EXPO_PUBLIC_POSTHOG_HOST;
 const isConfigured = Boolean(apiKey) && Boolean(host);
 
 type PostHogProperties = Record<string, unknown>;
