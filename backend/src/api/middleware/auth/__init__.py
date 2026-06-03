@@ -8,17 +8,18 @@ Provides:
 """
 
 from __future__ import annotations
-
 from typing import Any
 
 from fastapi import Depends, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+from fastapi.security.http import HTTPAuthorizationCredentials, HTTPBearer
+import jwt
+from jwt.exceptions import PyJWTError as JWTError
 from pydantic import BaseModel
-from supabase import create_client
 
 from src.core.config import get_settings
+# pyrefly: ignore [missing-import]
 from src.core.errors import APIException, ErrorCode
+from supabase import create_client
 
 settings = get_settings()
 security = HTTPBearer(auto_error=False)
@@ -157,7 +158,8 @@ def _get_profile_role(user_id: str | None) -> str | None:
         return None
 
     role = (resp.data or {}).get("role")
-    return role if role in ROLE_HIERARCHY else None
+    # Peer-role lookup only — never promote JWT users via profiles.role=admin.
+    return role if role in STRICT_PEER_ROLES else None
 
 
 def _role_satisfies(role: str, min_role: str, min_level: int) -> bool:
