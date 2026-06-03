@@ -8,9 +8,9 @@ import * as SecureStore from 'expo-secure-store';
 import type { Database } from '@hi-hired/shared';
 
 const supabaseUrl =
-  Constants.expoConfig?.extra?.supabaseUrl ?? process.env.EXPO_PUBLIC_SUPABASE_URL;
+  Constants.expoConfig?.extra?.supabaseUrl;
 const supabaseAnonKey =
-  Constants.expoConfig?.extra?.supabaseAnonKey ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  Constants.expoConfig?.extra?.supabaseAnonKey;
 
 /** Hostnames that are placeholders — DNS fails and signInWithOtp throws "Failed to fetch". */
 const INVALID_SUPABASE_HOSTS = new Set(['staging.supabase.co']);

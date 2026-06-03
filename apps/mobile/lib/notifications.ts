@@ -48,9 +48,9 @@ export async function registerDeviceToken(
   }
 }
 
-export function configureNotificationHandler(): void {
+export async function configureNotificationHandler(): Promise<void> {
   if (Platform.OS === 'web') return;
-  const Notifications = require('expo-notifications');
+  const { default: Notifications } = await import('expo-notifications');
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       // Suppress system banner when app is foregrounded — the in-app

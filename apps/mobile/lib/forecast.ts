@@ -5,7 +5,7 @@
  * fallback to a local heuristic when the backend is unavailable.
  */
 
-const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
+const DEFAULT_API_BASE = (globalThis as any).EXPO_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,6 +44,45 @@ export interface UserProfileInput {
 // Local heuristic fallback (mirrors the backend's _heuristic_score logic)
 // ---------------------------------------------------------------------------
 
+function _calculateSkillOverlap(userSkills: Set<string>, requiredSkills: Set<string>): { overlap: number; matching: string[]; missing: string[] } {
+  const matching = [...userSkills].filter((s) => requiredSkills.has(s));
+  const missing = [...requiredSkills].filter((s) => !userSkills.has(s));
+  const union = new Set([...userSkills, ...requiredSkills]);
+  const overlap = union.size > 0 ? matching.length / union.size : 0;
+  return { overlap, matching, missing };
+}
+
+function _calculateSalaryAlignment(profileSalary: number | null | undefined, jobSalaryMax?: number): number {
+  if (profileSalary == null || jobSalaryMax == null || jobSalaryMax <= 0) return 0;
+  if (profileSalary <= jobSalaryMax) return 1;
+  const ratio = profileSalary / jobSalaryMax;
+  return Math.max(0, 2 - ratio);
+}
+
+function _calculateLocationMatch(profileSuburb: string | undefined, jobSuburb?: string): number {
+  const normalized = (s: string | undefined) => (s ?? '').trim().toLowerCase();
+  const profile = normalized(profileSuburb);
+  const job = normalized(jobSuburb);
+  return profile && job && profile === job ? 1 : 0;
+}
+
+function _calculateTypeMatch(preferredType: string | null | undefined, jobType?: string): number {
+  return preferredType && jobType && preferredType === jobType ? 1 : 0;
+}
+
+function _determineConfidence(score: number): 'high' | 'medium' | 'low' {
+  return score >= 0.85 ? 'high' : score >= 0.6 ? 'medium' : 'low';
+}
+
+function _buildReasoning(score: number, confidence: 'high' | 'medium' | 'low', matching: string[], missing: string[]): string {
+  const parts: string[] = [];
+  if (matching.length > 0) parts.push(`matches ${matching.length} skill${matching.length !== 1 ? 's' : ''}`);
+  if (missing.length > 0) parts.push(`missing ${missing.length} skill${missing.length !== 1 ? 's' : ''}`);
+  if (matching.length === 0 && missing.length === 0) parts.push('no skill data to evaluate');
+  const verdict = score >= 0.7 ? 'Strong match' : score >= 0.4 ? 'Moderate match' : 'Weak match';
+  return `${verdict} (${confidence} confidence) — ${parts.join('; ')}.`;
+}
+
 function _localHeuristicScore(
   profile: UserProfileInput,
   jobSkills: string[],
@@ -54,32 +93,10 @@ function _localHeuristicScore(
   const userSkills = new Set(profile.skills.map((s) => s.trim().toLowerCase()));
   const requiredSkills = new Set(jobSkills.map((s) => s.trim().toLowerCase()));
 
-  const matching = [...userSkills].filter((s) => requiredSkills.has(s));
-  const missing = [...requiredSkills].filter((s) => !userSkills.has(s));
-
-  // Skill overlap (Jaccard) — weight 0.45
-  const union = new Set([...userSkills, ...requiredSkills]);
-  const skillOverlap = union.size > 0 ? matching.length / union.size : 0;
-
-  // Salary alignment — weight 0.30
-  let salaryAlignment = 0;
-  if (profile.expected_salary != null && jobSalaryMax != null && jobSalaryMax > 0) {
-    if (profile.expected_salary <= jobSalaryMax) {
-      salaryAlignment = 1;
-    } else {
-      const ratio = profile.expected_salary / jobSalaryMax;
-      salaryAlignment = Math.max(0, 2 - ratio);
-    }
-  }
-
-  // Location match — weight 0.15
-  const profileSuburb = (profile.suburb ?? '').trim().toLowerCase();
-  const jobSub = (jobSuburb ?? '').trim().toLowerCase();
-  const locationMatch = profileSuburb && jobSub && profileSuburb === jobSub ? 1 : 0;
-
-  // Type match — weight 0.10
-  const typeMatch =
-    profile.preferred_type && jobEmploymentType && profile.preferred_type === jobEmploymentType ? 1 : 0;
+  const { overlap: skillOverlap, matching, missing } = _calculateSkillOverlap(userSkills, requiredSkills);
+  const salaryAlignment = _calculateSalaryAlignment(profile.expected_salary, jobSalaryMax);
+  const locationMatch = _calculateLocationMatch(profile.suburb, jobSuburb);
+  const typeMatch = _calculateTypeMatch(profile.preferred_type, jobEmploymentType);
 
   const score = Math.max(0, Math.min(1,
     skillOverlap * 0.45 +
@@ -88,16 +105,8 @@ function _localHeuristicScore(
     typeMatch * 0.10
   ));
 
-  const confidence: 'high' | 'medium' | 'low' =
-    score >= 0.85 ? 'high' : score >= 0.6 ? 'medium' : 'low';
-
-  const parts: string[] = [];
-  if (matching.length > 0) parts.push(`matches ${matching.length} skill${matching.length !== 1 ? 's' : ''}`);
-  if (missing.length > 0) parts.push(`missing ${missing.length} skill${missing.length !== 1 ? 's' : ''}`);
-  if (matching.length === 0 && missing.length === 0) parts.push('no skill data to evaluate');
-
-  const verdict = score >= 0.7 ? 'Strong match' : score >= 0.4 ? 'Moderate match' : 'Weak match';
-  const reasoning = `${verdict} (${confidence} confidence) — ${parts.join('; ')}.`;
+  const confidence = _determineConfidence(score);
+  const reasoning = _buildReasoning(score, confidence, matching, missing);
 
   return {
     score: Math.round(score * 10000) / 10000,

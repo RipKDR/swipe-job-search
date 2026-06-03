@@ -28,8 +28,8 @@ export function haversineDistance(
   lng2: number,
 ): number {
   if (
-    !isFinite(lat1) || !isFinite(lng1) ||
-    !isFinite(lat2) || !isFinite(lng2)
+    !Number.isFinite(lat1) || !Number.isFinite(lng1) ||
+    !Number.isFinite(lat2) || !Number.isFinite(lng2)
   ) {
     return 0;
   }
@@ -58,7 +58,7 @@ export function filterJobsByDistance<T extends { lat?: number | null; lng?: numb
   originLng: number,
   radiusKm: number,
 ): T[] {
-  if (!jobs.length || !isFinite(originLat) || !isFinite(originLng) || radiusKm <= 0) {
+  if (!jobs.length || !Number.isFinite(originLat) || !Number.isFinite(originLng) || radiusKm <= 0) {
     return jobs;
   }
 

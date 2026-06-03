@@ -116,3 +116,7 @@ pnpm
 # Claude worktrees (parallel agent sessions)
 .claude/worktrees/
 .claude/settings.local.json
+
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md

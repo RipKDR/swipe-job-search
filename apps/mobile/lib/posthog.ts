@@ -36,7 +36,7 @@ type PostHogClient = {
   disabled: boolean;
 };
 
-if (!isConfigured && __DEV__) {
+if (!isConfigured && process.env.NODE_ENV === 'development') {
   console.warn('[posthog] EXPO_PUBLIC_POSTHOG_KEY / EXPO_PUBLIC_POSTHOG_HOST not set — analytics disabled');
 }
 
