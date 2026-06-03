@@ -42,6 +42,4 @@ begin
 end;
 $$;
 
-create trigger on_swipe_right_notify
-  after insert on swipes
-  for each row execute function public.enqueue_interest_notification();
+-- Trigger attached in 011 after notification_queue exists

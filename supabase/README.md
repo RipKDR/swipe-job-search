@@ -38,9 +38,18 @@ pnpm db:reset
 supabase db reset
 ```
 
-**Manual seed (dev/staging):**
+**Enable seed on `db reset` (dev/staging):**
 
-If you want to manually run the seed without the `app.settings.seed_enabled` flag:
+Migration `016` runs only when `app.settings.seed_enabled = true`:
+
+```bash
+# Before reset (local Postgres)
+psql postgresql://postgres:postgres@localhost:54322/postgres -c \
+  "ALTER DATABASE postgres SET app.settings.seed_enabled = 'true';"
+pnpm db:reset
+```
+
+**Manual seed (without flag):**
 
 ```bash
 psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/seed/beachhead_jobs.sql
@@ -76,6 +85,9 @@ All migrations are in `supabase/migrations/` and numbered sequentially:
 | 014 | `storage.sql` | Buckets + storage policies |
 | 015 | `rpcs.sql` | confirm_hire, unmatch RPCs |
 | 016 | `seed.sql` | Beachhead demo data |
+| 017 | `complete_employer_onboarding.sql` | Employer onboarding RPC |
+| 018 | `seed_enabled.sql` | Force-seed helper for local dev |
+| 019 | `rate_limits.sql` | Swipe + match rate limits |
 
 ### Creating new migrations
 
@@ -138,16 +150,9 @@ supabase secrets set EXPO_ACCESS_TOKEN=<your-expo-token>
 
 ## Realtime Publication
 
-Enable Realtime for chat and inbox:
+Applied in migration `202605270013_rls.sql` (tables: `messages`, `matches`, `swipes`).
 
-```sql
--- Run in Supabase SQL Editor or via psql
-alter publication supabase_realtime add table messages;
-alter publication supabase_realtime add table matches;
-alter publication supabase_realtime add table swipes;
-```
-
-**Verify:**
+**Verify after `db reset`:**
 
 ```sql
 select * from pg_publication_tables where pubname = 'supabase_realtime';
@@ -165,6 +170,18 @@ psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/tests/r
 
 # RPC idempotency
 psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/tests/rpc_create_match_test.sql
+
+# create_match error handling (candidate not interested)
+psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/tests/create_match_error_test.sql
+
+# swipe-right notification queue enqueue
+psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/tests/notification_enqueue_test.sql
+
+# blocked pair exclusion + create_match guard
+psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/tests/blocked_pairs_test.sql
+
+# rate limits (10 swipes/min, 5 matches/day)
+psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/tests/rate_limits_test.sql
 ```
 
 ### TypeScript schema tests

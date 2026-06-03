@@ -1,110 +1,139 @@
-import {
-  useCssElement,
-  useNativeVariable as useFunctionalVariable,
-} from "react-native-css";
-
+/**
+ * CSS-in-RN wrappers — web-safe version.
+ * Re-exports react-native-css components (single className→style mapping) with
+ * forwardRef for Reanimated. Raw RN primitives get one useCssElement pass only.
+ */
+import { StyleSheet, ViewStyle } from "react-native";
 import { Link as RouterLink } from "expo-router";
-import Animated from "react-native-reanimated";
 import React from "react";
 import {
-  View as RNView,
-  Text as RNText,
+  View as CSSView,
+  Text as CSSText,
+  TextInput as CSSTextInput,
+} from "react-native-css/components";
+import {
   Pressable as RNPressable,
   ScrollView as RNScrollView,
   TouchableHighlight as RNTouchableHighlight,
-  TextInput as RNTextInput,
-  StyleSheet,
 } from "react-native";
 
-export const Link = (
-  props: React.ComponentProps<typeof RouterLink> & { className?: string }
-) => {
-  return useCssElement(RouterLink, props, { className: "style" });
-};
+let useCssElement: (
+  component: React.ComponentType<any>,
+  props: any,
+  mapping: Record<string, string>
+) => React.ReactElement;
+let useFunctionalVariable: (variable: string) => string;
 
-Link.Trigger = RouterLink.Trigger;
-Link.Menu = RouterLink.Menu;
-Link.MenuAction = RouterLink.MenuAction;
-Link.Preview = RouterLink.Preview;
+try {
+  const cssModule = require("react-native-css");
+  useCssElement = cssModule.useCssElement;
+  useFunctionalVariable = cssModule.useNativeVariable;
+} catch {
+  useCssElement = (Component, props, _mapping) => {
+    const { className: _cn, contentContainerClassName: _ccn, ...rest } = props;
+    return React.createElement(Component, rest);
+  };
+  useFunctionalVariable = (variable: string) => `var(${variable})`;
+}
+
+const cssMapping = { className: "style" } as const;
+
+type LinkProps = React.ComponentProps<typeof RouterLink> & { className?: string };
+
+const LinkBase = React.forwardRef<
+  React.ComponentRef<typeof RouterLink>,
+  LinkProps
+>(function Link(props, ref) {
+  return useCssElement(RouterLink, { ...props, ref }, cssMapping);
+});
+LinkBase.displayName = "CSS(Link)";
+
+export const Link = Object.assign(LinkBase, {
+  Trigger: RouterLink.Trigger,
+  Menu: RouterLink.Menu,
+  MenuAction: RouterLink.MenuAction,
+  Preview: RouterLink.Preview,
+});
 
 export const useCSSVariable =
   process.env.EXPO_OS !== "web"
     ? useFunctionalVariable
     : (variable: string) => `var(${variable})`;
 
-export type ViewProps = React.ComponentProps<typeof RNView> & {
+export type ViewProps = React.ComponentProps<typeof CSSView> & {
   className?: string;
 };
 
-export const View = (props: ViewProps) => {
-  return useCssElement(RNView, props, { className: "style" });
-};
+export const View = React.forwardRef<React.ElementRef<typeof CSSView>, ViewProps>(
+  function View(props, ref) {
+    return <CSSView {...props} ref={ref as React.Ref<React.ElementRef<typeof CSSView>>} />;
+  }
+);
 View.displayName = "CSS(View)";
 
-export const Text = (
-  props: React.ComponentProps<typeof RNText> & { className?: string }
-) => {
-  return useCssElement(RNText, props, { className: "style" });
-};
+export const Text = React.forwardRef<
+  React.ElementRef<typeof CSSText>,
+  React.ComponentProps<typeof CSSText> & { className?: string }
+>(function Text(props, ref) {
+  return <CSSText {...props} ref={ref as React.Ref<React.ElementRef<typeof CSSText>>} />;
+});
 Text.displayName = "CSS(Text)";
 
-export const ScrollView = (
-  props: React.ComponentProps<typeof RNScrollView> & {
+export const ScrollView = React.forwardRef<
+  React.ElementRef<typeof RNScrollView>,
+  React.ComponentProps<typeof RNScrollView> & {
     className?: string;
     contentContainerClassName?: string;
   }
-) => {
-  return useCssElement(RNScrollView, props, {
+>(function ScrollView(props, ref) {
+  return useCssElement(RNScrollView, { ...props, ref }, {
     className: "style",
     contentContainerClassName: "contentContainerStyle",
   });
-};
+});
 ScrollView.displayName = "CSS(ScrollView)";
 
-export const Pressable = (
-  props: React.ComponentProps<typeof RNPressable> & { className?: string }
-) => {
-  return useCssElement(RNPressable, props, { className: "style" });
-};
+export const Pressable = React.forwardRef<
+  React.ElementRef<typeof RNPressable>,
+  React.ComponentProps<typeof RNPressable> & { className?: string }
+>(function Pressable(props, ref) {
+  return useCssElement(RNPressable, { ...props, ref }, cssMapping);
+});
 Pressable.displayName = "CSS(Pressable)";
 
-export const TextInput = (
-  props: React.ComponentProps<typeof RNTextInput> & { className?: string }
-) => {
-  return useCssElement(RNTextInput, props, { className: "style" });
-};
+export const TextInput = React.forwardRef<
+  React.ElementRef<typeof CSSTextInput>,
+  React.ComponentProps<typeof CSSTextInput> & { className?: string }
+>(function TextInput(props, ref) {
+  return <CSSTextInput {...props} ref={ref as React.Ref<React.ElementRef<typeof CSSTextInput>>} />;
+});
 TextInput.displayName = "CSS(TextInput)";
 
-export const AnimatedScrollView = (
-  props: React.ComponentProps<typeof Animated.ScrollView> & {
-    className?: string;
-    contentContainerClassName?: string;
-  }
-) => {
-  return useCssElement(Animated.ScrollView, props, {
-    className: "style",
-    contentContainerClassName: "contentContainerStyle",
-  });
-};
-
-function XXTouchableHighlight(
-  props: React.ComponentProps<typeof RNTouchableHighlight>
-) {
-  const { underlayColor, ...style } = StyleSheet.flatten(props.style) || {};
+const XXTouchableHighlight = React.forwardRef<
+  React.ElementRef<typeof RNTouchableHighlight>,
+  React.ComponentProps<typeof RNTouchableHighlight>
+>(function XXTouchableHighlight(props, ref) {
+  const flattened = StyleSheet.flatten(props.style as ViewStyle | undefined) || {};
+  const { underlayColor, ...style } = flattened as ViewStyle & {
+    underlayColor?: string;
+  };
   return (
     <RNTouchableHighlight
+      ref={ref}
       underlayColor={underlayColor as string | undefined}
       {...props}
       style={style}
     />
   );
-}
+});
+XXTouchableHighlight.displayName = "CSS(XXTouchableHighlight)";
 
-export const TouchableHighlight = (
-  props: React.ComponentProps<typeof RNTouchableHighlight> & {
+export const TouchableHighlight = React.forwardRef<
+  React.ElementRef<typeof RNTouchableHighlight>,
+  React.ComponentProps<typeof RNTouchableHighlight> & {
     className?: string;
   }
-) => {
-  return useCssElement(XXTouchableHighlight, props, { className: "style" });
-};
+>(function TouchableHighlight(props, ref) {
+  return useCssElement(XXTouchableHighlight, { ...props, ref }, cssMapping);
+});
 TouchableHighlight.displayName = "CSS(TouchableHighlight)";

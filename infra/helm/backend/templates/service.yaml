@@ -1,0 +1,66 @@
+# ---------------------------------------------------------------------------
+# API Service — ClusterIP for internal routing, ALB ingress for external
+# ---------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hi-hired-backend.fullname" . }}-api
+  labels:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: api
+  annotations:
+  {{- with .Values.service.api.annotations }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.api.type }}
+  ports:
+    - port: {{ .Values.service.api.port }}
+      targetPort: {{ .Values.service.api.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: api
+---
+# ---------------------------------------------------------------------------
+# Worker Service — headless for monitoring / metrics scraping
+# ---------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hi-hired-backend.fullname" . }}-worker
+  labels:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: worker
+spec:
+  clusterIP: None
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: metrics
+  selector:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: worker
+---
+# ---------------------------------------------------------------------------
+# Scraper Service — headless for monitoring
+# ---------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hi-hired-backend.fullname" . }}-scraper
+  labels:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: scraper
+spec:
+  clusterIP: None
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: metrics
+  selector:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: scraper

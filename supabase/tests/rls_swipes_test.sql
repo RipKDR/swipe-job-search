@@ -1,79 +1,97 @@
--- RLS test for swipes: employer read access
--- Verifies ARCHITECTURE_AUDIT.md HIGH-4 fix
+-- RLS integration test: employer can read swipes on own jobs (ARCHITECTURE_AUDIT HIGH-4)
+-- Run: psql $DATABASE_URL -f supabase/tests/rls_swipes_test.sql
+-- Requires: migrations applied; uses service-role style setup then JWT simulation
 
 begin;
 
--- Setup test data
-select auth.jwt() as test_auth; -- will be mocked in test harness
+do $$
+declare
+  v_employer_id uuid := '11111111-1111-1111-1111-111111111111';
+  v_candidate_id uuid := '22222222-2222-2222-2222-222222222222';
+  v_other_employer_id uuid := '44444444-4444-4444-4444-444444444444';
+  v_job_id uuid := '33333333-3333-3333-3333-333333333333';
+  v_circle_id uuid;
+  v_count int;
+begin
+  insert into auth.users (id, email, encrypted_password, email_confirmed_at, created_at, updated_at)
+  values
+    (v_employer_id, 'employer@test.com', crypt('test', gen_salt('bf')), now(), now(), now()),
+    (v_candidate_id, 'candidate@test.com', crypt('test', gen_salt('bf')), now(), now(), now()),
+    (v_other_employer_id, 'other@test.com', crypt('test', gen_salt('bf')), now(), now(), now())
+  on conflict (id) do nothing;
 
--- Create test employer and candidate
-insert into auth.users (id, email) values 
-  ('11111111-1111-1111-1111-111111111111', 'employer@test.com'),
-  ('22222222-2222-2222-2222-222222222222', 'candidate@test.com');
+  update profiles set
+    role = 'employer',
+    full_name = 'Test Employer',
+    suburb = 'Tullamarine',
+    onboarding_completed_at = now()
+  where id = v_employer_id;
 
-insert into profiles (id, email, role, full_name, suburb, onboarding_completed_at)
-values
-  ('11111111-1111-1111-1111-111111111111', 'employer@test.com', 'employer', 'Test Employer', 'Tullamarine', now()),
-  ('22222222-2222-2222-2222-222222222222', 'candidate@test.com', 'candidate', 'Test Candidate', 'Tullamarine', now());
+  update profiles set
+    role = 'candidate',
+    full_name = 'Test Candidate',
+    suburb = 'Tullamarine',
+    onboarding_completed_at = now()
+  where id = v_candidate_id;
 
-insert into employer_profiles (profile_id, business_name)
-values ('11111111-1111-1111-1111-111111111111', 'Test Business');
+  update profiles set
+    role = 'employer',
+    full_name = 'Other Employer',
+    suburb = 'Tullamarine',
+    onboarding_completed_at = now()
+  where id = v_other_employer_id;
 
--- Get default circle
-select id from circles where is_default = true limit 1 into default_circle_id;
+  insert into employer_profiles (profile_id, business_name)
+  values (v_employer_id, 'Test Business')
+  on conflict (profile_id) do nothing;
 
--- Create test job
-insert into jobs (id, employer_id, circle_id, title, job_type, pay_display, pay_amount, pay_period, hours_text, suburb, expires_at)
-values (
-  '33333333-3333-3333-3333-333333333333',
-  '11111111-1111-1111-1111-111111111111',
-  default_circle_id,
-  'Test Job',
-  'casual',
-  '$30/hr',
-  30.00,
-  'hour',
-  'Mon-Fri 9am-5pm',
-  'Tullamarine',
-  now() + interval '30 days'
-);
+  select id into v_circle_id from circles where is_default = true limit 1;
 
--- Candidate swipes right on job
-set local role authenticated;
-set local request.jwt.claims.sub to '22222222-2222-2222-2222-222222222222';
+  insert into jobs (id, employer_id, circle_id, title, job_type, pay_display, pay_amount, pay_period, hours_text, suburb, expires_at)
+  values (
+    v_job_id,
+    v_employer_id,
+    v_circle_id,
+    'Test Job',
+    'casual',
+    '$30/hr',
+    30.00,
+    'hour',
+    'Mon-Fri 9am-5pm',
+    'Tullamarine',
+    now() + interval '30 days'
+  )
+  on conflict (id) do nothing;
 
-insert into swipes (candidate_id, job_id, direction)
-values ('22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333', 'right');
+  -- Candidate inserts swipe (bypass RLS as postgres superuser in local test)
+  insert into swipes (candidate_id, job_id, direction)
+  values (v_candidate_id, v_job_id, 'right')
+  on conflict (candidate_id, job_id) do update set direction = 'right';
 
--- Test: employer CAN read swipes on their own job
-set local request.jwt.claims.sub to '11111111-1111-1111-1111-111111111111';
+  -- Simulate employer JWT and verify RLS allows read
+  perform set_config('request.jwt.claim.sub', v_employer_id::text, true);
+  perform set_config('role', 'authenticated', true);
 
-select plan(2);
+  select count(*) into v_count
+  from swipes
+  where job_id = v_job_id and direction = 'right';
 
-select ok(
-  exists(
-    select 1 from swipes 
-    where job_id = '33333333-3333-3333-3333-333333333333' 
-      and direction = 'right'
-  ),
-  'Employer can read swipes on own job'
-);
+  if v_count < 1 then
+    raise exception 'FAIL: employer cannot read swipes on own job';
+  end if;
 
--- Test: other employer CANNOT read swipes
-insert into auth.users (id, email) values 
-  ('44444444-4444-4444-4444-444444444444', 'other@test.com');
-insert into profiles (id, email, role, full_name, suburb, onboarding_completed_at)
-values
-  ('44444444-4444-4444-4444-444444444444', 'other@test.com', 'employer', 'Other Employer', 'Tullamarine', now());
+  -- Other employer must not see swipes
+  perform set_config('request.jwt.claim.sub', v_other_employer_id::text, true);
 
-set local request.jwt.claims.sub to '44444444-4444-4444-4444-444444444444';
+  select count(*) into v_count
+  from swipes
+  where job_id = v_job_id;
 
-select ok(
-  not exists(
-    select 1 from swipes 
-    where job_id = '33333333-3333-3333-3333-333333333333'
-  ),
-  'Other employer cannot read swipes on job they do not own'
-);
+  if v_count > 0 then
+    raise exception 'FAIL: other employer can read swipes they do not own';
+  end if;
+
+  raise notice 'PASS: rls_swipes_test';
+end $$;
 
 rollback;

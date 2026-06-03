@@ -35,10 +35,7 @@ begin
   values (new.id, new.email, now(), now())
   on conflict (id) do nothing;
 
-  insert into public.notification_preferences (profile_id)
-  values (new.id)
-  on conflict (profile_id) do nothing;
-
+  -- notification_preferences row created in migration 011 (table does not exist yet)
   return new;
 end;
 $$;

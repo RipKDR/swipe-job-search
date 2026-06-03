@@ -1,8 +1,8 @@
 # Hi-Hired
 
-**A job finder like SEEK, but built for humans.** No keywords. No black holes. No bullshit.
+**Dismantling the staffing mill economy.** One swipe at a time.
 
-Job seekers swipe local jobs with transparent pay and hours. Employers review who's interested and start a chat. Both sides confirm when someone's hired.
+Hi-Hired is a mobile-first job marketplace that replaces opaque, high-fee recruitment agencies with direct, transparent hiring. Every card shows real pay and hours. Every applicant is a real person. No ghosting, no black holes, no commission-chasing middlemen.
 
 **Tagline:** *The algorithm is you.*
 
@@ -14,9 +14,9 @@ Job seekers swipe local jobs with transparent pay and hours. Employers review wh
 |-------|-------|
 | Product direction | ✅ Locked |
 | Canonical planning docs | ✅ Complete |
-| Repo scaffold (Expo monorepo) | ✅ Complete |
-| Auth & session (U3) | ✅ Complete |
-| Supabase migrations | 🟡 Written — pending local verify |
+| Repo scaffold (Expo monorepo) | ✅ Complete (U1 — `apps/mobile`, `packages/shared`, pnpm workspaces, CI) |
+| Supabase migrations | ✅ Complete (U2 — migrations 001–016, Edge Functions, RLS/SQL tests) |
+| Auth + onboarding (U3–U4) | ✅ Complete |
 | App Store submission | ⬜ Future |
 
 **Beachhead:** Tullamarine, Gladstone Park, Airport West and surrounding northern Melbourne suburbs.

@@ -38,4 +38,51 @@ jobs:
           supabase db lint --local
         # Fails in CI without `supabase start` (Docker). See README § CI / supabase db lint.
 
-  # Note: full E2E / Maestro + EAS preview in later phases (Sam lane)
+  notification-processor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Deno test notification-processor
+        working-directory: supabase/functions/notification-processor
+        run: deno test __tests__/
+
+  # Maestro smoke tests require macOS + simulator/device. Optional until EXPO_TOKEN + dev build artifact.
+  # Secrets: EXPO_TOKEN (EAS), TEST_EMAIL, TEST_MAGIC_LINK (seeded auth deep links).
+  maestro-smoke:
+    runs-on: macos-latest
+    if: false  # Enable when EXPO_TOKEN + Maestro test build are configured
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Maestro
+        run: curl -Ls "https://get.maestro.mobile.dev" | bash
+      - name: Run smoke flows
+        env:
+          TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+          TEST_MAGIC_LINK: ${{ secrets.TEST_MAGIC_LINK }}
+          TEST_EMPLOYER_LINK: ${{ secrets.TEST_EMPLOYER_LINK }}
+          TEST_MATCH_ID: ${{ secrets.TEST_MATCH_ID }}
+        run: maestro test apps/mobile/.maestro/
+
+  # Optional EAS preview build — requires EXPO_TOKEN secret and billing-enabled Expo account.
+  eas-preview:
+    runs-on: ubuntu-latest
+    if: false  # Enable manually or on release tags when EXPO_TOKEN is set
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: pnpm install --frozen-lockfile --config.engine-strict=false
+      - run: eas build --profile preview --platform all --non-interactive
+        working-directory: apps/mobile

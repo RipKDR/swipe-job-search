@@ -1,34 +1,112 @@
 import { useCssElement } from "react-native-css";
 import React from "react";
-import { StyleSheet } from "react-native";
+import {
+  Image as RNImage,
+  Platform,
+  StyleSheet,
+  type ImageProps as RNImageProps,
+} from "react-native";
 import Animated from "react-native-reanimated";
-import { Image as RNImage } from "expo-image";
+import { Image as ExpoImage } from "expo-image";
 
-const AnimatedExpoImage = Animated.createAnimatedComponent(RNImage);
+const AnimatedExpoImage =
+  Platform.OS === "web" ? null : Animated.createAnimatedComponent(ExpoImage);
 
-function CSSImage(props: React.ComponentProps<typeof AnimatedExpoImage>) {
-  // @ts-expect-error: Remap objectFit style to contentFit property
-  const { objectFit, objectPosition, ...style } =
-    StyleSheet.flatten(props.style) || {};
-
-  return (
-    <AnimatedExpoImage
-      contentFit={objectFit}
-      contentPosition={objectPosition}
-      {...props}
-      source={
-        typeof props.source === "string" ? { uri: props.source } : props.source
-      }
-      // @ts-expect-error: Style is remapped above
-      style={style}
-    />
-  );
-}
-
-export const Image = (
-  props: React.ComponentProps<typeof CSSImage> & { className?: string }
-) => {
-  return useCssElement(CSSImage, props, { className: "style" });
+type ExpoImageProps = React.ComponentProps<typeof ExpoImage>;
+type ContentFit = ExpoImageProps["contentFit"];
+type ContentPosition = ExpoImageProps["contentPosition"];
+type CSSImageProps = Omit<ExpoImageProps, "source" | "style"> &
+  Omit<RNImageProps, "source" | "style"> & {
+    source?: ExpoImageProps["source"] | RNImageProps["source"] | string;
+    style?: ExpoImageProps["style"] | RNImageProps["style"];
+  };
+type StyleWithObjectProps = {
+  objectFit?: ContentFit;
+  objectPosition?: ContentPosition;
+  [key: string]: unknown;
 };
 
+const CSSImage = React.forwardRef<any, CSSImageProps>(function CSSImage(props, ref) {
+  let contentFit: ContentFit;
+  let contentPosition: ContentPosition;
+  let flattenedStyle: CSSImageProps["style"];
+
+  if (props.style) {
+    const styleObject = StyleSheet.flatten(props.style);
+
+    if (styleObject && typeof styleObject === "object" && !Array.isArray(styleObject)) {
+      const typedStyleObject = styleObject as StyleWithObjectProps;
+      contentFit = typedStyleObject.objectFit;
+      contentPosition = typedStyleObject.objectPosition;
+      const {
+        objectFit: _objFit,
+        objectPosition: _objPos,
+        ...restStyle
+      } = typedStyleObject;
+      flattenedStyle = restStyle as CSSImageProps["style"];
+    } else {
+      flattenedStyle = undefined;
+    }
+  } else {
+    flattenedStyle = undefined;
+  }
+
+  const normalizedSource =
+    typeof props.source === "string" ? { uri: props.source } : props.source;
+  const imageContentFit = contentFit ?? props.contentFit;
+  const imageContentPosition = contentPosition ?? props.contentPosition;
+
+  if (Platform.OS === "web") {
+    const {
+      contentFit: _contentFit,
+      contentPosition: _contentPosition,
+      ...webProps
+    } = props;
+    const resizeMode =
+      imageContentFit === "contain" || imageContentFit === "scale-down"
+        ? "contain"
+        : imageContentFit === "fill"
+          ? "stretch"
+          : imageContentFit === "none"
+            ? "center"
+            : "cover";
+
+    return (
+      <RNImage
+        ref={ref}
+        {...(webProps as RNImageProps)}
+        source={normalizedSource as RNImageProps["source"]}
+        resizeMode={resizeMode}
+        style={flattenedStyle as RNImageProps["style"]}
+      />
+    );
+  }
+
+  const NativeImage = AnimatedExpoImage as any;
+
+  return (
+    <NativeImage
+      ref={ref}
+      contentFit={imageContentFit}
+      contentPosition={imageContentPosition}
+      {...(props as ExpoImageProps)}
+      source={normalizedSource as ExpoImageProps["source"]}
+      style={flattenedStyle}
+    />
+  );
+});
+CSSImage.displayName = "CSS(CSSImage)";
+
+type ImageProps = CSSImageProps & { className?: string };
+
+export const Image = React.forwardRef<
+  React.ElementRef<typeof CSSImage>,
+  ImageProps
+>(function Image(props, ref) {
+  return useCssElement(
+    CSSImage as React.ComponentType<any>,
+    { ...props, ref } as any,
+    { className: "style" }
+  );
+});
 Image.displayName = "CSS(Image)";

@@ -1,62 +1,99 @@
-import { ExpoConfig, ConfigContext } from 'expo/config';
-
-export default ({ config }: ConfigContext): ExpoConfig => ({
-  ...config,
-  name: 'Hi-Hired',
-  slug: 'hi-hired',
-  version: '0.0.0',
-  orientation: 'portrait',
-  icon: './assets/icon.png',
-  userInterfaceStyle: 'automatic',
-  scheme: 'hi-hired',
-  splash: {
-    image: './assets/splash-icon.png',
-    resizeMode: 'contain',
-    backgroundColor: '#0f172a'
-  },
-  assetBundlePatterns: ['**/*'],
-  ios: {
-    supportsTablet: true,
-    bundleIdentifier: 'au.com.hihired.app'
-  },
-  android: {
-    adaptiveIcon: {
-      foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#0f172a'
+export default {
+  expo: {
+    name: "Hi-Hired",
+    "slug": "hi-hired",
+    "version": "0.0.1",
+    "sdkVersion": "56.0.0",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "hi-hired",
+    "android": {
+      "package": "com.hihired.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0f172a"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
-    package: 'au.com.hihired.app'
-  },
-  web: {
-    favicon: './assets/favicon.png',
-    bundler: 'metro'
-  },
-  plugins: [
-    'expo-dev-client',
-    'expo-router',
-    'expo-secure-store',
-    [
-      'expo-notifications',
-      {
-        icon: './assets/notification-icon.png',
-        color: '#6366f1',
-        defaultChannel: 'default'
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "output": "single"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e3d8894d-8177-4a4a-9dc5-2824f74a5d27"
+      },
+      "router": {}
+    },
+    "plugins": [
+      "expo-dev-client",
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0f172a"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#6366f1",
+          "defaultChannelName": "default"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Hi-Hired to access your photos for profile pictures."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Hi-Hired uses your location to show nearby jobs.",
+          "locationWhenInUsePermission": "Hi-Hired uses your location to show nearby jobs."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "build": {
+      "development": {
+        "credentialsSource": "remote",
+        "distribution": "store",
+        "autoIncrement": true
+      },
+      "preview": {
+        "distribution": "internal",
+        "autoIncrement": true
+      },
+      "production": {
+        "credentialsSource": "remote",
+        "distribution": "store",
+        "autoIncrement": true
       }
-    ]
-  ],
-  experiments: {
-    typedRoutes: true
-  },
-  extra: {
-    // Populated from EAS / .env via expo-constants at runtime (never secrets in bundle)
-    // See STACK.md Environment Variables Matrix + EXPO_2026.md § env
-    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://YOUR-DEV-PROJECT.supabase.co',
-    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'YOUR-ANON-KEY',
-    posthogKey: process.env.EXPO_PUBLIC_POSTHOG_KEY || '',
-    posthogHost: process.env.EXPO_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com',
-    sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || '',
-    appEnv: process.env.EXPO_PUBLIC_APP_ENV || 'development',
-    eas: {
-      projectId: 'YOUR-EAS-PROJECT-ID' // set in EAS dashboard per env (dev/staging/prod)
+    },
+    "submit": {
+      "production": {
+        "ios": { "appleId": "...", "ascAppId": "..." },
+        "android": { "serviceAccountKey": "..." }
+      }
     }
   }
-});
+}

@@ -1,11 +1,7 @@
-import { RoleTabLayout } from '@/components/navigation/RoleTabLayout'
+import { Stack } from 'expo-router'
 
-const CANDIDATE_TABS = [
-  { name: 'deck', title: 'Jobs', icon: '💼' },
-  { name: 'matches', title: 'Matches', icon: '💬' },
-  { name: 'profile', title: 'Profile', icon: '👤' },
-] as const
-
-export default function CandidateLayout() {
-  return <RoleTabLayout tabs={[...CANDIDATE_TABS]} />
+export default function Layout() {
+  return (
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0f172a' } }} />
+  )
 }

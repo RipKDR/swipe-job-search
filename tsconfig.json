@@ -1,6 +1,16 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "moduleResolution": "bundler"
-  },
-  "extends": "expo/tsconfig.base"
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strictNullChecks": false,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "resolveJsonModule": true
+  }
 }

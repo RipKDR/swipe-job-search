@@ -1,0 +1,22 @@
+apiVersion: v2
+name: hi-hired-backend
+description: Helm chart for Hi-Hired Backend (FastAPI + Celery workers)
+type: application
+
+# Chart and app version — override appVersion during release
+version: 0.1.0
+appVersion: "0.1.0"
+
+keywords:
+  - hi-hired
+  - fastapi
+  - celery
+  - job-search
+
+home: https://github.com/hi-hired/swipe-job-search
+sources:
+  - https://github.com/hi-hired/swipe-job-search
+
+maintainers:
+  - name: Hi-Hired DevOps
+    email: devops@hi-hired.com.au

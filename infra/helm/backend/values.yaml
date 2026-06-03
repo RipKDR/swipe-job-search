@@ -1,0 +1,158 @@
+# ---------------------------------------------------------------------------
+# Hi-Hired Backend Helm Values
+# ---------------------------------------------------------------------------
+# Default values for hi-hired-backend Helm chart.
+# Override per environment (staging/production) via --values or --set.
+# ---------------------------------------------------------------------------
+
+# -- Image configuration
+image:
+  repository: hi-hired-staging-backend  # Override for production: hi-hired-production-backend
+  tag: latest
+  pullPolicy: Always
+
+# -- Replica counts
+replicaCount:
+  api: 2
+  worker: 2
+  scraper: 1
+
+# -- Service configuration
+service:
+  api:
+    type: ClusterIP
+    port: 8000
+    targetPort: 8000
+    annotations:
+      # AWS Load Balancer Controller annotation for ALB ingress
+      service.beta.kubernetes.io/aws-load-balancer-type: external
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+
+# -- Ingress configuration (AWS ALB via Load Balancer Controller)
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: "30"
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: "5"
+    alb.ingress.kubernetes.io/healthy-threshold-count: "2"
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: "2"
+  hosts:
+    - host: api.hi-hired.com.au
+      paths:
+        - path: /
+          pathType: Prefix
+
+# -- Resource limits and requests
+resources:
+  api:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  worker:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  scraper:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+# -- Environment variables (from ConfigMap and Secrets)
+env:
+  # These values come from the ConfigMap (non-sensitive)
+  configMap:
+    SUPABASE_URL: ""         # Set via ConfigMap
+    CORS_ORIGINS: "*"       # Override in production
+    OTLP_ENDPOINT: ""       # Set when OTel collector is deployed
+    LOG_LEVEL: "INFO"
+    PYTHONPATH: "/app"
+    REDIS_URL: ""            # Set via ConfigMap from SSM
+    DATABASE_URL: ""         # Set via ConfigMap from SSM
+
+  # Sensitive values come from AWS SSM Parameter Store or Kubernetes Secrets
+  secrets:
+    SUPABASE_SERVICE_KEY: ""
+    OPENAI_API_KEY: ""
+    MLFLOW_TRACKING_URI: ""
+    AWS_ACCESS_KEY_ID: ""
+    AWS_SECRET_ACCESS_KEY: ""
+
+# -- ServiceAccount for IRSA (IAM Roles for Service Accounts)
+serviceAccount:
+  create: true
+  annotations:
+    # IRSA role ARNs — set these to the output of the Terraform IAM module
+    apiRoleArn: ""
+    workerRoleArn: ""
+    scraperRoleArn: ""
+
+# -- PodDisruptionBudget for HA
+podDisruptionBudget:
+  api:
+    enabled: true
+    minAvailable: 1
+  worker:
+    enabled: true
+    minAvailable: 1
+
+# -- HorizontalPodAutoscaler
+autoscaling:
+  api:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  worker:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+# -- Probes
+probes:
+  api:
+    liveness:
+      path: /health
+      initialDelaySeconds: 10
+      periodSeconds: 30
+    readiness:
+      path: /health
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    startup:
+      path: /health
+      initialDelaySeconds: 0
+      periodSeconds: 5
+      failureThreshold: 30
+
+# -- Celery worker concurrency
+celery:
+  workerConcurrency: 4
+  scraperConcurrency: 2
+  maxRetries: 5
+  defaultRetryDelay: 60
+
+# -- Node selector, tolerations, affinity
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

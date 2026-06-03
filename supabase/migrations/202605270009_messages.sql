@@ -46,6 +46,4 @@ begin
 end;
 $$;
 
-create trigger on_message_created_notify
-  after insert on messages
-  for each row execute function public.enqueue_message_notification();
+-- Trigger attached in 011 after notification_queue exists

@@ -3,6 +3,8 @@
 import React, { createContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { posthog } from '@/lib/posthog';
+import { queryClient } from '@/lib/queryClient';
 import type { Database } from '@hi-hired/shared';
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -33,9 +35,9 @@ export const AuthContext = createContext<AuthContextType>({
   profile: null,
   loading: true,
   profileLoadFailed: false,
-  signOut: async () => {},
-  applyProfile: () => {},
-  retryProfileFetch: async () => {},
+  signOut: async () => { },
+  applyProfile: () => { },
+  retryProfileFetch: async () => { },
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -80,13 +82,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (freshProfile) {
         setProfile(freshProfile);
         setProfileLoadFailed(false);
+        if (freshProfile.id) {
+          const identifyTraits: Record<string, unknown> = {
+            candidate: freshProfile.role === 'candidate' ? 1 : 0,
+            employer: freshProfile.role === 'employer' ? 1 : 0,
+            email: freshProfile.email,
+            suburb: freshProfile.suburb,
+          };
+          void posthog.identify(freshProfile.id, identifyTraits);
+        }
       } else {
+        setProfile(null);
         setProfileLoadFailed(true);
       }
-    },
-    [fetchProfile]
-  );
-
+    }, [fetchProfile]);
   const retryProfileFetch = useCallback(async () => {
     if (!session?.user) return;
     setProfileLoadFailed(false);
@@ -100,10 +109,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('[auth] Sign out error:', error);
       throw error;
     }
+    void posthog.capture('user_signed_out', {
+      user_id: profile?.id ?? undefined,
+    });
+    void posthog.reset();
+    // Clear cached server state so a subsequent login doesn't show stale data
+    queryClient.clear();
     setSession(null);
     setProfile(null);
     setProfileLoadFailed(false);
-  }, []);
+  }, [profile?.id]);
 
   useEffect(() => {
     const {

@@ -21,10 +21,58 @@
   }
 }
 
-@layer theme {
-  @theme {
-    /* Hi-Hired design tokens */
-    --color-primary: #6366f1;
-    --color-accent: #22c55e;
+/* Web fallback fonts + fluid tokens */
+@media (prefers-color-scheme: light), (prefers-color-scheme: dark) {
+  :root {
+    --font-mono: ui-monospace, monospace;
+    --font-serif: ui-serif, serif;
+    --font-sans: system-ui, -apple-system, sans-serif;
+    --font-rounded: ui-rounded, system-ui, sans-serif;
+
+    /* Fluid typography (mobile-first; scales on wide web viewports) */
+    --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+    --text-sm: clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
+    --text-base: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+    --text-lg: clamp(1.125rem, 1rem + 0.625vw, 1.25rem);
+    --text-xl: clamp(1.25rem, 1rem + 1.25vw, 1.5rem);
+    --text-2xl: clamp(1.5rem, 1.25rem + 1.25vw, 2rem);
+    --text-3xl: clamp(1.875rem, 1.5rem + 1.875vw, 2.5rem);
+
+    /* Fluid spacing */
+    --space-xs: clamp(0.25rem, 0.2rem + 0.25vw, 0.5rem);
+    --space-sm: clamp(0.5rem, 0.4rem + 0.5vw, 0.75rem);
+    --space-md: clamp(1rem, 0.8rem + 1vw, 1.5rem);
+    --space-lg: clamp(1.5rem, 1.2rem + 1.5vw, 2.5rem);
+    --space-xl: clamp(2rem, 1.5rem + 2.5vw, 4rem);
+
+    /* Content width cap for centered layouts */
+    --content-max: min(100%, 42rem);
   }
 }
+
+@layer theme {
+  @theme {
+    --color-primary: #6366f1;
+    --color-accent: #22c55e;
+
+    /* Tailwind v4 breakpoints (mobile-first min-width) */
+    --breakpoint-sm: 40rem;
+    --breakpoint-md: 48rem;
+    --breakpoint-lg: 64rem;
+    --breakpoint-xl: 80rem;
+    --breakpoint-2xl: 96rem;
+  }
+}
+
+/* Web: use dynamic viewport height (avoids mobile browser chrome issues) */
+@media (min-width: 40rem) {
+  .min-h-screen-safe {
+    min-height: 100dvh;
+  }
+}
+
+@source "./app/**/*.{js,jsx,ts,tsx}";
+@source "./components/**/*.{js,jsx,ts,tsx}";
+@source "./hooks/**/*.{js,jsx,ts,tsx}";
+@source "./providers/**/*.{js,jsx,ts,tsx}";
+@source "./lib/**/*.{js,jsx,ts,tsx}";

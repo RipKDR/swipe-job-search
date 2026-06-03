@@ -1,51 +1,81 @@
-import { View, Text, Pressable } from '@/components/tw';
+import { View } from '@/components/tw';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { usePostHog } from '@/hooks/usePostHog';
 import { Button } from '@/components/ui/Button';
+import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { SelectionTile } from '@/components/onboarding/SelectionTile';
+import { getOnboardingRouteForRole } from '@/lib/onboarding-submit';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function RoleSelection() {
   const router = useRouter();
-  const [selected, setSelected] = useState<'candidate' | 'employer' | null>(null);
+  const posthog = usePostHog();
+  const { user, applyProfile } = useAuth();
+  const [selected, setSelected] = useState<'candidate' | 'employer' | 'provider' | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!selected) return;
-    if (selected === 'candidate') {
-      router.push('/(onboarding)/candidate-profile');
-    } else {
-      router.push('/(onboarding)/employer-profile');
+    posthog.capture('role_selected', { role: selected });
+
+    // Provider onboarding: skip profile screen, update role directly
+    if (selected === 'provider') {
+      if (!user) return;
+      setSubmitting(true);
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            role: 'provider',
+            onboarding_completed_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+        await applyProfile();
+        router.replace('/(provider)/compliance');
+      } catch {
+        // fall through to route-based redirect if update fails
+        router.push('/(provider)/compliance' as any);
+      } finally {
+        setSubmitting(false);
+      }
+      return;
     }
+
+    router.push(getOnboardingRouteForRole(selected) as any);
   };
 
   return (
-    <View className="flex-1 bg-slate-950 px-6 pt-16">
-      <View className="mb-12">
-        <Text className="text-white text-3xl font-bold mb-2">Welcome to Hi-Hired</Text>
-        <Text className="text-slate-400 text-base">Choose how you'd like to use Hi-Hired</Text>
-      </View>
-
-      <View className="gap-4 mb-8">
-        <Pressable
+    <OnboardingShell
+      title="Welcome to Hi-Hired"
+      subtitle="Choose how you want to use the app. Role changes later need support."
+      step={1}
+      totalSteps={2}
+      footer={
+        <Button title="Continue" fullWidth disabled={!selected || submitting} onPress={handleContinue} />
+      }
+    >
+      <View className="gap-3">
+        <SelectionTile
+          title="I'm looking for work"
+          description="Swipe on local jobs, match with employers, and get hired faster."
+          selected={selected === 'candidate'}
           onPress={() => setSelected('candidate')}
-          className={`p-6 rounded-2xl border-2 ${selected === 'candidate' ? 'bg-indigo-500/10 border-indigo-500' : 'bg-slate-900 border-slate-800'}`}
-        >
-          <Text className="text-white text-xl font-semibold mb-2">I'm looking for work</Text>
-          <Text className="text-slate-400 text-sm leading-relaxed">
-            Swipe on jobs, match with employers, and get hired faster
-          </Text>
-        </Pressable>
-
-        <Pressable
+        />
+        <SelectionTile
+          title="I'm hiring"
+          description="Post roles, review interested candidates, and hire the right fit."
+          selected={selected === 'employer'}
           onPress={() => setSelected('employer')}
-          className={`p-6 rounded-2xl border-2 ${selected === 'employer' ? 'bg-indigo-500/10 border-indigo-500' : 'bg-slate-900 border-slate-800'}`}
-        >
-          <Text className="text-white text-xl font-semibold mb-2">I'm hiring</Text>
-          <Text className="text-slate-400 text-sm leading-relaxed">
-            Post jobs, see interested candidates, and hire the right person
-          </Text>
-        </Pressable>
+        />
+        <SelectionTile
+          title="I'm a provider / mentor"
+          description="Manage candidates, generate compliance reports, and track placements."
+          selected={selected === 'provider'}
+          onPress={() => setSelected('provider')}
+        />
       </View>
-
-      <Button title="Continue" fullWidth disabled={!selected} onPress={handleContinue} />
-    </View>
+    </OnboardingShell>
   );
 }

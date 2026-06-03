@@ -1,5 +1,5 @@
-import { ProfilePlaceholderScreen } from '@/components/screens/ProfilePlaceholderScreen'
+import { ProfileScreen } from '@/components/screens/ProfileScreen';
 
 export default function EmployerProfileScreen() {
-  return <ProfilePlaceholderScreen />
+  return <ProfileScreen />;
 }

@@ -2,6 +2,10 @@
 
 **2026-05-28 Full State:** This is the practical, one-stop "how we run swarms and specialist agents here" manual. Created as part of cross-cutting MUST hygiene (dispatch DOC-007 + design spec §1/7 + gap §6 Outline 7 + §7 mini swarm plan + CLAUDE.md). Complements [CONTRIBUTING.md](CONTRIBUTING.md) (agent routing + gate in PR context) and [docs/research/gap-analysis-2026-05-28.md](docs/research/gap-analysis-2026-05-28.md) (outlines + swarm plan + citations).
 
+**2026-05-30 Update:** Added [Architect-Developer Protocol](#architect-developer-protocol-operating-protocol) — spec-driven development with 4-element blueprint, Technical Schema, complete implementation mandate, and 4-lens self-correction review. All AI-assisted engineering on this project follows this protocol.
+
+---
+
 **Project DNA:** Agent-orchestrated (OpenClaw specialists + ruflo/claude-flow parallel authoring + monitoring), Supabase-heavy (RLS/Edge/queues/auth per 2026 MCP), Australian compliance (Fair Work pay transparency 2026, Privacy Act for jobseeker PII/swipes/matches, DDA/Asuria/DES, App Store), pre-scaffold (Structure B docs complete 2026-05-28: root hygiene + AGENTS + indexes + layered docs/ depth; foundational-docs/ immutable history). All work (research, arch, impl, qa, legal) routes through documented lanes with **mandatory Supabase `agent_logs` gate** before any final reply.
 
 **Zero blockers for new coordinator/agent:** Read this + CONTRIBUTING + gap §7 + design spec "Swarm Execution Model" + 1-2 dispatch cards = can dispatch parallel work, enforce gate/anti-drift, synthesize, and update indexes/manifest.
@@ -55,7 +59,43 @@ curl -sS -X POST 'https://twwmqqgjtdbcvrkinifa.supabase.co/rest/v1/agent_logs' \
 - PR template + CONTRIBUTING enforce "agent_logs row inserted?" checkbox for agent work.
 - Anti-pattern: Skipping gate (immediate fail per dispatch "Anti-Patterns").
 
-See dispatch package "Mandatory Supabase agent_logs Gate (Exact Template)" section for full briefing + per-card pre-filled curls.
+---
+
+## Architect-Developer Protocol (Operating Protocol)
+
+**Source:** `docs/prompts/2026-05-30-ai-model-system-prompts.md`
+
+Every AI-assisted engineering task on Hi-Hired follows a mandatory 3-phase pipeline. No code is produced before the blueprint is complete. No code ships before self-correction review passes.
+
+### Phase 1: Systemic Blueprint
+
+Before any code, establish these 4 elements:
+
+| Element | What it covers |
+|---------|---------------|
+| **Intent** | Business/user value — why build this, for whom |
+| **Constraints** | Performance targets, security model, tech stack mandates, compatibility, regulatory |
+| **Data Contract** | Input schemas, output schemas, error specifications |
+| **Success Criteria** | Acceptance criteria, performance benchmarks, test coverage, observability |
+
+Output a **Technical Schema** block: data flow, component boundaries, algorithm selection with complexity analysis, state management approach.
+
+### Phase 2: Complete Implementation
+
+Rules: **EXHAUSTIVE** (no placeholders/truncation), **TYPE-SAFE** (no `any`), **ERROR-BUSTER** (every failure path handled), **TONE-STRIPPED** (ship code + rationale + tests, nothing else).
+
+### Phase 3: 4-Lens Self-Correction
+
+| Priority | Lens | What to check |
+|----------|------|---------------|
+| 1st 🛡️ | Security Auditor | Injections, auth bypasses, PII exposure, CSRF/XSS |
+| 2nd ⚡ | Performance Engineer | Big-O, N+1 queries, caching misses, blocking I/O |
+| 3rd 🔁 | Reliability Engineer | Error handling, race conditions, timeouts, circuit breakers |
+| 4th 🧹 | Maintainability Review | Duplication, type hints, naming, coupling, test coverage |
+
+**Conflict resolution:** Security > Reliability > Performance > Maintainability
+
+See `architect-developer-protocol` Hermes skill for the full implementation.
 
 ---
 

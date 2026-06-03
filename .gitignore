@@ -50,14 +50,14 @@ yarn-error.*
 # Supabase local (when running supabase start)
 supabase/.branches
 supabase/.temp
-supabase/seed.sql  # only if generated; committed seed in migrations/016
+supabase/seed.sql
 
 # EAS / builds (local)
 *.apk
 *.aab
 *.ipa
 *.zip
-eas.json  # committed? no, keep in repo for now per plan but secrets not
+eas.json
 
 # IDE / editor
 .idea/
@@ -72,11 +72,6 @@ eas.json  # committed? no, keep in repo for now per plan but secrets not
 # Logs
 logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
 # Misc
 coverage/
@@ -88,22 +83,36 @@ Thumbs.db
 package-lock.json
 yarn.lock
 
-# Sentry / source maps (local)
-.sentryclirc
+# Python backend
+backend/.venv/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/mlruns*
+**/__pycache__/
+**/*.pyc
+*.egg-info/
 
-# PostHog / analytics local
-posthog*.json
+# MLflow
+mlruns/
+mlruns_test*/
+mlruns_test/
 
-# Temporary
-tmp/
-temp/
-# Git worktrees for parallel agent/swarm isolation (superpowers:using-git-worktrees + swarm orchestrator)
-.worktrees/
-worktrees/
+# Audit screenshots (generated, not source)
+audit/screenshots/
 
-# Local agent/tooling artifacts (never commit)
+# Test artifacts
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+
+# Local agent artifacts
 ruvector.db
 agentdb.rvf
 agentdb.rvf.lock
 pnpm
 =
+
+
+# Claude worktrees (parallel agent sessions)
+.claude/worktrees/
+.claude/settings.local.json

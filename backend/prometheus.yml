@@ -1,0 +1,95 @@
+# Prometheus scrape configuration for Hi-Hired Backend
+# Managed by Hermes Agent — do not edit manually.
+
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+
+  # Attach these labels to any time series or alerts when communicating
+  # with external systems (federation, remote storage, Alertmanager).
+  external_labels:
+    monitor: "hi-hired-monitor"
+
+# Alertmanager configuration (none yet)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: []
+
+# Load rules once and periodically evaluate them according to the global
+# evaluation_interval.
+rule_files:
+  # - "alerts.yml"
+
+scrape_configs:
+  # === Hi-Hired Backend ===
+
+  - job_name: "hi-hired-api"
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "api:8000"
+        labels:
+          service: "hi-hired-backend"
+          tier: "api"
+
+  - job_name: "hi-hired-celery"
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "worker:8001"
+        labels:
+          service: "hi-hired-backend"
+          tier: "worker"
+
+  - job_name: "hi-hired-celery-beat"
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "celery-beat:8002"
+        labels:
+          service: "hi-hired-backend"
+          tier: "celery-beat"
+
+  # === Infrastructure ===
+
+  - job_name: "jaeger"
+    scrape_interval: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "jaeger:16686"
+        labels:
+          service: "jaeger"
+
+  - job_name: "qdrant"
+    scrape_interval: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "qdrant:6333"
+        labels:
+          service: "qdrant"
+          tier: "vector-store"
+
+  - job_name: "redis"
+    scrape_interval: 30s
+    # Redis exporter (separate container) — uncomment when added
+    # static_configs:
+    #   - targets:
+    #       - "redis-exporter:9121"
+    #     labels:
+    #       service: "redis"
+    static_configs:
+      - targets: []
+
+  # === Prometheus self-scrape ===
+
+  - job_name: "prometheus"
+    scrape_interval: 30s
+    static_configs:
+      - targets:
+          - "localhost:9090"

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "hi-hired-backend.fullname" . }}-config
+  labels:
+    app: {{ include "hi-hired-backend.name" . }}
+data:
+  # Application configuration
+  SUPABASE_URL: "{{ .Values.env.configMap.SUPABASE_URL }}"
+  CORS_ORIGINS: "{{ .Values.env.configMap.CORS_ORIGINS }}"
+  OTLP_ENDPOINT: "{{ .Values.env.configMap.OTLP_ENDPOINT }}"
+  LOG_LEVEL: "{{ .Values.env.configMap.LOG_LEVEL }}"
+  PYTHONPATH: "{{ .Values.env.configMap.PYTHONPATH }}"
+
+  # Redis connection (non-sensitive — endpoint from SSM injected at deploy time)
+  REDIS_URL: "{{ .Values.env.configMap.REDIS_URL }}"
+
+  # Database URL (non-sensitive endpoint — password from Secrets)
+  DATABASE_URL: "{{ .Values.env.configMap.DATABASE_URL }}"
+
+  # Celery configuration
+  CELERY_MAX_RETRIES: "{{ .Values.celery.maxRetries }}"
+  CELERY_DEFAULT_RETRY_DELAY: "{{ .Values.celery.defaultRetryDelay }}"

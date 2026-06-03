@@ -1,6 +1,8 @@
-# Technical Specification - Swipe Job Search
+# Technical Specification — Hi-Hired
 
-> ⚠️ **Superseded (stack & schema):** This doc reflects the original Next.js + Capacitor direction. **Canonical stack:** [`STACK.md`](STACK.md). **Canonical backend:** [`docs/BACKEND.md`][def]. Product scope remains valid in [`foundational-docs/02-mvp-definition.md`](foundational-docs/02-mvp-definition.md). Kept for historical reference — do not scaffold from §1–§6 without reconciling against canonical docs.
+> **Product vision:** Hi-Hired exists to dismantle the staffing mill economy. We replace opaque, high-fee recruitment with a direct, transparent, human marketplace. Every job card shows real pay. Every applicant is a real person. No ghosting, no black holes, no commission-chasing agents.
+>
+> **Canonical stack:** [`STACK.md`](STACK.md). **Canonical backend:** [`docs/BACKEND.md`][def]. Product scope in [`foundational-docs/02-mvp-definition.md`](foundational-docs/02-mvp-definition.md).
 
 ## 1. Tech Stack
 - **Framework:** Next.js 14+ (App Router).
