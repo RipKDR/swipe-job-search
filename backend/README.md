@@ -8,9 +8,12 @@ Backend service for the Hi-Hired swipe-based job matching platform.
 cp .env.example .env
 # Edit .env with your credentials
 
-pip install -e ".[dev]"
-uvicorn src.main:app --reload
+python3 -m venv .venv
+.venv/bin/pip install -e ".[dev]"
+.venv/bin/uvicorn src.main:app --reload
 ```
+
+Use `.venv/bin/pip` (not bare `pip`) on Debian/Ubuntu — system Python is PEP 668–protected.
 
 ## Docker
 
@@ -21,7 +24,7 @@ docker-compose up --build
 ## Tests
 
 ```bash
-python -m pytest tests/ -v
+.venv/bin/python -m pytest tests/ -v
 ```
 
 ## Project Structure

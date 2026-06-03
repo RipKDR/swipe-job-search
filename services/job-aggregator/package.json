@@ -1,0 +1,32 @@
+{
+  "name": "job-aggregator",
+  "version": "1.0.0",
+  "description": "Melbourne job aggregation microservice — multi-source scraper with Supabase storage",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "scrape:seek": "node -e \"require('./scrapers/seek')().then(j => console.log('Jobs:', j.length))\"",
+    "scrape:gumtree": "node -e \"require('./scrapers/gumtree')().then(j => console.log('Jobs:', j.length))\"",
+    "scrape:vicgov": "node -e \"require('./scrapers/vicgov')().then(j => console.log('Jobs:', j.length))\"",
+    "scrape:jora": "node -e \"require('./scrapers/jora')().then(j => console.log('Jobs:', j.length))\"",
+    "scrape:adzuna": "node -e \"require('./scrapers/adzuna')().then(j => console.log('Jobs:', j.length))\"",
+    "scrape:google": "node -e \"require('./scrapers/google-pse')().then(j => console.log('Jobs:', j.length))\"",
+    "test": "node test.js"
+  },
+  "keywords": ["jobs", "melbourne", "scraper", "aggregator", "australia"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.107.0",
+    "axios": "^1.17.0",
+    "bull": "^4.16.5",
+    "cheerio": "^1.2.0",
+    "fast-xml-parser": "^5.8.0",
+    "geolib": "^3.3.14",
+    "https-proxy-agent": "^9.0.0",
+    "node-cron": "^4.2.1",
+    "uuid": "^14.0.0",
+    "winston": "^3.19.0"
+  }
+}

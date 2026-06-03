@@ -14,6 +14,38 @@ vi.mock('expo-haptics', () => ({
   selectionAsync: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'test-user' } }, error: null }),
+    },
+  },
+}));
+
+vi.mock('@/hooks/useUserLocation', () => ({
+  useUserLocation: () => ({
+    location: null,
+    isLoading: false,
+    error: null,
+    refresh: vi.fn(),
+  }),
+}));
+
+vi.mock('@/hooks/useJobsPipeline', () => ({
+  useJobsPipeline: () => ({
+    jobs: [],
+    currentPage: 0,
+    currentIndex: 0,
+    isLoading: false,
+    isFetchingNext: false,
+    error: null,
+    advanceIndex: vi.fn(),
+    refresh: vi.fn(),
+    isEmpty: true,
+    prefetchNextPage: vi.fn(),
+  }),
+}));
+
 vi.mock('@tanstack/react-query', () => ({
   useQuery: (...args: unknown[]) => mockUseQuery(...args),
   useQueryClient: () => ({

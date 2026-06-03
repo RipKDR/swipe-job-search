@@ -54,7 +54,16 @@ vi.mock('react-native', () => {
   const TouchableHighlight = withTestId('div');
 
   return {
-    Platform: { OS: 'web', select: (obj: any) => obj.web || obj.default },
+    Platform: {
+      OS: 'web',
+      select: (obj: Record<string, unknown>) => {
+        const os = 'web';
+        if (Object.prototype.hasOwnProperty.call(obj, os)) return obj[os];
+        if (Object.prototype.hasOwnProperty.call(obj, 'native')) return obj.native;
+        if (Object.prototype.hasOwnProperty.call(obj, 'default')) return obj.default;
+        return undefined;
+      },
+    },
     StyleSheet: { create: (s: any) => s, flatten: (s: any) => s },
     Alert: { alert: vi.fn() },
     Linking: { openURL: vi.fn(), canOpenURL: vi.fn().mockResolvedValue(true) },
@@ -123,6 +132,39 @@ vi.mock('react-native-safe-area-context', () => ({
 // Mock posthog-js to prevent ECONNRESET / network-request errors in test env
 vi.mock('posthog-js', () => ({ default: { init: () => {}, capture: () => {} } }))
 vi.mock('@posthog/core', () => ({}))
+
+const { posthogHookStub } = vi.hoisted(() => {
+  const posthogHookStub = () => ({
+    capture: vi.fn(),
+    identify: vi.fn(),
+    screen: vi.fn(),
+    reset: vi.fn(),
+    getFeatureFlag: () => undefined,
+    isFeatureEnabled: () => false,
+    reloadFeatureFlags: () => Promise.resolve(),
+  })
+  return { posthogHookStub }
+})
+
+// posthog-react-native can pull react-native-screens TS (`keyof typeof`) → SyntaxError in Node.
+vi.mock('posthog-react-native', () => ({
+  usePostHog: posthogHookStub,
+  PostHogProvider: ({ children }: { children?: unknown }) => children ?? null,
+  default: { capture: vi.fn(), identify: vi.fn() },
+}))
+
+vi.mock('@/hooks/usePostHog', () => ({
+  usePostHog: posthogHookStub,
+}))
+
+vi.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({
+    getCurrentRoute: () => ({ name: 'Test' }),
+    isReady: () => true,
+  }),
+  useNavigationState: () => undefined,
+  NavigationContainer: ({ children }: { children?: unknown }) => children ?? null,
+}))
 
 vi.mock('expo-constants', () => ({
   default: {

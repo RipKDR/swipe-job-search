@@ -8,6 +8,10 @@ vi.mock('@/lib/supabase', () => ({
   },
 }))
 
+vi.mock('@/hooks/usePostHog', () => ({
+  usePostHog: () => ({ capture: vi.fn() }),
+}));
+
 describe('useCreateMatch', () => {
   beforeEach(() => {
     vi.clearAllMocks()

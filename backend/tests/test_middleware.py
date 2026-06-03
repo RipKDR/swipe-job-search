@@ -14,11 +14,14 @@ import time
 
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
-from jose import jwt
+import jwt
+
+from unittest.mock import MagicMock, patch
 
 from src.api.middleware.auth import (
     ROLE_HIERARCHY,
     AuthClaims,
+    _get_profile_role,
     get_current_user,
     require_role,
     verify_access_token,
@@ -294,7 +297,7 @@ class TestAuthTokenVerification:
         original = self._save_secret()
         try:
             settings.supabase_jwt_secret = TEST_JWT_SECRET
-            # python-jose will raise JWTError on algo mismatch
+            # PyJWT will raise PyJWTError on algo mismatch
             # Just ensure we don't crash
             result = verify_access_token("header.payload.sig")
             assert result is None
@@ -321,6 +324,52 @@ class TestRoleHierarchy:
     def test_require_role_admin_returns_callable(self) -> None:
         dep = require_role("admin")
         assert callable(dep), "require_role should return a callable"
+
+
+class TestProfileRoleLookup:
+    """Profile role fallback must not grant admin via profiles.role."""
+
+    @patch("src.api.middleware.auth._get_service_client")
+    def test_get_profile_role_returns_peer_roles_only(self, mock_get_client: MagicMock) -> None:
+        mock_table = MagicMock()
+        mock_get_client.return_value.table.return_value = mock_table
+        mock_table.select.return_value.eq.return_value.maybe_single.return_value.execute.side_effect = [
+            MagicMock(data={"role": "provider"}),
+            MagicMock(data={"role": "employer"}),
+            MagicMock(data={"role": "admin"}),
+            MagicMock(data={"role": "jobseeker"}),
+        ]
+
+        assert _get_profile_role("user-1") == "provider"
+        assert _get_profile_role("user-2") == "employer"
+        assert _get_profile_role("user-3") is None
+        assert _get_profile_role("user-4") is None
+
+    @patch("src.api.middleware.auth._get_service_client")
+    def test_profile_admin_does_not_bypass_peer_role_gate(
+        self, mock_get_client: MagicMock
+    ) -> None:
+        mock_table = MagicMock()
+        mock_get_client.return_value.table.return_value = mock_table
+        mock_table.select.return_value.eq.return_value.maybe_single.return_value.execute.return_value = MagicMock(
+            data={"role": "admin"}
+        )
+
+        test_app = TestRequireRoleIntegration._make_test_app_no_rate_limit()
+        tc = TestClient(test_app)
+
+        original = settings.supabase_jwt_secret
+        settings.supabase_jwt_secret = TEST_JWT_SECRET
+        try:
+            token = jwt.encode(
+                {"sub": "user-1", "role": "jobseeker"},
+                TEST_JWT_SECRET,
+                algorithm="HS256",
+            )
+            resp = tc.get("/employer", headers={"Authorization": f"Bearer {token}"})
+            assert resp.status_code == 403
+        finally:
+            settings.supabase_jwt_secret = original
 
 
 class TestRequireRoleIntegration:
