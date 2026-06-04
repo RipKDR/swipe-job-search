@@ -105,10 +105,6 @@ export function PostHireSurvey({
       {phase === 'skipped' && null}
     </View>
   );
-
-  if (phase === 'form' && submitting) {
-    // Guard: disable submit in JSX too
-  }
 }
 
 /* ─── Sub-components ─── */
