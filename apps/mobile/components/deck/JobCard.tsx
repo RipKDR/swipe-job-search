@@ -22,6 +22,8 @@ interface JobCardProps {
   showMatchScore?: boolean;
   /** Current user profile for computing match scores */
   userProfile?: UserProfileInput | null;
+  /** Whether this card is the top (interactive) card in the stack. Background cards skip expensive queries. */
+  isInteractive?: boolean;
 }
 
 /**
@@ -31,18 +33,19 @@ interface JobCardProps {
  *
  * Theme-aware: reads colors from ThemeProvider instead of hardcoded values.
  */
-export const JobCard = React.memo(function JobCard({ job, onPress, testID, userLocation, showMatchScore, userProfile }: JobCardProps) {
+export const JobCard = React.memo(function JobCard({ job, onPress, testID, userLocation, showMatchScore, userProfile, isInteractive = true }: JobCardProps) {
   const { colors } = useTheme();
-  const { data: salaryAggregate } = useSalaryAggregate(job.id);
+  // Skip salary aggregate query on non-interactive (background) cards
+  const { data: salaryAggregate } = useSalaryAggregate(isInteractive ? job.id : undefined);
   const salaryLabel = formatSalaryAggregate(salaryAggregate ?? null);
   const distanceText = userLocation
     ? formatDistance(job.lat, job.lng, userLocation.latitude, userLocation.longitude)
     : null;
 
-  // Commute estimation — only fires when userLocation and job coords are available
+  // Commute estimation — only fires when interactive and userLocation + job coords are available
   const hasJobCoords = job.lat != null && job.lng != null;
-  const commuteLat: number | null = hasJobCoords && userLocation ? job.lat ?? null : null;
-  const commuteLng: number | null = hasJobCoords && userLocation ? job.lng ?? null : null;
+  const commuteLat: number | null = isInteractive && hasJobCoords && userLocation ? job.lat ?? null : null;
+  const commuteLng: number | null = isInteractive && hasJobCoords && userLocation ? job.lng ?? null : null;
   const { commuteMinutes } = useCommute(commuteLat, commuteLng);
 
   const accessibilityLabel = `Job card: ${job.title} at ${job.suburb}. Pay ${job.pay_display}. ${job.hours_text}.${
@@ -73,7 +76,7 @@ export const JobCard = React.memo(function JobCard({ job, onPress, testID, userL
           requirements: [],
         },
       ),
-    enabled: !!showMatchScore && !!userProfile,
+    enabled: !!showMatchScore && !!userProfile && isInteractive,
     staleTime: 5 * 60 * 1000,
   });
   const matchScore: MatchScoreResult | undefined = matchScoreQuery.data;

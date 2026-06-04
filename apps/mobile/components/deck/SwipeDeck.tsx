@@ -72,6 +72,7 @@ export function SwipeDeck({ jobs, onSwipe, onCardPress, isLoading, userLocation 
               onSwipeRight={handleSwipeRight}
               onCardPress={onCardPress}
               userLocation={userLocation}
+              isInteractive={stackDepth === 0}
             />
           </ErrorBoundary>
         );

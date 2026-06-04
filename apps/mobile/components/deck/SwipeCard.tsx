@@ -9,15 +9,26 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { Dimensions, type ViewStyle } from 'react-native';
+import { useWindowDimensions, type ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { JobCard } from './JobCard';
 import { computeRotation, computeOverlayOpacity, shouldSwipe } from '@/lib/swipe-engine';
 import type { Job } from '@hi-hired/shared';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const SCREEN_WIDTH_HALF = SCREEN_WIDTH / 2;
-const SWIPE_OFF_SCREEN = SCREEN_WIDTH * 1.5;
+/** Cache for haptics enabled preference — avoids AsyncStorage read on every swipe. */
+let hapticsEnabledCache: boolean | null = null;
+
+async function isHapticsEnabled(): Promise<boolean> {
+  if (hapticsEnabledCache !== null) return hapticsEnabledCache;
+  try {
+    const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+    const val = await AsyncStorage.getItem('settings_haptics_enabled');
+    hapticsEnabledCache = val !== 'false';
+  } catch {
+    hapticsEnabledCache = true;
+  }
+  return hapticsEnabledCache;
+}
 
 interface SwipeCardProps {
   job: Job;
@@ -27,6 +38,8 @@ interface SwipeCardProps {
   onCardPress?: (job: Job) => void;
   /** Current user location for distance badge on JobCard */
   userLocation?: { latitude: number; longitude: number } | null;
+  /** Whether this card is interactive (top of stack). Background cards skip expensive queries. */
+  isInteractive?: boolean;
 }
 
 /**
@@ -51,14 +64,13 @@ const OVERLAY_BADGE_STYLE: ViewStyle = {
 
 /**
  * Trigger haptic feedback based on swipe direction.
- * Respects user preference stored in AsyncStorage.
+ * Respects user preference stored in AsyncStorage (cached after first read).
  * Uses light impact for pass (left) and medium for apply (right).
  */
 async function triggerSwipeHaptic(direction: 'left' | 'right') {
   try {
-    const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
-    const enabled = await AsyncStorage.getItem('settings_haptics_enabled');
-    if (enabled === 'false') return;
+    const enabled = await isHapticsEnabled();
+    if (!enabled) return;
 
     if (direction === 'right') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -91,12 +103,29 @@ export function SwipeCard({
   onSwipeRight,
   onCardPress,
   userLocation,
+  isInteractive,
 }: SwipeCardProps) {
+  const { width: screenWidth } = useWindowDimensions();
+
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const scale = useSharedValue(STACK_CONFIG[index].scale);
   const cardOpacity = useSharedValue(STACK_CONFIG[index].opacity);
   const stackOffsetY = useSharedValue(STACK_CONFIG[index].translateY);
+
+  // Reactive dimension shared values — synced via useEffect so animations
+  // on the UI thread always use the latest window width (handles rotation,
+  // iPad split view, foldable resizes).
+  const screenWidthSV = useSharedValue(screenWidth);
+  const screenWidthHalfSV = useSharedValue(screenWidth / 2);
+  const swipeOffScreenSV = useSharedValue(screenWidth * 1.5);
+
+  // Sync shared values when window dimensions change
+  React.useEffect(() => {
+    screenWidthSV.value = screenWidth;
+    screenWidthHalfSV.value = screenWidth / 2;
+    swipeOffScreenSV.value = screenWidth * 1.5;
+  }, [screenWidth, screenWidthSV, screenWidthHalfSV, swipeOffScreenSV]);
 
   const isTop = index === 0;
 
@@ -119,11 +148,12 @@ export function SwipeCard({
       translateY.value = e.translationY * 0.3; // Subtle vertical movement
     })
     .onEnd((e) => {
-      const decision = shouldSwipe(e.translationX, SCREEN_WIDTH);
+      const sw = screenWidthSV.value;
+      const decision = shouldSwipe(e.translationX, sw);
 
       if (decision) {
         // Swipe past threshold — animate off screen
-        const offX = decision.direction === 'right' ? SWIPE_OFF_SCREEN : -SWIPE_OFF_SCREEN;
+        const offX = decision.direction === 'right' ? swipeOffScreenSV.value : -swipeOffScreenSV.value;
         translateX.value = withSpring(offX, { damping: 15, stiffness: 100 }, () => {
           runOnJS(handleSwipeComplete)(decision.direction);
         });
@@ -135,11 +165,12 @@ export function SwipeCard({
     });
 
   const cardAnimatedStyle = useAnimatedStyle(() => {
-    const rotation = computeRotation(translateX.value, SCREEN_WIDTH_HALF);
+    const half = screenWidthHalfSV.value;
+    const rotation = computeRotation(translateX.value, half);
 
     // Shadow intensifies during active swipe
-    const shadowOpacity = Math.min(0.5, Math.abs(translateX.value) / SCREEN_WIDTH_HALF * 0.3 + 0.15);
-    const shadowRadius = Math.min(25, Math.abs(translateX.value) / SCREEN_WIDTH_HALF * 10 + 15);
+    const shadowOpacity = Math.min(0.5, Math.abs(translateX.value) / half * 0.3 + 0.15);
+    const shadowRadius = Math.min(25, Math.abs(translateX.value) / half * 10 + 15);
 
     return {
       transform: [
@@ -158,12 +189,12 @@ export function SwipeCard({
   });
 
   const leftOverlayStyle = useAnimatedStyle(() => {
-    const opacity = computeOverlayOpacity(translateX.value, 'left', SCREEN_WIDTH);
+    const opacity = computeOverlayOpacity(translateX.value, 'left', screenWidthSV.value);
     return { opacity };
   });
 
   const rightOverlayStyle = useAnimatedStyle(() => {
-    const opacity = computeOverlayOpacity(translateX.value, 'right', SCREEN_WIDTH);
+    const opacity = computeOverlayOpacity(translateX.value, 'right', screenWidthSV.value);
     return { opacity };
   });
 
@@ -185,6 +216,7 @@ export function SwipeCard({
           onPress={() => onCardPress?.(job)}
           testID={`job-card-${job.id}`}
           userLocation={userLocation}
+          isInteractive={isInteractive}
         />
 
         {/* Live overlays */}
