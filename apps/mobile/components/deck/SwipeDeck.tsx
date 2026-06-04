@@ -25,8 +25,11 @@ interface SwipeDeckProps {
  */
 export function SwipeDeck({ jobs, onSwipe, onCardPress, isLoading, userLocation }: SwipeDeckProps) {
   const [localJobs, setLocalJobs] = React.useState(jobs);
-
-  React.useEffect(() => { setLocalJobs(jobs); }, [jobs]);
+  const prevJobsRef = React.useRef(jobs);
+  if (prevJobsRef.current !== jobs) {
+    prevJobsRef.current = jobs;
+    setLocalJobs(jobs);
+  }
 
   // Show up to 3 cards for the peek stack
   const visibleJobs = localJobs.slice(0, 3);

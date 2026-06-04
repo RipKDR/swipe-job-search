@@ -113,7 +113,6 @@ export function MatchInboxList({ matches, isLoading, error, role }: MatchInboxLi
     <View className={`flex-1 w-full ${contentMaxWidthLg}`}>
       <ErrorBoundary fallback={<Text className="text-slate-400 p-4">Something went wrong here.</Text>}>
         <FlatList
-          key={`matches-cols-${numColumns}`}
           data={matches}
           numColumns={numColumns}
           keyExtractor={(item) => item.id}
