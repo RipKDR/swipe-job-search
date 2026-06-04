@@ -50,7 +50,6 @@ export default function Callback() {
 
   useEffect(() => {
     if (handledRef.current) return;
-    handledRef.current = true;
     const handleCallback = async () => {
       try {
         const initialUrl = await Linking.getInitialURL();
@@ -68,6 +67,8 @@ export default function Callback() {
           context: 'auth_callback',
         });
         posthog.capture('login_failed', { method, reason: 'exception' });
+      } finally {
+        handledRef.current = true;
       }
     };
     void handleCallback();

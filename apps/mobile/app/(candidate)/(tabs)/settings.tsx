@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/providers/ThemeProvider';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -55,6 +56,7 @@ function SettingSection({ title, children }: SettingSectionProps) {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { accent, setAccent, mode, setMode, toggleMode, themes } = useTheme();
   const [hapticsEnabled, setHapticsEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -82,7 +84,16 @@ export default function SettingsScreen() {
   const toggleNotifications = useCallback(async (value: boolean) => {
     setNotificationsEnabled(value);
     await AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, String(value));
-  }, []);
+    if (!value && user) {
+      try {
+        await supabase.functions.invoke('notification-processor', {
+          body: { action: 'disable-push', userId: user.id },
+        });
+      } catch {
+        // Best-effort: user's preference is already persisted locally
+      }
+    }
+  }, [user]);
 
   const handleSignOut = useCallback(async () => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [

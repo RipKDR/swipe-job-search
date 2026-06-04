@@ -1,5 +1,5 @@
 import { View, Text } from '@/components/tw';
-import { Alert, Platform } from 'react-native';
+import { Alert, Keyboard, Platform } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'expo-router';
 import { supabase, getSupabaseConfigError } from '@/lib/supabase';
@@ -93,6 +93,7 @@ export default function Login() {
   };
 
   const handleMagicLink = async () => {
+    Keyboard.dismiss();
     if (!email.trim()) {
       showAuthError('Please enter your email address');
       return;

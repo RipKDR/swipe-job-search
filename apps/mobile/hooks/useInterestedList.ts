@@ -35,7 +35,8 @@ export function useInterestedList(jobId: string) {
       const [
         { data: profilesData, error: profilesError },
         { data: matchesData, error: matchesError },
-        { data: blocksData, error: blocksError },
+        { data: blocksByEmployerData, error: blocksByEmployerError },
+        { data: blocksByCandidateData, error: blocksByCandidateError },
       ] =
         await Promise.all([
           supabase
@@ -48,17 +49,27 @@ export function useInterestedList(jobId: string) {
             .select('blocked_id')
             .eq('blocker_id', profile!.id)
             .in('blocked_id', candidateIds),
+          supabase
+            .from('blocks')
+            .select('blocker_id')
+            .eq('blocked_id', profile!.id)
+            .in('blocker_id', candidateIds),
         ])
 
       if (profilesError) throw profilesError
       if (matchesError) throw matchesError
-      if (blocksError) throw blocksError
+      if (blocksByEmployerError) throw blocksByEmployerError
+      if (blocksByCandidateError) throw blocksByCandidateError
 
       const profiles = (profilesData ?? []) as any[]
       const matches = (matchesData ?? []) as any[]
-      const blocks = (blocksData ?? []) as any[]
+      const blocksByEmployer = (blocksByEmployerData ?? []) as any[]
+      const blocksByCandidate = (blocksByCandidateData ?? []) as any[]
       const matchedIds = new Set(matches.map((row) => row.candidate_id as string))
-      const blockedIds = new Set(blocks.map((row) => row.blocked_id as string))
+      const blockedIds = new Set([
+        ...blocksByEmployer.map((row) => row.blocked_id as string),
+        ...blocksByCandidate.map((row) => row.blocker_id as string),
+      ])
 
       return (profiles ?? [])
         .filter((candidate) => !matchedIds.has(candidate.id as string) && !blockedIds.has(candidate.id as string))
