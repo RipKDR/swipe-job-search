@@ -19,10 +19,7 @@ export async function fetchEmployerProfile(profileId: string): Promise<EmployerP
     .eq('profile_id', profileId)
     .maybeSingle();
 
-  if (error) {
-    console.warn('[useEmployerProfile] query failed:', error.message);
-    return null;
-  }
+  if (error) throw error;
 
   return data as EmployerProfile | null;
 }

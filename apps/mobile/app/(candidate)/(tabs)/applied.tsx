@@ -95,10 +95,7 @@ async function fetchAppliedJobs(): Promise<AppliedJob[]> {
     .in('direction', ['right', 'applied'])
     .order('created_at', { ascending: false });
 
-  if (error) {
-    console.warn('[fetchAppliedJobs]', error.message);
-    return [];
-  }
+  if (error) throw error;
 
   return (data ?? []) as AppliedJob[];
 }
@@ -107,7 +104,7 @@ export default function AppliedJobsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
 
-  const { data: jobs = [], isLoading, refetch } = useQuery<AppliedJob[]>({
+  const { data: jobs = [], isLoading, error, refetch } = useQuery<AppliedJob[]>({
     queryKey: ['applied-jobs'],
     queryFn: fetchAppliedJobs,
     staleTime: 30_000,

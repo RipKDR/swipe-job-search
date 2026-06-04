@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text } from '@/components/tw';
 import {
   JOB_TYPES,
@@ -54,10 +54,6 @@ export function JobForm({
 }: JobFormProps) {
   const [values, setValues] = useState<JobFormValues>(initialValues);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setValues(initialValues);
-  }, [initialValues]);
 
   const payNumeric = Number(values.payAmount);
   const fairWorkWarning =

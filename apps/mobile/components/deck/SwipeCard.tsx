@@ -1,15 +1,13 @@
 import React from 'react';
-import { View, Text, Pressable } from '@/components/tw';
+import { Text } from '@/components/tw';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withTiming,
   runOnJS,
-  type SharedValue,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useWindowDimensions, type ViewStyle } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { JobCard } from './JobCard';
 import { computeRotation, computeOverlayOpacity, shouldSwipe } from '@/lib/swipe-engine';
@@ -54,13 +52,13 @@ const STACK_CONFIG = {
 } as const;
 
 /** Shared style base for PASS/APPLY swipe overlays. */
-const OVERLAY_BADGE_STYLE: ViewStyle = {
+const OVERLAY_BADGE_STYLE = {
   position: 'absolute',
   top: '33%',
   paddingHorizontal: 16,
   paddingVertical: 4,
   borderRadius: 9999,
-};
+} as const;
 
 /**
  * Trigger haptic feedback based on swipe direction.
@@ -141,28 +139,30 @@ export function SwipeCard({
     [job.id, onSwipeLeft, onSwipeRight],
   );
 
-  const pan = Gesture.Pan()
-    .enabled(isTop)
-    .onUpdate((e) => {
-      translateX.value = e.translationX;
-      translateY.value = e.translationY * 0.3; // Subtle vertical movement
-    })
-    .onEnd((e) => {
-      const sw = screenWidthSV.value;
-      const decision = shouldSwipe(e.translationX, sw);
+  const pan = React.useMemo(() => {
+    return Gesture.Pan()
+      .enabled(isTop)
+      .onUpdate((e) => {
+        translateX.value = e.translationX;
+        translateY.value = e.translationY * 0.3; // Subtle vertical movement
+      })
+      .onEnd((e) => {
+        const sw = screenWidthSV.value;
+        const decision = shouldSwipe(e.translationX, sw);
 
-      if (decision) {
-        // Swipe past threshold — animate off screen
-        const offX = decision.direction === 'right' ? swipeOffScreenSV.value : -swipeOffScreenSV.value;
-        translateX.value = withSpring(offX, { damping: 15, stiffness: 100 }, () => {
-          runOnJS(handleSwipeComplete)(decision.direction);
-        });
-      } else {
-        // Snap back to center
-        translateX.value = withSpring(0, { damping: 20, stiffness: 150 });
-        translateY.value = withSpring(0, { damping: 20, stiffness: 150 });
-      }
-    });
+        if (decision) {
+          // Swipe past threshold — animate off screen
+          const offX = decision.direction === 'right' ? swipeOffScreenSV.value : -swipeOffScreenSV.value;
+          translateX.value = withSpring(offX, { damping: 15, stiffness: 100 }, () => {
+            runOnJS(handleSwipeComplete)(decision.direction);
+          });
+        } else {
+          // Snap back to center
+          translateX.value = withSpring(0, { damping: 20, stiffness: 150 });
+          translateY.value = withSpring(0, { damping: 20, stiffness: 150 });
+        }
+      });
+  }, [isTop]);
 
   const cardAnimatedStyle = useAnimatedStyle(() => {
     const half = screenWidthHalfSV.value;

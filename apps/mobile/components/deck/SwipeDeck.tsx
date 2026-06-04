@@ -25,30 +25,46 @@ interface SwipeDeckProps {
  */
 export function SwipeDeck({ jobs, onSwipe, onCardPress, isLoading, userLocation }: SwipeDeckProps) {
   const [localJobs, setLocalJobs] = React.useState(jobs);
-  const prevJobsRef = React.useRef(jobs);
-  if (prevJobsRef.current !== jobs) {
-    prevJobsRef.current = jobs;
+
+  React.useEffect(() => {
+    // Local deck state needs to resync when TanStack Query delivers a fresh deck.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalJobs(jobs);
-  }
+  }, [jobs]);
 
   // Show up to 3 cards for the peek stack
   const visibleJobs = localJobs.slice(0, 3);
 
-  const handleSwipeLeft = React.useCallback((jobId: string) => {
+  const handleSwipeLeft = React.useCallback(async (jobId: string) => {
+    const removedJob = localJobs.find(j => j.id === jobId);
     setLocalJobs((prev) => prev.filter((j) => j.id !== jobId));
-    onSwipe(jobId, 'left');
-  }, [onSwipe]);
+    try {
+      await onSwipe(jobId, 'left');
+    } catch {
+      if (removedJob) setLocalJobs(prev => [removedJob, ...prev]);
+    }
+  }, [onSwipe, localJobs]);
 
-  const handleSwipeRight = React.useCallback((jobId: string) => {
+  const handleSwipeRight = React.useCallback(async (jobId: string) => {
+    const removedJob = localJobs.find(j => j.id === jobId);
     setLocalJobs((prev) => prev.filter((j) => j.id !== jobId));
-    onSwipe(jobId, 'right');
-  }, [onSwipe]);
+    try {
+      await onSwipe(jobId, 'right');
+    } catch {
+      if (removedJob) setLocalJobs(prev => [removedJob, ...prev]);
+    }
+  }, [onSwipe, localJobs]);
 
-  const handleA11ySwipe = React.useCallback((direction: 'left' | 'right') => {
+  const handleA11ySwipe = React.useCallback(async (direction: 'left' | 'right') => {
     const topJob = localJobs[0];
     if (!topJob) return;
+    const removedJob = topJob;
     setLocalJobs((prev) => prev.slice(1));
-    onSwipe(topJob.id, direction);
+    try {
+      await onSwipe(topJob.id, direction);
+    } catch {
+      if (removedJob) setLocalJobs(prev => [removedJob, ...prev]);
+    }
   }, [localJobs, onSwipe]);
 
   if (visibleJobs.length === 0) {

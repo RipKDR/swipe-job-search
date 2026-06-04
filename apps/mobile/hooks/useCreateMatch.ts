@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { usePostHog } from '@/hooks/usePostHog'
 import { supabase } from '@/lib/supabase'
 
@@ -39,14 +39,17 @@ export async function createMatchRpc(jobId: string, candidateId: string): Promis
 
 export function useCreateMatch() {
   const posthog = usePostHog();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['create-match'],
     mutationFn: ({ jobId, candidateId }: { jobId: string; candidateId: string }) =>
       createMatchRpc(jobId, candidateId),
-    onSuccess: (result, { jobId, candidateId }) => {
+    onSuccess: async (result, { jobId, candidateId }) => {
       if (result.status === 'matched') {
         posthog.capture('match_created', { job_id: jobId, candidate_id: candidateId, match_id: result.matchId });
       }
+      await queryClient.invalidateQueries({ queryKey: ['interested-candidates'] });
+      await queryClient.invalidateQueries({ queryKey: ['match-inbox'] });
     },
   })
 }

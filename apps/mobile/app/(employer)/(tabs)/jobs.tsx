@@ -55,10 +55,10 @@ export default function JobsScreen() {
   const posthog = usePostHog();
   const { data: jobsData, isLoading, error, refetch, isRefetching } = useMyJobs();
   const { data: matchesData = [] } = useMatchInbox();
+  const profileId = profile?.id;
   const jobs: MyJobItem[] = jobsData ?? [];
   const matches = matchesData as { status: string }[];
   const numColumns = useListColumns(2);
-  const { colors } = useTheme();
   const [statusUpdatingJobId, setStatusUpdatingJobId] = useState<string | null>(null);
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
 
@@ -93,7 +93,7 @@ export default function JobsScreen() {
 
   const handleToggleStatus = useCallback(
     async (job: MyJobItem) => {
-      if (!profile?.id || statusUpdatingJobId) return;
+      if (!profileId || statusUpdatingJobId) return;
 
       const isPastExpiry = job.expires_at ? new Date(job.expires_at) < new Date() : false;
       const shouldPause = job.status === 'active' && !isPastExpiry;
@@ -111,12 +111,12 @@ export default function JobsScreen() {
           .from('jobs')
           .update(payload)
           .eq('id', job.id)
-          .eq('employer_id', profile.id);
+          .eq('employer_id', profileId);
 
         if (updateError) throw updateError;
 
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ['my-jobs', profile.id] }),
+          queryClient.invalidateQueries({ queryKey: ['my-jobs', profileId] }),
           queryClient.invalidateQueries({ queryKey: ['job-deck'] }),
           queryClient.invalidateQueries({ queryKey: ['jobs-pipeline'] }),
         ]);
@@ -134,7 +134,7 @@ export default function JobsScreen() {
         setStatusUpdatingJobId(null);
       }
     },
-    [posthog, profile?.id, queryClient, statusUpdatingJobId],
+    [posthog, profileId, queryClient, statusUpdatingJobId],
   );
 
   const renderItem = useCallback(

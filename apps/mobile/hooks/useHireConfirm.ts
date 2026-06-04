@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
 export type MatchHireFields = {
@@ -66,14 +66,26 @@ export async function unmatchRpc(matchId: string): Promise<void> {
 }
 
 export function useHireConfirm() {
+  const queryClient = useQueryClient()
+
   const confirmHire = useMutation({
     mutationKey: ['confirm-hire'],
     mutationFn: (matchId: string) => confirmHireRpc(matchId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['match-inbox'] });
+      await queryClient.invalidateQueries({ queryKey: ['my-jobs'] });
+      await queryClient.invalidateQueries({ queryKey: ['interested-candidates'] });
+    },
   })
 
   const unmatch = useMutation({
     mutationKey: ['unmatch'],
     mutationFn: (matchId: string) => unmatchRpc(matchId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['match-inbox'] });
+      await queryClient.invalidateQueries({ queryKey: ['my-jobs'] });
+      await queryClient.invalidateQueries({ queryKey: ['interested-candidates'] });
+    },
   })
 
   return { confirmHire, unmatch }

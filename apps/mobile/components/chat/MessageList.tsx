@@ -31,6 +31,10 @@ type MessageListProps = {
 };
 
 export function MessageList({ messages, currentUserId, isLoading }: MessageListProps) {
+  // Reverse the array for inverted FlatList — newest messages at the bottom.
+  // Keep this before early returns so hook order is stable.
+  const invertedMessages = useMemo(() => [...messages].reverse(), [messages]);
+
   const renderItem = useCallback(
     ({ item }: { item: ChatMessage }) => (
       <MessageBubble message={item} isMine={item.sender_id === currentUserId} />
@@ -55,10 +59,6 @@ export function MessageList({ messages, currentUserId, isLoading }: MessageListP
       </View>
     );
   }
-
-  // Reverse the array for inverted FlatList — newest messages at the bottom
-  const invertedMessages = useMemo(() => [...messages].reverse(), [messages]);
-
   return (
     <View className={`flex-1 w-full items-center ${contentMaxWidthChat}`}>
       <ErrorBoundary fallback={<Text className="text-slate-400 p-4">Something went wrong here.</Text>}>
