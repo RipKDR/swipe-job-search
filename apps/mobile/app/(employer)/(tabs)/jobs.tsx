@@ -1,11 +1,14 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FlatList, RefreshControl, View } from 'react-native';
 import { Text } from '@/components/tw';
 import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { JobListItem } from '@/components/employer/JobListItem';
 import { useMyJobs, type MyJobItem } from '@/hooks/useMyJobs';
 import { useMatchInbox } from '@/hooks/useMatchInbox';
+import { useAuth } from '@/hooks/useAuth';
+import { usePostHog } from '@/hooks/usePostHog';
 import { useTheme } from '@/hooks/useTheme';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -13,6 +16,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { TabWebShell } from '@/components/ui/TabWebShell';
 import { useListColumns } from '@/hooks/useListColumns';
+import { supabase } from '@/lib/supabase';
+import type { Database } from '@hi-hired/shared';
 
 type StatCardProps = {
   label: string;
@@ -45,15 +50,27 @@ function StatCard({ label, value, accent }: StatCardProps) {
 
 export default function JobsScreen() {
   const router = useRouter();
-  const { data: jobs = [], isLoading, error, refetch, isRefetching } = useMyJobs();
-  const { data: matches = [] } = useMatchInbox();
+  const queryClient = useQueryClient();
+  const { profile } = useAuth();
+  const posthog = usePostHog();
+  const { data: jobsData, isLoading, error, refetch, isRefetching } = useMyJobs();
+  const { data: matchesData = [] } = useMatchInbox();
+  const jobs: MyJobItem[] = jobsData ?? [];
+  const matches = matchesData as { status: string }[];
   const numColumns = useListColumns(2);
   const { colors } = useTheme();
+  const [statusUpdatingJobId, setStatusUpdatingJobId] = useState<string | null>(null);
+  const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
 
-  const totalInterested = jobs.reduce((sum, j) => sum + (j.interestedCount || 0), 0);
-  const activeMatches = matches.filter((m) => m.status === 'chatting' || m.status === 'hire_pending').length;
+  const totalInterested = jobs.reduce(
+    (sum: number, job: MyJobItem) => sum + (job.interestedCount || 0),
+    0,
+  );
+  const activeMatches = matches.filter(
+    (match: { status: string }) => match.status === 'chatting' || match.status === 'hire_pending',
+  ).length;
   const activeJobs = jobs.filter(
-    (j) => j.status === 'active' && (!j.expires_at || new Date(j.expires_at) > new Date())
+    (job: MyJobItem) => job.status === 'active' && (!job.expires_at || new Date(job.expires_at) > new Date())
   ).length;
 
   const handlePostJob = useCallback(() => {
@@ -67,11 +84,70 @@ export default function JobsScreen() {
     [router],
   );
 
+  const handleEditJob = useCallback(
+    (jobId: string) => {
+      router.push(`/(employer)/(tabs)/jobs/${jobId}/edit` as any);
+    },
+    [router],
+  );
+
+  const handleToggleStatus = useCallback(
+    async (job: MyJobItem) => {
+      if (!profile?.id || statusUpdatingJobId) return;
+
+      const isPastExpiry = job.expires_at ? new Date(job.expires_at) < new Date() : false;
+      const shouldPause = job.status === 'active' && !isPastExpiry;
+      const nextStatus = shouldPause ? 'paused' : 'active';
+      const payload: Database['public']['Tables']['jobs']['Update'] = { status: nextStatus };
+
+      if (!shouldPause) {
+        payload.expires_at = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      }
+
+      setStatusUpdatingJobId(job.id);
+      setStatusFeedback(null);
+      try {
+        const { error: updateError } = await (supabase as any)
+          .from('jobs')
+          .update(payload)
+          .eq('id', job.id)
+          .eq('employer_id', profile.id);
+
+        if (updateError) throw updateError;
+
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['my-jobs', profile.id] }),
+          queryClient.invalidateQueries({ queryKey: ['job-deck'] }),
+          queryClient.invalidateQueries({ queryKey: ['jobs-pipeline'] }),
+        ]);
+
+        posthog.capture('job_status_updated', {
+          job_id: job.id,
+          previous_status: job.status,
+          next_status: nextStatus,
+          reopened_with_extended_expiry: Boolean(payload.expires_at),
+        });
+        setStatusFeedback(nextStatus === 'paused' ? 'Job paused' : 'Job reopened');
+      } catch {
+        setStatusFeedback('Could not update job status. Please try again.');
+      } finally {
+        setStatusUpdatingJobId(null);
+      }
+    },
+    [posthog, profile?.id, queryClient, statusUpdatingJobId],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: MyJobItem }) => (
-      <JobListItem job={item} onOpenInterested={handleOpenInterested} />
+      <JobListItem
+        job={item}
+        onOpenInterested={handleOpenInterested}
+        onEdit={handleEditJob}
+        onToggleStatus={handleToggleStatus}
+        statusUpdating={statusUpdatingJobId === item.id}
+      />
     ),
-    [handleOpenInterested],
+    [handleEditJob, handleOpenInterested, handleToggleStatus, statusUpdatingJobId],
   );
 
   if (isLoading) {
@@ -100,6 +176,10 @@ export default function JobsScreen() {
           fullWidth
         />
 
+        {statusFeedback ? (
+          <Text className="text-slate-300 text-sm mb-4">{statusFeedback}</Text>
+        ) : null}
+
         {error ? (
           <EmptyState
             emoji="⚠️"
@@ -121,7 +201,7 @@ export default function JobsScreen() {
             key={`jobs-cols-${numColumns}`}
             data={jobs}
             numColumns={numColumns}
-            keyExtractor={(job) => job.id}
+            keyExtractor={(job: MyJobItem) => job.id}
             columnWrapperStyle={numColumns > 1 ? { gap: 12 } : undefined}
             contentContainerStyle={{ gap: 12, paddingBottom: 40 }}
             refreshControl={

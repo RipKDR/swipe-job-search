@@ -48,6 +48,12 @@ export default function EmployerTabsLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="jobs/[id]/edit"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
