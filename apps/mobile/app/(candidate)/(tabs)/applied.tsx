@@ -70,7 +70,7 @@ const AppliedJobCard = React.memo(function AppliedJobCard({
       </View>
     </Pressable>
   );
-});
+}, (prev, next) => prev.job.job_id === next.job.job_id && prev.colors === next.colors);
 
 async function fetchAppliedJobs(): Promise<AppliedJob[]> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -81,7 +81,7 @@ async function fetchAppliedJobs(): Promise<AppliedJob[]> {
     .select(`
       job_id,
       swiped_at:created_at,
-      jobs!inner (
+      jobs!left (
         id,
         title,
         suburb,
@@ -104,7 +104,7 @@ export default function AppliedJobsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
 
-  const { data: jobs = [], isLoading, error, refetch } = useQuery<AppliedJob[]>({
+  const { data: jobs = [], isLoading, isFetching, error, refetch } = useQuery<AppliedJob[]>({
     queryKey: ['applied-jobs'],
     queryFn: fetchAppliedJobs,
     staleTime: 30_000,
@@ -189,7 +189,7 @@ export default function AppliedJobsScreen() {
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 8 }}
             renderItem={renderItem}
             onRefresh={refetch}
-            refreshing={isLoading}
+            refreshing={isFetching}
           />
         )}
       </TabWebShell>

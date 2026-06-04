@@ -59,11 +59,13 @@ async function fetchJobsPage(page: number): Promise<Job[]> {
 
   if (!jobs || jobs.length === 0) return [];
 
-  // Fetch swiped job IDs to exclude them
+  // Fetch swiped job IDs to exclude them (limited to recent 500)
   const { data: swipes } = await (supabase as any)
     .from('swipes')
     .select('job_id')
-    .eq('candidate_id', user.id);
+    .eq('candidate_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(500);
 
   const swipedIds = new Set((swipes ?? []).map((s: { job_id: string }) => s.job_id));
   const unswiped = (jobs as Job[]).filter((j) => !swipedIds.has(j.id));
