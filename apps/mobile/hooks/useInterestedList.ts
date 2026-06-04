@@ -8,6 +8,9 @@ export type InterestedCandidate = {
   suburb: string
   skills: string[]
   avatarUrl: string | null
+  experienceText: string | null
+  availabilityText: string | null
+  workRights: string | null
 }
 
 export function useInterestedList(jobId: string) {
@@ -37,7 +40,7 @@ export function useInterestedList(jobId: string) {
         await Promise.all([
           supabase
             .from('profiles')
-            .select('id,full_name,suburb,skills,avatar_url')
+            .select('id,full_name,suburb,skills,avatar_url,experience_text,availability_text,work_rights')
             .in('id', candidateIds),
           supabase.from('matches').select('candidate_id').eq('job_id', jobId).in('candidate_id', candidateIds),
           supabase
@@ -65,6 +68,9 @@ export function useInterestedList(jobId: string) {
           suburb: (candidate.suburb as string | null) ?? 'Unknown suburb',
           skills: (candidate.skills as string[] | null) ?? [],
           avatarUrl: (candidate.avatar_url as string | null) ?? null,
+          experienceText: (candidate.experience_text as string | null) ?? null,
+          availabilityText: (candidate.availability_text as string | null) ?? null,
+          workRights: (candidate.work_rights as string | null) ?? null,
         }))
     },
   })

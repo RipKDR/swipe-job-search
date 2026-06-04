@@ -19,18 +19,21 @@ type CandidateData = {
   fullName: string;
   suburb: string;
   skills: string[];
+  avatarUrl: string | null;
 };
 
 type InterestedCandidateItemProps = {
   candidate: CandidateData;
   actionState: InterestedActionState;
   onChat: (candidateId: string) => void;
+  onViewProfile: (candidateId: string) => void;
 };
 
 const InterestedCandidateItem = React.memo(function InterestedCandidateItem({
   candidate,
   actionState,
   onChat,
+  onViewProfile,
 }: InterestedCandidateItemProps) {
   return (
     <InterestedCard
@@ -38,8 +41,10 @@ const InterestedCandidateItem = React.memo(function InterestedCandidateItem({
       fullName={candidate.fullName}
       suburb={candidate.suburb}
       skills={candidate.skills}
+      avatarUrl={candidate.avatarUrl}
       actionState={actionState}
       onChat={onChat}
+      onViewProfile={onViewProfile}
     />
   );
 });
@@ -97,15 +102,26 @@ export default function InterestedListScreen() {
     [jobId, createMatch, router, refetch],
   );
 
+  const onViewProfile = useCallback(
+    (candidateId: string) => {
+      if (!jobId) return;
+      router.push(`/(employer)/(tabs)/jobs/${jobId}/interested/${candidateId}` as Href);
+    },
+    [jobId, router],
+  );
+
+  const keyExtractor = useCallback((candidate: CandidateData) => candidate.id, []);
+
   const renderItem = useCallback(
     ({ item }: { item: CandidateData }) => (
       <InterestedCandidateItem
         candidate={item}
         actionState={states[item.id] ?? 'idle'}
         onChat={onChat}
+        onViewProfile={onViewProfile}
       />
     ),
-    [states, onChat],
+    [states, onChat, onViewProfile],
   );
 
   if (isLoading) {
@@ -142,7 +158,7 @@ export default function InterestedListScreen() {
             key={`interested-cols-${numColumns}`}
             data={sortedCandidates}
             numColumns={numColumns}
-            keyExtractor={(candidate) => candidate.id}
+            keyExtractor={keyExtractor}
             columnWrapperStyle={numColumns > 1 ? { gap: 12 } : undefined}
             contentContainerStyle={{ gap: 12, paddingBottom: 24 }}
             renderItem={renderItem}

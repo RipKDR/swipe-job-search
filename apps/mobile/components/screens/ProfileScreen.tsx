@@ -6,6 +6,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
 import { ThemePicker } from '@/components/ui/ThemePicker';
 import { useAuth } from '@/hooks/useAuth';
+import { useEmployerProfile } from '@/hooks/useEmployerProfile';
 import { useTheme } from '@/providers/ThemeProvider';
 import { shareResume, type ResumeData } from '@/lib/resume-export';
 import * as Haptics from 'expo-haptics';
@@ -38,10 +39,34 @@ function ActionButton({ label, emoji, onPress, variant = 'outline' }: {
   );
 }
 
+function VerificationBadge() {
+  const { colors } = useTheme();
+  return (
+    <View style={{
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 4,
+    }}>
+      <Text style={{ fontSize: 14 }}>✅</Text>
+      <Text style={{
+        color: colors.success || '#22c55e',
+        fontSize: 13,
+        fontWeight: '600',
+      }}>
+        Verified employer
+      </Text>
+    </View>
+  );
+}
+
 export function ProfileScreen() {
   const { profile, signOut } = useAuth();
   const { colors } = useTheme();
   const router = useRouter();
+  const { data: employerProfile, isLoading: employerLoading } = useEmployerProfile(
+    profile?.role === 'employer' ? profile.id : undefined,
+  );
 
   const roleLabel =
     profile?.role === 'employer' ? 'Employer' : profile?.role === 'candidate' ? 'Job seeker' : '—';
@@ -77,11 +102,13 @@ export function ProfileScreen() {
     router.push('/(candidate)/pricing');
   };
 
+  const isEmployer = profile?.role === 'employer';
+
   return (
     <AppScreen scroll centered maxWidth="lg">
       <ScreenHeader
         title="Profile"
-        subtitle="Your account details and preferences"
+        subtitle={isEmployer ? 'Your business account details' : 'Your account details and preferences'}
       />
 
       {/* Account info */}
@@ -95,10 +122,36 @@ export function ProfileScreen() {
         marginBottom: 24,
         width: '100%',
       }}>
+        {/* Always show common fields */}
         <ProfileRow label="Name" value={profile?.full_name?.trim() || 'Not set'} />
         <ProfileRow label="Email" value={profile?.email?.trim() || '—'} />
-        <ProfileRow label="Suburb" value={profile?.suburb?.trim() || '—'} />
+        {!isEmployer && profile?.suburb?.trim() ? (
+          <ProfileRow label="Suburb" value={profile.suburb.trim()} />
+        ) : null}
         <ProfileRow label="Role" value={roleLabel} />
+
+        {/* Employer-specific fields from employer_profiles table */}
+        {isEmployer && (
+          <>
+            <ProfileRow
+              label="Business name"
+              value={employerLoading ? 'Loading...' : employerProfile?.business_name?.trim() || 'Not set'}
+            />
+            {employerProfile?.about_text?.trim() ? (
+              <ProfileRow label="About" value={employerProfile.about_text.trim()} />
+            ) : null}
+            {employerProfile?.contact_name?.trim() ? (
+              <ProfileRow label="Contact name" value={employerProfile.contact_name.trim()} />
+            ) : null}
+            {employerProfile?.verified && (
+              <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+                <VerificationBadge />
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Candidate-specific fields */}
         {profile?.role === 'candidate' && profile.skills?.length ? (
           <ProfileRow label="Skills" value={profile.skills.join(', ')} />
         ) : null}
