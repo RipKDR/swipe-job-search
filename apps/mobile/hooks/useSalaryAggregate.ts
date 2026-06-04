@@ -13,7 +13,7 @@ export type SalaryAggregate = Database['public']['Views']['salary_aggregates']['
  * Returns null if no reports exist yet.
  */
 export async function fetchSalaryAggregate(jobId: string): Promise<SalaryAggregate | null> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('salary_aggregates')
     .select('*')
     .eq('job_id', jobId)

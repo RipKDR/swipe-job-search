@@ -22,7 +22,7 @@ export default function PostJobScreen() {
     setSubmitting(true);
     setFeedback(null);
     try {
-      const { data: membership, error: circleError } = await (supabase as any)
+      const { data: membership, error: circleError } = await supabase
         .from('circle_members')
         .select('circle_id')
         .eq('profile_id', profile.id)
@@ -47,7 +47,7 @@ export default function PostJobScreen() {
         expiresAt,
       });
 
-      const { error } = await (supabase as any).from('jobs').insert(jobPayload);
+      const { error } = await supabase.from('jobs').insert(jobPayload);
 
       if (error) throw error;
 

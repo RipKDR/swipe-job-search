@@ -22,7 +22,7 @@ function mapCreateMatchError(message?: string) {
 }
 
 export async function createMatchRpc(jobId: string, candidateId: string): Promise<CreateMatchResult> {
-  const { data, error } = await (supabase as any).rpc('create_match', {
+  const { data, error } = await supabase.rpc('create_match', {
     p_job_id: jobId,
     p_candidate_id: candidateId,
   })

@@ -107,7 +107,7 @@ export default function JobsScreen() {
       setStatusUpdatingJobId(job.id);
       setStatusFeedback(null);
       try {
-        const { error: updateError } = await (supabase as any)
+        const { error: updateError } = await supabase
           .from('jobs')
           .update(payload)
           .eq('id', job.id)

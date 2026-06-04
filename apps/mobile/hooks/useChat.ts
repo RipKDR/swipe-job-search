@@ -31,7 +31,7 @@ export async function fetchMessages(matchId: string, page = 0): Promise<ChatMess
   const from = page * PAGE_SIZE
   const to = from + PAGE_SIZE - 1
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('messages')
     .select('id,match_id,sender_id,body,created_at')
     .eq('match_id', matchId)
@@ -59,7 +59,7 @@ export async function sendMessage({
     throw new Error('Messaging is not available for this match')
   }
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('messages')
     .insert({ match_id: matchId, sender_id: senderId, body: trimmed })
     .select('id,match_id,sender_id,body,created_at')

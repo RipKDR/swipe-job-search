@@ -55,7 +55,7 @@ export default function EditProfileScreen() {
     setSubmitting(true);
     try {
       const nowIso = new Date().toISOString();
-      const { data: updatedProfile, error: profileError } = await (supabase.from("profiles") as any)
+      const { data: updatedProfile, error: profileError } = await supabase.from("profiles")
         .update(buildCandidateProfileUpdate(data, nowIso))
         .eq("id", user.id)
         .select(PROFILE_SELECT)

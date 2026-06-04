@@ -30,7 +30,7 @@ export async function fetchJobDeck(): Promise<Job[]> {
   if (!user) return [];
 
   // Fetch active jobs including lat/lng fields
-  const { data: jobs, error: jobsError } = await (supabase as any)
+  const { data: jobs, error: jobsError } = await supabase
     .from('jobs')
     .select('*')
     .eq('status', 'active')
@@ -46,7 +46,7 @@ export async function fetchJobDeck(): Promise<Job[]> {
   if (!jobs || jobs.length === 0) return [];
 
   // Fetch swiped job IDs to exclude them
-  const { data: swipes } = await (supabase as any)
+  const { data: swipes } = await supabase
     .from('swipes')
     .select('job_id')
     .eq('candidate_id', user.id);

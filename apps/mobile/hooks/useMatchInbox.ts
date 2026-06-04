@@ -18,7 +18,7 @@ export type InboxMatch = {
 export async function fetchMatchInbox(userId: string, role: 'candidate' | 'employer'): Promise<InboxMatch[]> {
   const participantColumn = role === 'candidate' ? 'candidate_id' : 'employer_id'
 
-  const { data: matchesData, error: matchesError } = await (supabase as any)
+  const { data: matchesData, error: matchesError } = await supabase
     .from('matches')
     .select(
       `
@@ -45,7 +45,7 @@ export async function fetchMatchInbox(userId: string, role: 'candidate' | 'emplo
 
   const matchIds = matches.map((match) => match.id as string)
 
-  const { data: messagesData, error: messagesError } = await (supabase as any)
+  const { data: messagesData, error: messagesError } = await supabase
     .from('messages')
     .select('match_id,body,created_at')
     .in('match_id', matchIds)
@@ -112,7 +112,7 @@ export type MatchDetail = {
 }
 
 export async function fetchMatchDetail(matchId: string, userId: string, role: 'candidate' | 'employer'): Promise<MatchDetail> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('matches')
     .select(
       `

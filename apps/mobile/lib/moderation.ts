@@ -32,7 +32,7 @@ export async function submitReport({
     match_id: matchId ?? null,
   }
 
-  const { error } = await (supabase as any).from('reports').insert(payload)
+  const { error } = await supabase.from('reports').insert(payload)
 
   if (error) throw error
 }
@@ -43,7 +43,7 @@ export async function blockUser(blockerId: string, blockedId: string) {
     blocked_id: blockedId,
   }
 
-  const { error } = await (supabase as any).from('blocks').insert(payload)
+  const { error } = await supabase.from('blocks').insert(payload)
 
   if (error) throw error
 }

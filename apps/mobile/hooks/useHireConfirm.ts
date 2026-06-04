@@ -56,12 +56,12 @@ export function shouldConfirmUnmatch(messageCount: number) {
 }
 
 export async function confirmHireRpc(matchId: string): Promise<void> {
-  const { error } = await (supabase as any).rpc('confirm_hire', { p_match_id: matchId })
+  const { error } = await supabase.rpc('confirm_hire', { p_match_id: matchId })
   if (error) throw new Error(mapHireError(error.message))
 }
 
 export async function unmatchRpc(matchId: string): Promise<void> {
-  const { error } = await (supabase as any).rpc('unmatch', { p_match_id: matchId })
+  const { error } = await supabase.rpc('unmatch', { p_match_id: matchId })
   if (error) throw new Error(mapHireError(error.message))
 }
 

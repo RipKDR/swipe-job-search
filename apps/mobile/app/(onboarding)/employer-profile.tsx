@@ -26,7 +26,7 @@ export default function EmployerProfile() {
   const onSubmit = async (data: EmployerOnboarding) => {
     setSubmitting(true);
     try {
-      const { data: updatedProfile, error } = await (supabase as any).rpc('complete_employer_onboarding', {
+      const { data: updatedProfile, error } = await supabase.rpc('complete_employer_onboarding', {
         p_suburb: data.suburb,
         p_avatar_url: data.avatar_url ?? null,
         p_business_name: data.business_name,

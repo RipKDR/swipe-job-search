@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -44,7 +44,7 @@ async function fetchJobsPage(page: number): Promise<Job[]> {
   const to = from + PAGE_SIZE - 1;
 
   // Fetch jobs for this page range
-  const { data: jobs, error: jobsError } = await (supabase as any)
+  const { data: jobs, error: jobsError } = await supabase
     .from('jobs')
     .select('*')
     .eq('status', 'active')
@@ -60,7 +60,7 @@ async function fetchJobsPage(page: number): Promise<Job[]> {
   if (!jobs || jobs.length === 0) return [];
 
   // Fetch swiped job IDs to exclude them (limited to recent 500)
-  const { data: swipes } = await (supabase as any)
+  const { data: swipes } = await supabase
     .from('swipes')
     .select('job_id')
     .eq('candidate_id', user.id)
@@ -91,7 +91,6 @@ export function useJobsPipeline(options?: JobsPipelineOptions): JobsPipelineStat
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [buffer, setBuffer] = useState<Job[]>([]);
   const hasPrefetchedRef = useRef(false);
 
   const {
@@ -105,19 +104,14 @@ export function useJobsPipeline(options?: JobsPipelineOptions): JobsPipelineStat
     staleTime: STALE_TIME_MS,
   });
 
-  // When fetched data arrives, load it into the buffer (if buffer is empty)
-  useEffect(() => {
-    if (fetchedJobs && buffer.length === 0) {
-      // Apply distance filtering if options are provided
-      let jobs = fetchedJobs;
-      if (options?.radius_km && options.radius_km > 0 && options.userLat != null && options.userLng != null) {
-        jobs = filterJobsByDistance(jobs, options.userLat, options.userLng, options.radius_km);
-      }
-      setBuffer(jobs);
-      setCurrentIndex(0);
-      hasPrefetchedRef.current = false;
+  const { radius_km, userLat, userLng } = options ?? {};
+  const filteredJobs = useMemo(() => {
+    if (!fetchedJobs) return [];
+    if (radius_km && radius_km > 0 && userLat != null && userLng != null) {
+      return filterJobsByDistance(fetchedJobs, userLat, userLng, radius_km);
     }
-  }, [fetchedJobs, buffer.length, options?.radius_km, options?.userLat, options?.userLng]);
+    return fetchedJobs;
+  }, [fetchedJobs, radius_km, userLat, userLng]);
 
   /** Trigger prefetch of the next page. */
   const prefetchNextPage = useCallback(() => {
@@ -153,32 +147,24 @@ export function useJobsPipeline(options?: JobsPipelineOptions): JobsPipelineStat
   }, [currentPage, queryClient]);
 
   const advanceIndex = useCallback(() => {
-    setCurrentIndex((prev) => {
-      const nextIndex = prev + 1;
-
-      if (nextIndex >= buffer.length && buffer.length > 0) {
-        // Exhausted current buffer — swap to next page
-        const nextPage = currentPage + 1;
-        setCurrentPage(nextPage);
-        setBuffer([]);
-        hasPrefetchedRef.current = false;
-        return 0;
-      }
-
-      return nextIndex;
-    });
-  }, [buffer.length, currentPage]);
+    const nextIndex = currentIndex + 1;
+    if (filteredJobs.length > 0 && nextIndex >= filteredJobs.length) {
+      setCurrentPage(currentPage + 1);
+      setCurrentIndex(0);
+      hasPrefetchedRef.current = false;
+    } else {
+      setCurrentIndex(nextIndex);
+    }
+  }, [currentIndex, filteredJobs.length, currentPage]);
 
   const refresh = useCallback(() => {
     setCurrentPage(0);
     setCurrentIndex(0);
-    setBuffer([]);
     hasPrefetchedRef.current = false;
     queryClient.invalidateQueries({ queryKey: ['jobs-pipeline'] });
   }, [queryClient]);
 
-  // Current jobs visible to the user (from buffer position onward)
-  const jobs = buffer.slice(currentIndex);
+  const jobs = filteredJobs.slice(currentIndex);
   const isEmpty = jobs.length === 0 && !isLoading;
   const error = queryError ?? null;
 

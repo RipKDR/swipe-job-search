@@ -17,7 +17,7 @@ export function useCandidateProfile(candidateId: string) {
     queryKey: ['candidate-profile', candidateId],
     enabled: Boolean(candidateId),
     queryFn: async (): Promise<CandidateProfile> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('profiles')
         .select('id,full_name,suburb,skills,avatar_url,experience_text,availability_text,work_rights')
         .eq('id', candidateId)

@@ -51,7 +51,7 @@ export async function performSwipe(
 ): Promise<SwipeResult> {
   await triggerHaptic('selection');
 
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('swipes')
     .upsert(
       [{ candidate_id: candidateId, job_id: jobId, direction }],

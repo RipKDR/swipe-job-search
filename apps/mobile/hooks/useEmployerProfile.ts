@@ -13,7 +13,7 @@ export type EmployerProfile = Database['public']['Tables']['employer_profiles'][
  * Returns null if no employer profile exists yet.
  */
 export async function fetchEmployerProfile(profileId: string): Promise<EmployerProfile | null> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('employer_profiles')
     .select('*')
     .eq('profile_id', profileId)

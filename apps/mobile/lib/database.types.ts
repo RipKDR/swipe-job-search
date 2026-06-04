@@ -1,5 +1,9 @@
-// Supabase Database types matching BACKEND.md schema
-// Updated in U4 with full profiles + employer_profiles columns
+// Supabase Database types — generated from project-id twwmqqgjtdbcvrkinifa
+// Re-generated: npx supabase gen types typescript --project-id twwmqqgjtdbcvrkinifa > apps/mobile/lib/database.types.ts
+// NOTE: regeneration requires SUPABASE_ACCESS_TOKEN env var (supabase login).
+// Hand-updated to match live schema.
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
 export type Database = {
   public: {
     Tables: {
@@ -119,12 +123,12 @@ export type Database = {
           lng: number | null;
           description: string | null;
           photo_url: string | null;
-          source: string | null;
           status: 'active' | 'hired' | 'expired' | 'paused';
           expires_at: string;
           hired_at: string | null;
           created_at: string;
           updated_at: string;
+          source?: string | null;
         };
         Insert: {
           id?: string;
@@ -141,12 +145,12 @@ export type Database = {
           lng?: number | null;
           description?: string | null;
           photo_url?: string | null;
-          source?: string | null;
           status?: 'active' | 'hired' | 'expired' | 'paused';
           expires_at: string;
           hired_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          source?: string | null;
         };
         Update: {
           id?: string;
@@ -163,12 +167,12 @@ export type Database = {
           lng?: number | null;
           description?: string | null;
           photo_url?: string | null;
-          source?: string | null;
           status?: 'active' | 'hired' | 'expired' | 'paused';
           expires_at?: string;
           hired_at?: string | null;
           created_at?: string;
           updated_at?: string;
+          source?: string | null;
         };
       };
       swipes: {
@@ -191,29 +195,6 @@ export type Database = {
           candidate_id?: string;
           job_id?: string;
           direction?: 'right' | 'left' | 'applied';
-          created_at?: string;
-        };
-      };
-      messages: {
-        Row: {
-          id: string;
-          match_id: string;
-          sender_id: string;
-          body: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          match_id: string;
-          sender_id: string;
-          body: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          match_id?: string;
-          sender_id?: string;
-          body?: string;
           created_at?: string;
         };
       };
@@ -244,6 +225,29 @@ export type Database = {
           status?: 'chatting' | 'hire_pending' | 'hired' | 'unmatched' | 'archived';
           created_at?: string;
           updated_at?: string;
+        };
+      };
+      messages: {
+        Row: {
+          id: string;
+          match_id: string;
+          sender_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          match_id: string;
+          sender_id: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          match_id?: string;
+          sender_id?: string;
+          body?: string;
+          created_at?: string;
         };
       };
       blocks: {
@@ -502,7 +506,7 @@ export type Database = {
           provider_id: string;
           candidate_id: string;
           job_id: string;
-          direction: 'right' | 'left' | 'applied';
+          direction?: 'right' | 'left' | 'applied';
           created_at?: string;
         };
         Update: {
@@ -572,3 +576,6 @@ export type Database = {
     };
   };
 };
+
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
+export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T];

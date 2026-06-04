@@ -82,7 +82,7 @@ export default function EmployerEditProfileScreen() {
     try {
       const nowIso = new Date().toISOString();
       const profileUpdate = buildEmployerProfileUpdate(data, nowIso);
-      const { data: updatedProfile, error: profileError } = await (supabase as any)
+      const { data: updatedProfile, error: profileError } = await supabase
         .from('profiles')
         .update({
           suburb: profileUpdate.suburb,
@@ -100,7 +100,7 @@ export default function EmployerEditProfileScreen() {
         profile_id: profile.id,
         ...buildEmployerProfileDetailsUpdate(data, nowIso),
       };
-      const { error: employerProfileError } = await (supabase as any)
+      const { error: employerProfileError } = await supabase
         .from('employer_profiles')
         .upsert(employerDetailsPayload, { onConflict: 'profile_id' })
         .select('profile_id')
@@ -133,7 +133,7 @@ export default function EmployerEditProfileScreen() {
         const uploadedUrl = await uploadAvatarFromUri({
           userId: user.id,
           uri,
-          supabaseStorage: (supabase as any).storage.from('avatars'),
+          supabaseStorage: supabase.storage.from('avatars'),
           fetchImpl: fetch,
         });
         if (uploadedUrl) {
@@ -167,7 +167,7 @@ export default function EmployerEditProfileScreen() {
       const uploadedUrl = await pickAndUploadAvatar({
         userId: user.id,
         imagePicker: ImagePicker as typeof import('expo-image-picker'),
-        supabaseStorage: (supabase as any).storage.from('avatars'),
+        supabaseStorage: supabase.storage.from('avatars'),
         fetchImpl: fetch,
       });
 

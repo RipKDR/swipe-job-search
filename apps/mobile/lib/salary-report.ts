@@ -46,7 +46,7 @@ export async function submitSalaryReport(
       return { success: false, error: 'You must be signed in to submit a salary report' };
     }
 
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('salary_reports')
       .insert({
         job_id: jobId,

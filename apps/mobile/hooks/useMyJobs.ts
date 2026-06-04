@@ -21,7 +21,7 @@ export function useMyJobs() {
     queryKey: ['my-jobs', profile?.id],
     enabled: Boolean(profile?.id),
     queryFn: async (): Promise<MyJobItem[]> => {
-      const { data: jobsData, error: jobsError } = await (supabase as any)
+      const { data: jobsData, error: jobsError } = await supabase
         .from('jobs')
         .select('id,title,suburb,pay_display,status,expires_at,created_at')
         .eq('employer_id', profile!.id)
@@ -33,7 +33,7 @@ export function useMyJobs() {
       const jobIds = (jobs ?? []).map((job) => job.id as string)
       if (jobIds.length === 0) return []
 
-      const { data: swipesData, error: swipesError } = await (supabase as any)
+      const { data: swipesData, error: swipesError } = await supabase
         .from('swipes')
         .select('job_id, candidate_id')
         .eq('direction', 'right')
@@ -52,12 +52,12 @@ export function useMyJobs() {
           { data: matchesData, error: matchesError },
           { data: blocksData, error: blocksError },
         ] = await Promise.all([
-          (supabase as any)
+          supabase
             .from('matches')
             .select('job_id, candidate_id')
             .in('job_id', jobIds)
             .in('candidate_id', candidateIds),
-          (supabase as any)
+          supabase
             .from('blocks')
             .select('blocked_id')
             .eq('blocker_id', profile!.id)

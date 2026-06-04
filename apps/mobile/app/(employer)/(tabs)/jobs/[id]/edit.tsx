@@ -71,7 +71,7 @@ export default function EditJobScreen() {
     queryFn: async (): Promise<JobRow> => {
       if (!jobId || !profile?.id) throw new Error('Missing job or employer profile');
 
-      const { data, error: jobError } = await (supabase as any)
+      const { data, error: jobError } = await supabase
         .from('jobs')
         .select(
           'id,employer_id,title,job_type,pay_amount,pay_period,hours_text,suburb,description,photo_url,status,expires_at',
@@ -104,7 +104,7 @@ export default function EditJobScreen() {
       }
 
       const payload = buildJobEditablePayload(values, photoUrl);
-      const { error: updateError } = await (supabase as any)
+      const { error: updateError } = await supabase
         .from('jobs')
         .update(payload)
         .eq('id', job.id)

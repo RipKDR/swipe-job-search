@@ -33,7 +33,7 @@ export async function registerDeviceToken(
   expoPushToken: string,
   platform: 'ios' | 'android'
 ): Promise<void> {
-  const { error } = await (supabase.from('device_tokens') as any).upsert(
+  const { error } = await (supabase.from('device_tokens')).upsert(
     {
       profile_id: profileId,
       expo_push_token: expoPushToken,

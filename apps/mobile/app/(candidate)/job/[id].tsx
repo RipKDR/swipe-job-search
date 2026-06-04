@@ -17,7 +17,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 /* ── Queries ──────────────────────────────────────────── */
 
 async function fetchJobById(id: string): Promise<Job | null> {
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('jobs')
     .select('*')
     .eq('id', id)
@@ -27,7 +27,7 @@ async function fetchJobById(id: string): Promise<Job | null> {
 }
 
 async function fetchEmployerName(employerId: string): Promise<string | null> {
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('profiles')
     .select('full_name')
     .eq('id', employerId)
@@ -36,7 +36,7 @@ async function fetchEmployerName(employerId: string): Promise<string | null> {
 }
 
 async function fetchUserSwipeState(jobId: string, userId: string): Promise<'applied' | 'interested' | null> {
-  const { data } = await (supabase as any)
+  const { data } = await supabase
     .from('swipes')
     .select('direction')
     .eq('candidate_id', userId)
@@ -46,7 +46,7 @@ async function fetchUserSwipeState(jobId: string, userId: string): Promise<'appl
 }
 
 async function fetchSimilarJobs(id: string, suburb: string, jobType: string): Promise<Partial<Job>[]> {
-  const { data: similar } = await (supabase as any)
+  const { data: similar } = await supabase
     .from('jobs')
     .select('id,title,suburb,pay_display,job_type,source')
     .eq('status', 'active')
@@ -56,7 +56,7 @@ async function fetchSimilarJobs(id: string, suburb: string, jobType: string): Pr
   if (similar && (similar as any[]).length === 3) return similar as Partial<Job>[];
 
   // Fallback: same job_type
-  const { data: sameType } = await (supabase as any)
+  const { data: sameType } = await supabase
     .from('jobs')
     .select('id,title,suburb,pay_display,job_type,source')
     .eq('status', 'active')
@@ -72,7 +72,7 @@ async function trackApplication(jobId: string) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await (supabase as any)
+    await supabase
       .from('swipes')
       .upsert(
         [{ candidate_id: user.id, job_id: jobId, direction: 'applied' }],
@@ -128,7 +128,7 @@ export default function JobDetail() {
     try {
       const { data: { user: u } } = await supabase.auth.getUser();
       if (!u) throw new Error('Not authenticated');
-      await (supabase as any)
+      await supabase
         .from('swipes')
         .upsert([{ candidate_id: u.id, job_id: job.id, direction: 'right' }], {
           onConflict: 'candidate_id,job_id',

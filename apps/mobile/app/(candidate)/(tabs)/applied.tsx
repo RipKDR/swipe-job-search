@@ -67,13 +67,13 @@ const AppliedJobCard = React.memo(function AppliedJobCard({
       </View>
     </Pressable>
   );
-}, (prev, next) => prev.job.job_id === next.job.job_id);
+}, (prev, next) => prev.job.id === next.job.id);
 
 async function fetchAppliedJobs(): Promise<AppliedJob[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('swipes')
     .select(`
       job_id,

@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
-import type { Database } from '@hi-hired/shared';
+import type { Database } from './database.types';
 
 const supabaseUrl =
   Constants.expoConfig?.extra?.supabaseUrl;

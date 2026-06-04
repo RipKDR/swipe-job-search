@@ -20,7 +20,7 @@ export function useInterestedList(jobId: string) {
     queryKey: ['interested-list', jobId, profile?.id],
     enabled: Boolean(jobId && profile?.id),
     queryFn: async (): Promise<InterestedCandidate[]> => {
-      const { data: swipesData, error: swipesError } = await (supabase as any)
+      const { data: swipesData, error: swipesError } = await supabase
         .from('swipes')
         .select('candidate_id')
         .eq('job_id', jobId)
