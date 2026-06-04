@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React from 'react';
 import { View, Text, Pressable } from '@/components/tw';
 import type { Job } from '@hi-hired/shared';
 import { formatDistance } from '@/lib/distance';
@@ -6,8 +6,10 @@ import { useSalaryAggregate, formatSalaryAggregate } from '@/hooks/useSalaryAggr
 import { useCommute } from '@/hooks/useCommute';
 import { CommuteBadge } from './CommuteBadge';
 import { MatchScoreBadge } from './MatchScoreBadge';
+import { SalaryDisplay } from './SalaryDisplay';
 import { fetchMatchScore } from '@/lib/forecast';
 import type { MatchScoreResult, UserProfileInput } from '@/lib/forecast';
+import { useTheme } from '@/providers/ThemeProvider';
 import { useQuery } from '@tanstack/react-query';
 
 interface JobCardProps {
@@ -26,8 +28,11 @@ interface JobCardProps {
  * JobCard visual per tinder-job-card-reference.html + GUARDRAILS (NativeWind adapt).
  * Large pay, tactile feel, high contrast, a11y labels.
  * No gesture here (owned by SwipeDeck).
+ *
+ * Theme-aware: reads colors from ThemeProvider instead of hardcoded values.
  */
 export const JobCard = React.memo(function JobCard({ job, onPress, testID, userLocation, showMatchScore, userProfile }: JobCardProps) {
+  const { colors } = useTheme();
   const { data: salaryAggregate } = useSalaryAggregate(job.id);
   const salaryLabel = formatSalaryAggregate(salaryAggregate ?? null);
   const distanceText = userLocation
@@ -69,7 +74,7 @@ export const JobCard = React.memo(function JobCard({ job, onPress, testID, userL
         },
       ),
     enabled: !!showMatchScore && !!userProfile,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
   const matchScore: MatchScoreResult | undefined = matchScoreQuery.data;
 
@@ -79,8 +84,12 @@ export const JobCard = React.memo(function JobCard({ job, onPress, testID, userL
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      className="bg-[#f4f0e9] rounded-3xl overflow-hidden border border-[#2a2723] active:opacity-95"
       style={{
+        backgroundColor: colors.surface,
+        borderRadius: 24,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: colors.border,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 10 },
         shadowOpacity: 0.3,
@@ -88,20 +97,19 @@ export const JobCard = React.memo(function JobCard({ job, onPress, testID, userL
         elevation: 8,
       }}
     >
-      {/* Photo area (placeholder grain per ref) */}
-      <View className="h-56 bg-[#2a2723] items-center justify-center relative">
-        <View className="absolute inset-0 bg-[radial-gradient(#3a3630_0.6px,transparent_1px)] bg-size-[3px_3px] opacity-40" />
-        <Text className="text-[#6b665f] text-xs tracking-[3px]">{job.suburb.toUpperCase()}</Text>
-        <Text className="text-[#a19b8f] text-[10px] mt-0.5">{job.hours_text}</Text>
-        <View className="absolute top-4 right-4 px-3 py-px bg-[#f4f0e9] rounded">
-          <Text className="text-[#1f1c18] text-[9px] font-bold tracking-widest">{job.job_type.replace('_', ' ').toUpperCase()}</Text>
+      {/* Photo area */}
+      <View style={{ height: 224, backgroundColor: colors.photoBase, alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+        <Text style={{ color: colors.muted, fontSize: 12, letterSpacing: 3 }}>{job.suburb.toUpperCase()}</Text>
+        <Text style={{ color: colors.subtle, fontSize: 10, marginTop: 2 }}>{job.hours_text}</Text>
+        <View style={{ position: 'absolute', top: 16, right: 16, paddingHorizontal: 12, paddingVertical: 1, backgroundColor: colors.surface, borderRadius: 4 }}>
+          <Text style={{ color: colors.text, fontSize: 9, fontWeight: 'bold', letterSpacing: 2 }}>{job.job_type.replace('_', ' ').toUpperCase()}</Text>
         </View>
         {showBadges && (
           <>
-          <View className="absolute bottom-4 left-4 right-4 flex-row gap-2">
+          <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16, flexDirection: 'row', gap: 8 }}>
             {distanceText && (
-              <View className="px-2.5 py-1 bg-[#166534]/90 rounded-full">
-                <Text className="text-[#f4f0e9] text-[10px] font-semibold tracking-wide">{distanceText}</Text>
+              <View style={{ paddingHorizontal: 10, paddingVertical: 4, backgroundColor: `${colors.accent}e6`, borderRadius: 999 }}>
+                <Text style={{ color: colors.surface, fontSize: 10, fontWeight: '600', letterSpacing: 1 }}>{distanceText}</Text>
               </View>
             )}
             {commuteMinutes != null && <CommuteBadge minutes={commuteMinutes} />}
@@ -117,26 +125,19 @@ export const JobCard = React.memo(function JobCard({ job, onPress, testID, userL
         )}
       </View>
 
-      <View className="p-5">
-        <View className="flex-row justify-between items-start">
-          <View className="flex-1 pr-2">
-            <Text className="text-[#1f1c18] text-[21px] leading-none font-semibold tracking-[-0.4px]">{job.title}</Text>
-            <View className="mt-1 flex-row items-baseline">
-              <Text className="text-[36px] font-semibold tabular-nums tracking-[-1.5px] text-[#166534]">{job.pay_display}</Text>
-            </View>
-            {salaryLabel && (
-              <Text className="mt-0.5 text-[11px] text-[#6b665f] tabular-nums">
-                {salaryLabel}
-              </Text>
-            )}
+      <View style={{ padding: 20 }}>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <View style={{ flex: 1, paddingRight: 8 }}>
+            <Text style={{ color: colors.text, fontSize: 21, lineHeight: 24, fontWeight: '600', letterSpacing: -0.4 }}>{job.title}</Text>
+            <SalaryDisplay payDisplay={job.pay_display} salaryLabel={salaryLabel} />
           </View>
-          <Text className="text-right text-[10px] text-[#6b665f] pt-1">in circle</Text>
+          <Text style={{ color: colors.muted, fontSize: 10, paddingTop: 4 }}>in circle</Text>
         </View>
 
-        <Text className="mt-3 text-[#6b665f] text-xs">{job.suburb} • {job.hours_text}</Text>
+        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 12 }}>{job.suburb} • {job.hours_text}</Text>
 
         {job.description && (
-          <Text className="mt-3 text-[#1f1c18] text-sm leading-snug" numberOfLines={2}>
+          <Text style={{ color: colors.text, fontSize: 14, lineHeight: 20, marginTop: 12 }} numberOfLines={2}>
             {job.description}
           </Text>
         )}

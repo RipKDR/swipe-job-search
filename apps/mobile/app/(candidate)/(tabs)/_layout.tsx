@@ -25,6 +25,14 @@ function CandidateTabs() {
       />
 
       <Tabs.Screen
+        name="applied"
+        options={{
+          title: 'Applied',
+          tabBarIcon: ({ color }) => <TabIcon emoji="📋" color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
         name="matches"
         options={{
           title: 'Matches',
@@ -37,6 +45,14 @@ function CandidateTabs() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => <TabIcon emoji="👤" color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color }) => <TabIcon emoji="⚙️" color={color} />,
         }}
       />
     </Tabs>

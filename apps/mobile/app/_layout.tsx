@@ -18,10 +18,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import '../global.css';
 
+import { queryClient } from '@/lib/queryClient';
+
 initSentry();
 initAnalytics();
-
-import { queryClient } from '@/lib/queryClient';
 
 // Web-safe PostHogProvider — no-op on web, real provider on native
 // posthog-react-native is stubbed on web via metro.config.js

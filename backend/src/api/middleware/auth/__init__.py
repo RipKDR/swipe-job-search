@@ -1,13 +1,5 @@
-"""JWT authentication and RBAC middleware for Hi-Hired.
-
-Provides:
-- AuthClaims: Pydantic model for authenticated user claims
-- verify_access_token: Validate Supabase JWT tokens
-- get_current_user: FastAPI dependency for extracting auth from requests
-- require_role: Factory for role-based access control
-"""
-
 from __future__ import annotations
+import asyncio
 from typing import Any
 
 from fastapi import Depends, status
@@ -17,6 +9,7 @@ from jwt.exceptions import PyJWTError as JWTError
 from pydantic import BaseModel
 
 from src.core.config import get_settings
+
 # pyrefly: ignore [missing-import]
 from src.core.errors import APIException, ErrorCode
 from supabase import create_client
@@ -134,25 +127,29 @@ def _get_service_client():
     return create_client(settings.supabase_url, settings.supabase_service_key)
 
 
-def _get_profile_role(user_id: str | None) -> str | None:
+async def _get_profile_role(user_id: str | None) -> str | None:
     """Fetch the current role from profiles, which reflects onboarding changes.
 
     JWT app_metadata can be stale until token refresh. For peer app roles
     (employer/provider), the profiles row is the backend source of truth when it
     is available. If Supabase is unavailable or misconfigured, return None so
     callers can fall back to the already-verified JWT claim.
+
+    Runs the Supabase query in a thread pool to avoid blocking the event loop.
     """
     if not user_id:
         return None
 
     try:
-        resp = (
-            _get_service_client()
-            .table("profiles")
-            .select("role")
-            .eq("id", user_id)
-            .maybe_single()
-            .execute()
+        resp = await asyncio.to_thread(
+            lambda: (
+                _get_service_client()
+                .table("profiles")
+                .select("role")
+                .eq("id", user_id)
+                .maybe_single()
+                .execute()
+            )
         )
     except Exception:
         return None
@@ -210,7 +207,7 @@ def require_role(min_role: str):
             and claims.role != "admin"
             and not _role_satisfies(claims.role, min_role, min_level)
         ):
-            profile_role = _get_profile_role(claims.user_id)
+            profile_role = await _get_profile_role(claims.user_id)
             if profile_role:
                 effective_claims = claims.model_copy(update={"role": profile_role})
 

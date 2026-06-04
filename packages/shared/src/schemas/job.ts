@@ -37,6 +37,9 @@ export const JobSchema = z.object({
   hired_at: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
+  // Fields from job aggregator (optional — external jobs have these)
+  url: z.string().url().nullable().optional(),
+  source: z.string().nullable().optional(),
 });
 
 export type Job = z.infer<typeof JobSchema>;

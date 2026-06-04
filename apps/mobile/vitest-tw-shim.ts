@@ -12,7 +12,7 @@ export const TouchableHighlight = 'TouchableHighlight';
 
 // Use React.createElement if available at runtime, otherwise fall back to a simple factory.
 const createElement =
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+   
   (globalThis as any).React?.createElement ??
   ((type: any, props: any) => ({ type, props }));
 

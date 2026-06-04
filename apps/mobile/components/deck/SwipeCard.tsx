@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Dimensions, type ViewStyle } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { JobCard } from './JobCard';
 import { computeRotation, computeOverlayOpacity, shouldSwipe } from '@/lib/swipe-engine';
 import type { Job } from '@hi-hired/shared';
@@ -49,6 +50,27 @@ const OVERLAY_BADGE_STYLE: ViewStyle = {
 };
 
 /**
+ * Trigger haptic feedback based on swipe direction.
+ * Respects user preference stored in AsyncStorage.
+ * Uses light impact for pass (left) and medium for apply (right).
+ */
+async function triggerSwipeHaptic(direction: 'left' | 'right') {
+  try {
+    const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+    const enabled = await AsyncStorage.getItem('settings_haptics_enabled');
+    if (enabled === 'false') return;
+
+    if (direction === 'right') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  } catch {
+    // Haptics not available on web/simulator — silently ignore
+  }
+}
+
+/**
  * SwipeCard — A production-ready swipe card using Reanimated v3 + Gesture Handler.
  *
  * Renders a JobCard with gesture-driven swipe physics.
@@ -58,6 +80,7 @@ const OVERLAY_BADGE_STYLE: ViewStyle = {
  * - Real-time rotation based on swipe distance
  * - Shadow intensifies during active swipe
  * - "PASS" (left, grey) and "APPLY" (right, green) overlay badges
+ * - Haptic feedback on swipe decision (light for pass, medium for apply)
  * - Spring animation on release or off-screen swipe
  * - Stack peek for cards at index 1 and 2
  */
@@ -79,6 +102,7 @@ export function SwipeCard({
 
   const handleSwipeComplete = React.useCallback(
     (direction: 'left' | 'right') => {
+      triggerSwipeHaptic(direction);
       if (direction === 'left') {
         onSwipeLeft?.(job.id);
       } else {

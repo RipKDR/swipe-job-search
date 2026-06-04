@@ -21,10 +21,14 @@ function mapSwipeError(error: { message?: string } | null): string {
   return message || 'Unable to save swipe right now';
 }
 
-// Haptics — no-op on web, native on device
+// Haptics — no-op on web, native on device, respects user preference
 async function triggerHaptic(type?: 'selection' | 'success' | 'warning') {
   if (Platform.OS === 'web') return;
   try {
+    const { default: AsyncStorage } = await import('@react-native-async-storage/async-storage');
+    const enabled = await AsyncStorage.getItem('settings_haptics_enabled');
+    if (enabled === 'false') return;
+
     if (type === 'selection') {
       await Haptics.selectionAsync();
     } else if (type === 'success') {

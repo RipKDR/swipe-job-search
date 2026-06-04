@@ -1,32 +1,100 @@
-import { View, Text } from '@/components/tw';
+import { View, Text, Pressable } from '@/components/tw';
+import { Alert } from 'react-native';
+import { useRouter } from 'expo-router';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
+import { ThemePicker } from '@/components/ui/ThemePicker';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/providers/ThemeProvider';
+import { shareResume, type ResumeData } from '@/lib/resume-export';
+import * as Haptics from 'expo-haptics';
 
 function ProfileRow({ label, value }: { label: string; value: string }) {
+  const { colors } = useTheme();
   return (
-    <View className="py-3 border-b border-slate-800/80">
-      <Text className="text-slate-500 text-xs font-medium uppercase tracking-wide mb-1">{label}</Text>
-      <Text className="text-white text-base">{value}</Text>
+    <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+      <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '500', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>{label}</Text>
+      <Text style={{ color: colors.text, fontSize: 16 }}>{value}</Text>
     </View>
+  );
+}
+
+function ActionButton({ label, emoji, onPress, variant = 'outline' }: {
+  label: string;
+  emoji: string;
+  onPress: () => void;
+  variant?: 'primary' | 'outline';
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className="active:opacity-70 flex-row items-center gap-3 py-4 px-4 border-b border-slate-800/50"
+    >
+      <Text className="text-xl">{emoji}</Text>
+      <Text className={`text-base flex-1 ${variant === 'primary' ? 'text-indigo-400 font-medium' : 'text-slate-300'}`}>{label}</Text>
+      <Text className="text-slate-600 text-lg">›</Text>
+    </Pressable>
   );
 }
 
 export function ProfileScreen() {
   const { profile, signOut } = useAuth();
+  const { colors } = useTheme();
+  const router = useRouter();
 
   const roleLabel =
     profile?.role === 'employer' ? 'Employer' : profile?.role === 'candidate' ? 'Job seeker' : '—';
+
+  const handleEditProfile = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    if (profile?.role === 'candidate') {
+      router.push('/(candidate)/edit-profile');
+    } else {
+      Alert.alert('Coming soon', 'Employer profile editing will be available in a future update.');
+    }
+  };
+
+  const handleShareResume = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    if (!profile) return;
+
+    const resumeData: ResumeData = {
+      full_name: profile.full_name,
+      email: profile.email,
+      suburb: profile.suburb,
+      experience_text: profile.experience_text,
+      skills: profile.skills,
+      availability_text: profile.availability_text,
+      work_rights: profile.work_rights,
+    };
+
+    await shareResume(resumeData);
+  };
+
+  const handleViewPricing = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    router.push('/(candidate)/pricing');
+  };
 
   return (
     <AppScreen scroll centered maxWidth="lg">
       <ScreenHeader
         title="Profile"
-        subtitle="Your account details and session"
+        subtitle="Your account details and preferences"
       />
 
-      <View className="rounded-2xl border border-slate-800 bg-slate-900/80 px-5 py-2 mb-8">
+      {/* Account info */}
+      <View style={{
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.elevated,
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        marginBottom: 24,
+        width: '100%',
+      }}>
         <ProfileRow label="Name" value={profile?.full_name?.trim() || 'Not set'} />
         <ProfileRow label="Email" value={profile?.email?.trim() || '—'} />
         <ProfileRow label="Suburb" value={profile?.suburb?.trim() || '—'} />
@@ -34,12 +102,38 @@ export function ProfileScreen() {
         {profile?.role === 'candidate' && profile.skills?.length ? (
           <ProfileRow label="Skills" value={profile.skills.join(', ')} />
         ) : null}
+        {profile?.role === 'candidate' && profile.experience_text ? (
+          <ProfileRow label="Experience" value={profile.experience_text} />
+        ) : null}
+        {profile?.role === 'candidate' && profile.availability_text ? (
+          <ProfileRow label="Availability" value={profile.availability_text} />
+        ) : null}
       </View>
 
-      <View className="gap-3">
-        <Text className="text-slate-500 text-xs text-center">
-          Edit profile and preferences are coming in a future update.
-        </Text>
+      {/* Actions */}
+      <View style={{
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.elevated,
+        width: '100%',
+        marginBottom: 24,
+        overflow: 'hidden',
+      }}>
+        <ActionButton label="Edit profile" emoji="✏️" onPress={handleEditProfile} />
+        {profile?.role === 'candidate' && (
+          <ActionButton label="Share my resume" emoji="📄" onPress={handleShareResume} />
+        )}
+        <ActionButton label="Plans & pricing" emoji="💎" onPress={handleViewPricing} />
+      </View>
+
+      {/* Theme picker */}
+      <View style={{ width: '100%', marginBottom: 24 }}>
+        <ThemePicker />
+      </View>
+
+      {/* Sign out */}
+      <View style={{ gap: 12, width: '100%' }}>
         <Button title="Sign out" variant="outline" fullWidth onPress={() => void signOut()} />
       </View>
     </AppScreen>

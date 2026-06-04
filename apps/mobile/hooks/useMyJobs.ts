@@ -40,7 +40,7 @@ export function useMyJobs() {
 
       if (swipesError) throw swipesError
 
-      const swipes = (swipesData ?? []) as Array<{ job_id: string; candidate_id: string }>
+      const swipes = (swipesData ?? []) as { job_id: string; candidate_id: string }[]
       const candidateIds = Array.from(new Set(swipes.map((row) => row.candidate_id)))
 
       const matchedPairs = new Set<string>()
@@ -66,10 +66,10 @@ export function useMyJobs() {
         if (matchesError) throw matchesError
         if (blocksError) throw blocksError
 
-        for (const row of (matchesData ?? []) as Array<{ job_id: string; candidate_id: string }>) {
+        for (const row of (matchesData ?? []) as { job_id: string; candidate_id: string }[]) {
           matchedPairs.add(`${row.job_id}:${row.candidate_id}`)
         }
-        for (const row of (blocksData ?? []) as Array<{ blocked_id: string }>) {
+        for (const row of (blocksData ?? []) as { blocked_id: string }[]) {
           blockedIds.add(row.blocked_id)
         }
       }

@@ -1,5 +1,6 @@
 import { View, ScrollView } from '@/components/tw';
 import { AmbientBackground } from './AmbientBackground';
+import { useTheme } from '@/providers/ThemeProvider';
 import {
   contentMaxWidthByPreset,
   screenPadding,
@@ -27,6 +28,7 @@ export function AppScreen({
   contentClassName,
   keyboardShouldPersistTaps = 'handled',
 }: AppScreenProps) {
+  const { colors } = useTheme();
   const widthClass = contentMaxWidthByPreset[maxWidth];
   const innerClass = centered
     ? `${widthClass} ${screenPadding} ${contentClassName ?? ''}`
@@ -55,7 +57,7 @@ export function AppScreen({
   );
 
   return (
-    <View className="flex-1 bg-slate-950 min-h-screen-safe">
+    <View style={{ flex: 1, backgroundColor: colors.background, minHeight: 0 }}>
       <AmbientBackground />
       {body}
     </View>
