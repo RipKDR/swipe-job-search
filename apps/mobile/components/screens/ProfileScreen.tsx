@@ -74,10 +74,14 @@ export function ProfileScreen() {
   const handleEditProfile = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     if (profile?.role === 'candidate') {
-      router.push('/(candidate)/edit-profile');
-    } else {
-      Alert.alert('Coming soon', 'Employer profile editing will be available in a future update.');
+      router.push('/(candidate)/edit-profile' as any);
+      return;
     }
+    if (profile?.role === 'employer') {
+      router.push('/(employer)/edit-profile' as any);
+      return;
+    }
+    Alert.alert('Profile unavailable', 'Please sign in again to edit your profile.');
   };
 
   const handleShareResume = async () => {

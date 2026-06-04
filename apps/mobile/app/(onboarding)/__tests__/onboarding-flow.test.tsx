@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import RoleSelection from '../role';
 import {
   buildCandidateProfileUpdate,
+  buildEmployerProfileDetailsUpdate,
   buildEmployerProfileInsert,
   buildEmployerProfileUpdate,
   buildProviderProfileUpdate,
@@ -192,6 +193,50 @@ describe('Onboarding submit payload builders', () => {
     expect(employerPayload.profile_id).toBe('user-1');
     expect(employerPayload.business_name).toBe('Little Lane Cafe');
     expect(employerPayload.contact_name).toBe('Jane Employer');
+  });
+
+  it('includes employer about text in linked employer_profiles insert when provided', () => {
+    const data = {
+      business_name: 'Little Lane Cafe',
+      suburb: 'Moonee Ponds',
+      contact_name: 'Jane Employer',
+      about_text: 'Family-owned cafe hiring friendly baristas.',
+    } satisfies Parameters<typeof buildEmployerProfileInsert>[1];
+
+    expect(buildEmployerProfileInsert('user-1', data)).toEqual({
+      profile_id: 'user-1',
+      business_name: 'Little Lane Cafe',
+      contact_name: 'Jane Employer',
+      about_text: 'Family-owned cafe hiring friendly baristas.',
+    });
+  });
+
+  it('normalizes absent or empty employer about text to null in linked employer_profiles insert', () => {
+    const baseData = {
+      business_name: 'Little Lane Cafe',
+      suburb: 'Moonee Ponds',
+      contact_name: 'Jane Employer',
+    } satisfies Parameters<typeof buildEmployerProfileInsert>[1];
+
+    expect(buildEmployerProfileInsert('user-1', baseData).about_text).toBeNull();
+    expect(buildEmployerProfileInsert('user-1', { ...baseData, about_text: '' }).about_text).toBeNull();
+  });
+
+  it('builds employer profile details update payload with about text and updated timestamp', () => {
+    const data = {
+      business_name: 'Little Lane Cafe',
+      suburb: 'Moonee Ponds',
+      contact_name: 'Jane Employer',
+      about_text: 'Family-owned cafe hiring friendly baristas.',
+      avatar_url: 'https://example.com/logo.jpg',
+    } satisfies Parameters<typeof buildEmployerProfileDetailsUpdate>[0];
+
+    expect(buildEmployerProfileDetailsUpdate(data, '2026-01-01T00:00:00.000Z')).toEqual({
+      business_name: 'Little Lane Cafe',
+      contact_name: 'Jane Employer',
+      about_text: 'Family-owned cafe hiring friendly baristas.',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    });
   });
 
   it('builds provider profile update with role and completion timestamp', () => {

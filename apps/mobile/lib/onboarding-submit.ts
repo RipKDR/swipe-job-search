@@ -53,5 +53,18 @@ export function buildEmployerProfileInsert(
     profile_id: userId,
     business_name: data.business_name,
     contact_name: data.contact_name || null,
+    about_text: data.about_text || null,
+  };
+}
+
+export function buildEmployerProfileDetailsUpdate(
+  data: EmployerOnboarding,
+  nowIso: string
+) {
+  return {
+    business_name: data.business_name,
+    contact_name: data.contact_name || null,
+    about_text: data.about_text || null,
+    updated_at: nowIso,
   };
 }
