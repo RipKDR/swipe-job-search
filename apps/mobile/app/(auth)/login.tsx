@@ -1,6 +1,7 @@
 import { View, Text } from '@/components/tw';
 import { Alert, Platform } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'expo-router';
 import { supabase, getSupabaseConfigError } from '@/lib/supabase';
 import * as WebBrowser from 'expo-web-browser';
 import { APPLE_AUTH_ENABLED, APPLE_AUTH_DISABLED_COPY } from '@/lib/login-config';
@@ -33,6 +34,8 @@ export default function Login() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const otpInFlightRef = useRef(false);
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
   const posthog = usePostHog();
 
   useEffect(() => {
@@ -170,7 +173,7 @@ export default function Login() {
       posthog.capture('login_failed', { method: 'magic_link', reason: 'exception' });
     } finally {
       otpInFlightRef.current = false;
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
@@ -238,7 +241,7 @@ export default function Login() {
       });
       posthog.capture('login_failed', { method: provider, reason: 'exception' });
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
@@ -336,7 +339,10 @@ export default function Login() {
         />
 
         <Text className="text-slate-500 text-xs text-center mt-8">
-          By continuing, you agree to our Terms of Service and Privacy Policy
+          By continuing, you agree to our{' '}
+          <Link href="https://hihired.com/terms" className="text-indigo-400 underline">Terms of Service</Link>
+          {' '}and{' '}
+          <Link href="https://hihired.com/privacy" className="text-indigo-400 underline">Privacy Policy</Link>
         </Text>
       </View>
     </View>

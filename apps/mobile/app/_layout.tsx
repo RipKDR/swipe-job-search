@@ -8,7 +8,7 @@ import { useNotificationObserver, usePushRegistration } from '@/hooks/usePushReg
 import { initAnalytics } from '@/lib/analytics';
 import { posthog } from '@/lib/posthog';
 import { resolveAuthRedirect } from '@/lib/auth-gate';
-import { getRoleHomeRoute, ROUTES, shouldRedirectForRoleMismatch, type AppRoute } from '@/lib/routing';
+import { getRoleHomeRoute, shouldRedirectForRoleMismatch } from '@/lib/routing';
 import { initSentry, wrapApp } from '@/lib/sentry';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
@@ -59,7 +59,11 @@ function RootLayoutNav() {
 
   useEffect(() => {
     if (previousPathname.current !== pathname) {
-      posthog.screen(pathname, { previous_screen: previousPathname.current ?? null, ...params });
+      const SENSITIVE_PARAMS = new Set(['code', 'access_token', 'refresh_token', 'error', 'error_description']);
+      const safeParams = Object.fromEntries(
+        Object.entries(params).filter(([k]) => !SENSITIVE_PARAMS.has(k))
+      );
+      posthog.screen(pathname, { previous_screen: previousPathname.current ?? null, ...safeParams });
       previousPathname.current = pathname;
     }
   }, [pathname, params]);
