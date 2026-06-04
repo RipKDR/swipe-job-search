@@ -1,9 +1,9 @@
 import { View, Text, TextInput } from '@/components/tw'
-import type { TextInputProps } from 'react-native'
+import type { ComponentProps } from 'react'
 
 const PLACEHOLDER_COLOR = '#64748b'
 
-export interface TextFieldProps extends TextInputProps {
+export interface TextFieldProps extends ComponentProps<typeof TextInput> {
   label?: string
   error?: string
 }

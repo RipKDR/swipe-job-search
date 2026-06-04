@@ -40,7 +40,6 @@ function ActionButton({ label, emoji, onPress, variant = 'outline' }: {
 }
 
 function VerificationBadge() {
-  const { colors } = useTheme();
   return (
     <View style={{
       flexDirection: 'row',
@@ -50,7 +49,7 @@ function VerificationBadge() {
     }}>
       <Text style={{ fontSize: 14 }}>✅</Text>
       <Text style={{
-        color: colors.success || '#22c55e',
+        color: '#22c55e',
         fontSize: 13,
         fontWeight: '600',
       }}>
@@ -103,7 +102,11 @@ export function ProfileScreen() {
 
   const handleViewPricing = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-    router.push('/(candidate)/pricing');
+    router.push('/(candidate)/pricing' as any);
+  };
+
+  const handleSignOut = () => {
+    void signOut();
   };
 
   const isEmployer = profile?.role === 'employer';
@@ -191,7 +194,7 @@ export function ProfileScreen() {
 
       {/* Sign out */}
       <View style={{ gap: 12, width: '100%' }}>
-        <Button title="Sign out" variant="outline" fullWidth onPress={() => void signOut()} />
+        <Button title="Sign out" variant="outline" fullWidth onPress={handleSignOut} />
       </View>
     </AppScreen>
   );

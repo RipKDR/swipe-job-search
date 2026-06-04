@@ -1,9 +1,9 @@
 import { Pressable, Text } from '@/components/tw';
 import { ActivityIndicator } from 'react-native';
-import type { PressableProps } from 'react-native';
+import type { ComponentProps } from 'react';
 import { useTheme } from '@/providers/ThemeProvider';
 
-interface ButtonProps extends PressableProps {
+interface ButtonProps extends Omit<ComponentProps<typeof Pressable>, 'children'> {
   title: string;
   variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'inverse';
   loading?: boolean;

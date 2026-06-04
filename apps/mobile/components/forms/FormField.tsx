@@ -1,12 +1,11 @@
 import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form'
-import type { TextInputProps } from 'react-native'
-import { TextField } from '../ui/TextField'
+import { TextField, type TextFieldProps } from '../ui/TextField'
 
 type FormFieldProps<T extends FieldValues> = {
   control: Control<T>
   name: FieldPath<T>
   label: string
-} & Omit<TextInputProps, 'value' | 'onChangeText' | 'onChange' | 'onBlur'>
+} & Omit<TextFieldProps, 'label' | 'error' | 'value' | 'onChangeText' | 'onChange' | 'onBlur'>
 
 export function FormField<T extends FieldValues>({
   control,
