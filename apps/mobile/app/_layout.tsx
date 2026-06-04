@@ -10,6 +10,7 @@ import { resolveAuthRedirect } from '@/lib/auth-gate';
 import { getRoleHomeRoute, ROUTES, shouldRedirectForRoleMismatch, type AppRoute } from '@/lib/routing';
 import { initSentry, wrapApp } from '@/lib/sentry';
 import { AuthProvider } from '@/providers/AuthProvider';
+import { ThemeProvider } from '@/providers/ThemeProvider';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Slot, useGlobalSearchParams, usePathname, useRouter, useSegments, type Href } from 'expo-router';
 import { PostHogProvider } from 'posthog-react-native';
@@ -136,7 +137,9 @@ function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <SafePostHogProvider>
         <AuthProvider>
-          <RootLayoutNav />
+          <ThemeProvider>
+            <RootLayoutNav />
+          </ThemeProvider>
         </AuthProvider>
       </SafePostHogProvider>
     </QueryClientProvider>
