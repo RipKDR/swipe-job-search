@@ -104,7 +104,7 @@ export const JobCard = React.memo(function JobCard({ job, onPress, testID, userL
       <View style={{ height: 224, backgroundColor: colors.photoBase, alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
         <Text style={{ color: colors.muted, fontSize: 12, letterSpacing: 3 }}>{job.suburb.toUpperCase()}</Text>
         <Text style={{ color: colors.subtle, fontSize: 10, marginTop: 2 }}>{job.hours_text}</Text>
-        <View style={{ position: 'absolute', top: 16, right: 16, paddingHorizontal: 12, paddingVertical: 1, backgroundColor: colors.surface, borderRadius: 4 }}>
+        <View style={{ position: 'absolute', top: 16, right: 16, paddingHorizontal: 12, paddingVertical: 1, backgroundColor: colors.surface, borderRadius: 4 }} accessibilityLabel={`Job type: ${job.job_type}`}>
           <Text style={{ color: colors.text, fontSize: 9, fontWeight: 'bold', letterSpacing: 2 }}>{job.job_type.replace('_', ' ').toUpperCase()}</Text>
         </View>
         {showBadges && (

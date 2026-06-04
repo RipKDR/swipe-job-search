@@ -23,7 +23,7 @@ export function CandidateProfileForm({
 }: CandidateProfileFormProps) {
   const [skillInput, setSkillInput] = useState('');
   const { control, formState: { errors }, watch, setValue } = form;
-  const skills = watch('skills');
+  const skills = watch('skills') ?? [];
   const avatarUrl = watch('avatar_url');
 
   const addSkill = () => {

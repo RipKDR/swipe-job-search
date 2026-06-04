@@ -13,7 +13,7 @@ type JobListItemProps = {
 
 function getStatusMeta(job: MyJobItem) {
   const isExpired =
-    job.status === 'expired' || (job.expires_at && new Date(job.expires_at) < new Date());
+    job.status === 'expired' || (job.expires_at && new Date(job.expires_at).toISOString().slice(0, 10) < new Date().toISOString().slice(0, 10));
 
   if (job.status === 'hired') {
     return { label: 'Hired', colorClass: 'text-indigo-300', actionLabel: null as string | null };

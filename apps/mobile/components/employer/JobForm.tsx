@@ -74,11 +74,8 @@ export function JobForm({
   };
 
   const handleSubmit = async () => {
+    if (submitting || !canSubmit) return;
     setError(null);
-    if (!canSubmit) {
-      setError('Please complete all required fields before posting');
-      return;
-    }
 
     try {
       await onSubmit(values);

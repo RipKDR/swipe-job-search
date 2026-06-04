@@ -155,9 +155,6 @@ export default function Login() {
         applyCooldown(OTP_RESEND_COOLDOWN_MS, false);
         setMagicLinkSent(true);
         posthog.capture('magic_link_sent');
-        if (Platform.OS !== 'web') {
-          Alert.alert('Check your email', 'We sent you a magic link. Click it to sign in.');
-        }
       }
     } catch (err) {
       const message =

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePostHog } from '@/hooks/usePostHog';
 import { useSwipe } from '@/hooks/useSwipe';
@@ -121,9 +121,15 @@ export function useJobDeck(options?: UseJobDeckOptions) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deckQuery.data, radius_km, userLocation?.latitude, userLocation?.longitude, usePipeline]);
 
-  const remainingJobs = usePipeline ? pipeline.jobs : jobs.slice(currentIndex);
-  const topJob = remainingJobs[0] ?? null;
-  const allJobs = usePipeline ? pipeline.jobs : jobs;
+  const remainingJobs = useMemo(
+    () => (usePipeline ? pipeline.jobs : jobs.slice(currentIndex)),
+    [usePipeline, pipeline.jobs, jobs, currentIndex],
+  );
+  const topJob = useMemo(() => remainingJobs[0] ?? null, [remainingJobs]);
+  const allJobs = useMemo(
+    () => (usePipeline ? pipeline.jobs : jobs),
+    [usePipeline, pipeline.jobs, jobs],
+  );
 
   const swipe = useCallback(async (direction: 'left' | 'right') => {
     if (!topJob) return;

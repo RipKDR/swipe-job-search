@@ -105,6 +105,9 @@ export function SwipeCard({
 }: SwipeCardProps) {
   const { width: screenWidth } = useWindowDimensions();
 
+  const mountedRef = React.useRef(true);
+  React.useEffect(() => () => { mountedRef.current = false; }, []);
+
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const scale = useSharedValue(STACK_CONFIG[index].scale);
@@ -129,6 +132,7 @@ export function SwipeCard({
 
   const handleSwipeComplete = React.useCallback(
     (direction: 'left' | 'right') => {
+      if (!mountedRef.current) return;
       triggerSwipeHaptic(direction);
       if (direction === 'left') {
         onSwipeLeft?.(job.id);

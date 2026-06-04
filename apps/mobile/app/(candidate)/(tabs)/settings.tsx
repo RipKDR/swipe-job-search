@@ -58,8 +58,8 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { accent, setAccent, mode, setMode, toggleMode, themes } = useTheme();
-  const [hapticsEnabled, setHapticsEnabled] = useState(true);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [hapticsEnabled, setHapticsEnabled] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Load persisted preferences

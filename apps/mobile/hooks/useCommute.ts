@@ -23,8 +23,14 @@ const DEBOUNCE_MS = 2_000;
  * job locations across renders and cards don't trigger duplicate fetches.
  * Max 50 entries to avoid unbounded memory use.
  */
-const cache = new Map<string, CommuteResult>();
+const COMMUTE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const cache = new Map<string, { result: CommuteResult; timestamp: number }>();
 const MAX_CACHE = 50;
+
+/** Clear all cached commute results. Useful for tests or manual invalidation. */
+export function clearCommuteCache(): void {
+  cache.clear();
+}
 
 function getCacheKey(lat: number, lng: number): string {
   // Round to 4 decimal places (~11 m precision) — small enough for commute
@@ -39,11 +45,17 @@ function setCached(lat: number, lng: number, result: CommuteResult): void {
     const oldest = cache.keys().next().value;
     if (oldest !== undefined) cache.delete(oldest);
   }
-  cache.set(key, result);
+  cache.set(key, { result, timestamp: Date.now() });
 }
 
 function getCached(lat: number, lng: number): CommuteResult | undefined {
-  return cache.get(getCacheKey(lat, lng));
+  const entry = cache.get(getCacheKey(lat, lng));
+  if (!entry) return undefined;
+  if (Date.now() - entry.timestamp > COMMUTE_CACHE_TTL) {
+    cache.delete(getCacheKey(lat, lng));
+    return undefined;
+  }
+  return entry.result;
 }
 
 export interface UseCommuteResult {

@@ -36,6 +36,7 @@ export function PostHireSurvey({
   const [phase, setPhase] = useState<SurveyPhase>('prompt');
   const [hourlyRate, setHourlyRate] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleStart = () => {
     setPhase('form');
@@ -60,17 +61,26 @@ export function PostHireSurvey({
       return;
     }
 
+    if (submitting) return;
+    setSubmitting(true);
     setPhase('submitting');
     setErrorMessage(null);
 
-    const result = await submitSalaryReport(supabase, jobId, rate, 'actual');
+    try {
+      const result = await submitSalaryReport(supabase, jobId, rate, 'actual');
 
-    if (result.success) {
-      setPhase('success');
-      onComplete?.();
-    } else {
+      if (result.success) {
+        setPhase('success');
+        onComplete?.();
+      } else {
+        setPhase('error');
+        setErrorMessage(result.error ?? 'Something went wrong');
+      }
+    } catch (e) {
       setPhase('error');
-      setErrorMessage(result.error ?? 'Something went wrong');
+      setErrorMessage(e instanceof Error ? e.message : 'Something went wrong');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -84,6 +94,7 @@ export function PostHireSurvey({
           errorMessage={errorMessage}
           onSubmit={handleSubmit}
           onSkip={handleSkip}
+          isSubmitting={submitting}
         />
       )}
       {phase === 'submitting' && <SubmittingPhase />}
@@ -94,6 +105,10 @@ export function PostHireSurvey({
       {phase === 'skipped' && null}
     </View>
   );
+
+  if (phase === 'form' && submitting) {
+    // Guard: disable submit in JSX too
+  }
 }
 
 /* ─── Sub-components ─── */
@@ -145,12 +160,14 @@ function FormPhase({
   errorMessage,
   onSubmit,
   onSkip,
+  isSubmitting = false,
 }: {
   hourlyRate: string;
   onChangeRate: (v: string) => void;
   errorMessage: string | null;
   onSubmit: () => void;
   onSkip: () => void;
+  isSubmitting?: boolean;
 }) {
   return (
     <>
@@ -184,9 +201,10 @@ function FormPhase({
           onPress={onSubmit}
           accessibilityRole="button"
           accessibilityLabel="Submit salary report"
-          className="flex-1 bg-[#166534] py-2.5 rounded-full items-center active:opacity-80"
+          disabled={isSubmitting}
+          className={`flex-1 ${isSubmitting ? 'bg-[#166534]/50' : 'bg-[#166534]'} py-2.5 rounded-full items-center active:opacity-80`}
         >
-          <Text className="text-white text-sm font-semibold">Submit</Text>
+          <Text className="text-white text-sm font-semibold">{isSubmitting ? 'Submitting…' : 'Submit'}</Text>
         </Pressable>
         <Pressable
           onPress={onSkip}

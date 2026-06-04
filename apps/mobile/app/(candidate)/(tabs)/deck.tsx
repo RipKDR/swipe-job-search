@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { View, Text, Pressable } from '@/components/tw';
 import { Alert } from 'react-native';
 import { SwipeDeck } from '@/components/deck/SwipeDeck';
@@ -30,7 +30,7 @@ export default function DeckScreen() {
 
   const handleCardPress = useCallback(
     (job: { id: string }) => {
-      router.push(`/job/${job.id}` as any);
+      router.push(`/job/${job.id}` as Href);
     },
     [router],
   );
@@ -43,6 +43,16 @@ export default function DeckScreen() {
     return (
       <AppScreen centered={false} maxWidth="tab">
         <EmptyDeck onRefresh={reset} />
+        {error ? (
+          <View className="mx-4 sm:mx-6 lg:mx-8 mb-6 max-w-4xl self-center w-full bg-red-950/90 rounded-xl px-4 py-3 border border-red-900/50">
+            <Text className="text-red-300 text-sm text-center">
+              Something went wrong. Your last swipe was rolled back.
+            </Text>
+            <Pressable onPress={reset} className="mt-2">
+              <Text className="text-white text-center font-medium text-indigo-300">Try again</Text>
+            </Pressable>
+          </View>
+        ) : null}
       </AppScreen>
     );
   }

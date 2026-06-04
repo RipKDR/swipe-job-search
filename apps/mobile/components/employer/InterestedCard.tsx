@@ -83,7 +83,8 @@ const comparator = (prev: InterestedCardProps, next: InterestedCardProps) =>
   prev.avatarUrl === next.avatarUrl &&
   prev.fullName === next.fullName &&
   prev.suburb === next.suburb &&
-  prev.skills === next.skills;
+  prev.skills.length === next.skills.length &&
+  prev.skills.every((s, i) => s === next.skills[i]);
 
 export const InterestedCard = React.memo(InterestedCardRaw, comparator);
 export default InterestedCard;

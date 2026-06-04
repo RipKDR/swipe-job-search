@@ -1,4 +1,3 @@
-import { Text } from '@/components/tw';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import * as Linking from 'expo-linking';
