@@ -3,7 +3,7 @@
 // existing consumers (Button.tsx, AppScreen.tsx, etc.).
 // Uses the same storage strategy as lib/supabase.ts.
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import {
@@ -72,7 +72,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [accent, setAccentState] = useState<AccentTheme>(DEFAULT_ACCENT);
   const [mode, setModeState] = useState<ThemeMode>(DEFAULT_MODE);
   const [ready, setReady] = useState(false);
-  const mounted = useRef(true);
 
   // 1️⃣ Load persisted preferences on mount
   useEffect(() => {
@@ -94,7 +93,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       } catch {
         // storage unavailable — silently fall back
       }
-      if (cancelled || !mounted.current) return;
+      if (cancelled) return;
 
       setAccentState(parseAccentTheme(accentRaw));
       setModeState(parseThemeMode(modeRaw));
@@ -111,7 +110,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS === 'web') {
       webSet(ACCENT_STORAGE_KEY, next);
     } else {
-      SecureStore.setItemAsync(ACCENT_STORAGE_KEY, next).catch(() => {});
+      SecureStore.setItemAsync(ACCENT_STORAGE_KEY, next).catch((e) =>
+        console.warn('[ThemeProvider] Failed to persist accent color:', e)
+      );
     }
   }, []);
 
@@ -121,7 +122,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (Platform.OS === 'web') {
       webSet(MODE_STORAGE_KEY, next);
     } else {
-      SecureStore.setItemAsync(MODE_STORAGE_KEY, next).catch(() => {});
+      SecureStore.setItemAsync(MODE_STORAGE_KEY, next).catch((e) =>
+        console.warn('[ThemeProvider] Failed to persist theme mode:', e)
+      );
     }
   }, []);
 

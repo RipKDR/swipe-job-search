@@ -83,13 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(freshProfile);
         setProfileLoadFailed(false);
         if (freshProfile.id) {
-          const identifyTraits: Record<string, unknown> = {
-            candidate: freshProfile.role === 'candidate' ? 1 : 0,
-            employer: freshProfile.role === 'employer' ? 1 : 0,
-            email: freshProfile.email,
-            suburb: freshProfile.suburb,
-          };
-          void posthog.identify(freshProfile.id, identifyTraits);
+          void posthog.identify(freshProfile.id);
         }
       } else {
         setProfile(null);

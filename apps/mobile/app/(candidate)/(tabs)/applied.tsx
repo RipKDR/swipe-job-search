@@ -23,17 +23,14 @@ interface AppliedJob {
   } | null;
 }
 
-type AppliedJobsColors = ReturnType<typeof useTheme>['colors'];
-
 const AppliedJobCard = React.memo(function AppliedJobCard({
   job,
   onPress,
-  colors,
 }: {
   job: NonNullable<AppliedJob['jobs']>;
   onPress: (jobId: string) => void;
-  colors: AppliedJobsColors;
 }) {
+  const { colors } = useTheme();
   return (
     <Pressable
       onPress={() => onPress(job.id)}
@@ -70,7 +67,7 @@ const AppliedJobCard = React.memo(function AppliedJobCard({
       </View>
     </Pressable>
   );
-}, (prev, next) => prev.job.job_id === next.job.job_id && prev.colors === next.colors);
+}, (prev, next) => prev.job.job_id === next.job.job_id);
 
 async function fetchAppliedJobs(): Promise<AppliedJob[]> {
   const { data: { user } } = await supabase.auth.getUser();
@@ -129,11 +126,10 @@ export default function AppliedJobsScreen() {
         <AppliedJobCard
           job={job}
           onPress={handleJobPress}
-          colors={colors}
         />
       );
     },
-    [handleJobPress, colors],
+    [handleJobPress],
   );
 
   if (isLoading) {

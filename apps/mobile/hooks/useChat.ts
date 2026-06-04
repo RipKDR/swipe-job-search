@@ -96,6 +96,8 @@ export function useChat(matchId: string, matchStatus: MatchStatus) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const queryKey = ['chat-messages', matchId]
+  const queryKeyRef = useRef(queryKey)
+  queryKeyRef.current = queryKey
   const matchStatusRef = useRef(matchStatus)
   matchStatusRef.current = matchStatus
 
@@ -117,7 +119,7 @@ export function useChat(matchId: string, matchStatus: MatchStatus) {
       });
     },
     onSuccess: (message) => {
-      queryClient.setQueryData<ChatMessage[]>(queryKey, (current = []) =>
+      queryClient.setQueryData<ChatMessage[]>(queryKeyRef.current, (current = []) =>
         applyRealtimeMessage(current, message)
       )
     },
@@ -127,7 +129,7 @@ export function useChat(matchId: string, matchStatus: MatchStatus) {
     if (!matchId) return
 
     const channel = subscribeToMessages(matchId, (message) => {
-      queryClient.setQueryData<ChatMessage[]>(queryKey, (current = []) =>
+      queryClient.setQueryData<ChatMessage[]>(queryKeyRef.current, (current = []) =>
         applyRealtimeMessage(current ?? [], message)
       )
     })
@@ -137,11 +139,14 @@ export function useChat(matchId: string, matchStatus: MatchStatus) {
     }
   }, [matchId, queryClient])
 
+  const dataRef = useRef(messagesQuery.data)
+  dataRef.current = messagesQuery.data
+
   const loadMore = useCallback(async () => {
-    const current = messagesQuery.data ?? []
+    const current = dataRef.current ?? []
     const nextPage = Math.floor(current.length / PAGE_SIZE)
     const older = await fetchMessages(matchId, nextPage)
-    queryClient.setQueryData<ChatMessage[]>(queryKey, (existing = []) => {
+    queryClient.setQueryData<ChatMessage[]>(queryKeyRef.current, (existing = []) => {
       const merged = [...older, ...existing]
       const seen = new Set<string>()
       return merged.filter((message) => {
@@ -150,7 +155,7 @@ export function useChat(matchId: string, matchStatus: MatchStatus) {
         return true
       })
     })
-  }, [matchId, messagesQuery.data, queryClient, queryKey])
+  }, [matchId, queryClient, queryKey])
 
   return {
     messages: messagesQuery.data ?? [],
