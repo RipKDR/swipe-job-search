@@ -149,6 +149,23 @@ export default function AppliedJobsScreen() {
     );
   }
 
+  if (error) {
+    return (
+      <AppScreen centered={false} maxWidth="tab">
+        <TabWebShell>
+          <ScreenHeader title="Applied" subtitle="Something went wrong" />
+          <EmptyState
+            emoji="⚠️"
+            title="Couldn't load applications"
+            description="There was a problem fetching your applied jobs. Pull down to try again."
+            actionLabel="Retry"
+            onAction={refetch}
+          />
+        </TabWebShell>
+      </AppScreen>
+    );
+  }
+
   return (
     <AppScreen centered={false} maxWidth="tab">
       <TabWebShell>

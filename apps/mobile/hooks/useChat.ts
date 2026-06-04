@@ -107,13 +107,15 @@ export function useChat(matchId: string, matchStatus: MatchStatus) {
 
   const send = useMutation({
     mutationKey: ['send-message', matchId],
-    mutationFn: (body: string) =>
-      sendMessage({
+    mutationFn: (body: string) => {
+      if (!user) throw new Error('useChat requires an authenticated user');
+      return sendMessage({
         matchId,
-        senderId: user!.id,
+        senderId: user.id,
         body,
         matchStatus: matchStatusRef.current,
-      }),
+      });
+    },
     onSuccess: (message) => {
       queryClient.setQueryData<ChatMessage[]>(queryKey, (current = []) =>
         applyRealtimeMessage(current, message)
