@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text } from '@/components/tw';
 import {
   JOB_TYPES,
@@ -24,10 +24,14 @@ export type JobFormValues = {
 
 type JobFormProps = {
   submitting?: boolean;
+  initialValues?: JobFormValues;
+  submitLabel?: string;
+  errorFallback?: string;
+  resetOnSubmit?: boolean;
   onSubmit: (values: JobFormValues) => Promise<void> | void;
 };
 
-const initialValues: JobFormValues = {
+export const emptyJobFormValues: JobFormValues = {
   title: '',
   jobType: 'casual',
   payAmount: '',
@@ -40,9 +44,20 @@ const initialValues: JobFormValues = {
 
 const inputClass = 'mb-0';
 
-export function JobForm({ submitting = false, onSubmit }: JobFormProps) {
+export function JobForm({
+  submitting = false,
+  initialValues = emptyJobFormValues,
+  submitLabel = 'Post job',
+  errorFallback = 'Unable to post job',
+  resetOnSubmit = true,
+  onSubmit,
+}: JobFormProps) {
   const [values, setValues] = useState<JobFormValues>(initialValues);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setValues(initialValues);
+  }, [initialValues]);
 
   const payNumeric = Number(values.payAmount);
   const fairWorkWarning =
@@ -71,9 +86,11 @@ export function JobForm({ submitting = false, onSubmit }: JobFormProps) {
 
     try {
       await onSubmit(values);
-      setValues(initialValues);
+      if (resetOnSubmit) {
+        setValues(emptyJobFormValues);
+      }
     } catch (submitError: unknown) {
-      setError(getErrorMessage(submitError, 'Unable to post job'));
+      setError(getErrorMessage(submitError, errorFallback));
     }
   };
 
@@ -83,7 +100,7 @@ export function JobForm({ submitting = false, onSubmit }: JobFormProps) {
         label="Job title *"
         className={inputClass}
         value={values.title}
-        onChangeText={(value) => update('title', value)}
+        onChangeText={(value: string) => update('title', value)}
         placeholder="e.g. Weekend barista"
       />
 
@@ -106,7 +123,7 @@ export function JobForm({ submitting = false, onSubmit }: JobFormProps) {
           <TextField
             className={`flex-1 ${inputClass}`}
             value={values.payAmount}
-            onChangeText={(value) => update('payAmount', value)}
+            onChangeText={(value: string) => update('payAmount', value)}
             placeholder="Amount"
             keyboardType="numeric"
           />
@@ -133,21 +150,21 @@ export function JobForm({ submitting = false, onSubmit }: JobFormProps) {
         label="Hours *"
         className={inputClass}
         value={values.hoursText}
-        onChangeText={(value) => update('hoursText', value)}
+        onChangeText={(value: string) => update('hoursText', value)}
         placeholder="Mon–Fri 7am–3pm"
       />
       <TextField
         label="Suburb *"
         className={inputClass}
         value={values.suburb}
-        onChangeText={(value) => update('suburb', value)}
+        onChangeText={(value: string) => update('suburb', value)}
         placeholder="Moonee Ponds"
       />
       <TextField
         label="Description"
         className={inputClass}
         value={values.description}
-        onChangeText={(value) => update('description', value)}
+        onChangeText={(value: string) => update('description', value)}
         placeholder="Optional — team culture, duties, perks"
         multiline
         numberOfLines={4}
@@ -157,13 +174,13 @@ export function JobForm({ submitting = false, onSubmit }: JobFormProps) {
         label="Photo URL"
         className={inputClass}
         value={values.photoUri}
-        onChangeText={(value) => update('photoUri', value)}
+        onChangeText={(value: string) => update('photoUri', value)}
         placeholder="Optional image URL"
       />
 
       {error ? <Text className="text-red-400">{error}</Text> : null}
       <Button
-        title="Post job"
+        title={submitLabel}
         loading={submitting}
         disabled={!canSubmit || submitting}
         onPress={handleSubmit}

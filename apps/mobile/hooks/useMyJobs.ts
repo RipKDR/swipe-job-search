@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import type { JobStatus } from '@hi-hired/shared'
 
 export type MyJobItem = {
   id: string
   title: string
   suburb: string
   pay_display: string
-  status: string
+  status: JobStatus
   expires_at: string
   created_at: string
   interestedCount: number

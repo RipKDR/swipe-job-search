@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, Text } from '@/components/tw';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { FlatList } from 'react-native';
@@ -56,15 +56,19 @@ export function MessageList({ messages, currentUserId, isLoading }: MessageListP
     );
   }
 
+  // Reverse the array for inverted FlatList — newest messages at the bottom
+  const invertedMessages = useMemo(() => [...messages].reverse(), [messages]);
+
   return (
     <View className={`flex-1 w-full items-center ${contentMaxWidthChat}`}>
       <ErrorBoundary fallback={<Text className="text-slate-400 p-4">Something went wrong here.</Text>}>
         <FlatList
           style={{ flex: 1, width: '100%' }}
-          data={messages}
+          data={invertedMessages}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, gap: 8 }}
           renderItem={renderItem}
+          inverted
         />
       </ErrorBoundary>
     </View>

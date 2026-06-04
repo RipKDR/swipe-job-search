@@ -23,6 +23,55 @@ interface AppliedJob {
   } | null;
 }
 
+type AppliedJobsColors = ReturnType<typeof useTheme>['colors'];
+
+const AppliedJobCard = React.memo(function AppliedJobCard({
+  job,
+  onPress,
+  colors,
+}: {
+  job: NonNullable<AppliedJob['jobs']>;
+  onPress: (jobId: string) => void;
+  colors: AppliedJobsColors;
+}) {
+  return (
+    <Pressable
+      onPress={() => onPress(job.id)}
+      style={{
+        backgroundColor: colors.surface,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: 16,
+      }}
+    >
+      <View style={{ gap: 4 }}>
+        <Text
+          style={{ color: colors.text, fontSize: 17, fontWeight: '600' }}
+          numberOfLines={1}
+        >
+          {job.title}
+        </Text>
+        {job.employer_name ? (
+          <Text style={{ color: colors.muted, fontSize: 13 }} numberOfLines={1}>
+            {job.employer_name}
+          </Text>
+        ) : null}
+        {job.suburb ? (
+          <Text style={{ color: colors.subtle, fontSize: 13 }} numberOfLines={1}>
+            {job.suburb}
+          </Text>
+        ) : null}
+        {job.pay_display ? (
+          <Text style={{ color: colors.primary, fontSize: 15, fontWeight: '600', marginTop: 6 }}>
+            {job.pay_display}
+          </Text>
+        ) : null}
+      </View>
+    </Pressable>
+  );
+});
+
 async function fetchAppliedJobs(): Promise<AppliedJob[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
@@ -73,6 +122,23 @@ export default function AppliedJobsScreen() {
     [router],
   );
 
+  const keyExtractor = useCallback((item: AppliedJob) => item.job_id, []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: AppliedJob }) => {
+      const job = item.jobs;
+      if (!job) return null;
+      return (
+        <AppliedJobCard
+          job={job}
+          onPress={handleJobPress}
+          colors={colors}
+        />
+      );
+    },
+    [handleJobPress, colors],
+  );
+
   if (isLoading) {
     return (
       <AppScreen centered={false} maxWidth="tab">
@@ -105,49 +171,9 @@ export default function AppliedJobsScreen() {
         ) : (
           <FlatList
             data={jobs}
-            keyExtractor={(item) => item.job_id}
+            keyExtractor={keyExtractor}
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 8 }}
-            renderItem={({ item }) => {
-              const job = item.jobs;
-              if (!job) return null;
-
-              return (
-                <Pressable
-                  onPress={() => handleJobPress(job.id)}
-                  style={{
-                    backgroundColor: colors.surface,
-                    borderRadius: 16,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    padding: 16,
-                  }}
-                >
-                  <View style={{ gap: 4 }}>
-                    <Text
-                      style={{ color: colors.text, fontSize: 17, fontWeight: '600' }}
-                      numberOfLines={1}
-                    >
-                      {job.title}
-                    </Text>
-                    {job.employer_name ? (
-                      <Text style={{ color: colors.muted, fontSize: 13 }} numberOfLines={1}>
-                        {job.employer_name}
-                      </Text>
-                    ) : null}
-                    {job.suburb ? (
-                      <Text style={{ color: colors.subtle, fontSize: 13 }} numberOfLines={1}>
-                        {job.suburb}
-                      </Text>
-                    ) : null}
-                    {job.pay_display ? (
-                      <Text style={{ color: colors.primary, fontSize: 15, fontWeight: '600', marginTop: 6 }}>
-                        {job.pay_display}
-                      </Text>
-                    ) : null}
-                  </View>
-                </Pressable>
-              );
-            }}
+            renderItem={renderItem}
             onRefresh={refetch}
             refreshing={isLoading}
           />
