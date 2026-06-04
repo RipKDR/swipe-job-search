@@ -6,7 +6,7 @@ import type { Database } from '@hi-hired/shared';
 export interface SwipeInput {
   candidateId: string;
   jobId: string;
-  direction: 'left' | 'right';
+  direction: 'left' | 'right' | 'applied';
 }
 
 export interface SwipeResult {
