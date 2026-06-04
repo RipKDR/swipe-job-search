@@ -30,7 +30,10 @@ function usePostHogWeb(): PostHogHook {
 
 /** Native hook via posthog-react-native. */
 function usePostHogNative(): PostHogHook {
-  return useNativePostHog();
+  // The native client accepts any JSON-serializable props; PostHogHook
+  // intentionally widens the property type to Record<string, unknown>.
+  // The shapes are runtime-compatible, so cast at this boundary.
+  return useNativePostHog() as unknown as PostHogHook;
 }
 
 export const usePostHog = Platform.OS === 'web' ? usePostHogWeb : usePostHogNative;

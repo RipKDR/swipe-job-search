@@ -3,7 +3,6 @@ export default {
     name: "Hi-Hired",
     "slug": "hi-hired",
     "version": "0.0.1",
-    "sdkVersion": "56.0.0",
     "platforms": [
       "ios",
       "android",
@@ -24,6 +23,9 @@ export default {
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ]
+    },
+    "ios": {
+      "bundleIdentifier": "au.com.hihired.app"
     },
     "web": {
       "favicon": "./assets/favicon.png",

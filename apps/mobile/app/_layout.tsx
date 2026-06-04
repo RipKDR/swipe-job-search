@@ -13,7 +13,7 @@ import { AuthProvider } from '@/providers/AuthProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Slot, useGlobalSearchParams, usePathname, useRouter, useSegments, type Href } from 'expo-router';
-import { PostHogProvider } from 'posthog-react-native';
+import { PostHogProvider, type PostHog } from 'posthog-react-native';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import '../global.css';
@@ -31,7 +31,9 @@ function SafePostHogProvider({ children }: { children: ReactNode }) {
   }
   return (
     <PostHogProvider
-      client={posthog}
+      // `posthog` resolves to a real posthog-react-native instance on native;
+      // the lib exports a narrower cross-platform type, so cast at this boundary.
+      client={posthog as unknown as PostHog}
       autocapture={{
         captureScreens: false,
         captureTouches: true,

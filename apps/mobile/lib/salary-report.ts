@@ -2,8 +2,8 @@
  * salary-report.ts - functions for submitting salary reports to the salary_reports table.
  * Used by the PostHireSurvey component and potentially other surfaces.
  */
-import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@hi-hired/shared';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type ReportType = 'actual' | 'offer' | 'estimate';
 

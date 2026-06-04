@@ -1,11 +1,8 @@
-/// <reference types="nativewind/types" />
-
-
-import 'react-native';
-import 'react-native-css';
-import 'react-native-reanimated';
-import 'react-native-safe-area-context';
-import 'react-native-screens';
-import 'react-native-url-polyfill';
-import 'react-native-web';
-import 'nativewind';
+declare module 'react-native';
+declare module 'react-native-css';
+declare module 'react-native-reanimated';
+declare module 'react-native-safe-area-context';
+declare module 'react-native-screens';
+declare module 'react-native-url-polyfill';
+declare module 'react-native-web';
+declare module 'nativewind';
