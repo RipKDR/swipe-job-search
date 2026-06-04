@@ -52,14 +52,18 @@ export async function configureNotificationHandler(): Promise<void> {
   if (Platform.OS === 'web') return;
   const { default: Notifications } = await import('expo-notifications');
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({
+    handleNotification: async () => {
       // Suppress system banner when app is foregrounded — the in-app
       // Alert from useNotificationObserver handles that case instead.
       // Fixes ARCHITECTURE_AUDIT.md HIGH-1: app presence detection.
-      shouldShowAlert: AppState.currentState !== 'active',
-      shouldPlaySound: true,
-      shouldSetBadge: true,
-    }),
+      const showWhenForegrounded = AppState.currentState !== 'active';
+      return {
+        shouldShowBanner: showWhenForegrounded,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      };
+    },
   });
 }
 

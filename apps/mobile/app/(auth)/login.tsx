@@ -98,6 +98,10 @@ export default function Login() {
       showAuthError('Please enter your email address');
       return;
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      showAuthError('Please enter a valid email address');
+      return;
+    }
     if (otpInFlightRef.current || loading) return;
     if (isOnCooldown) {
       setOtpHint(
@@ -277,7 +281,7 @@ export default function Login() {
           className="rounded-xl border-slate-700 mb-6"
           placeholder="your@email.com"
           value={email}
-          onChangeText={(value) => {
+          onChangeText={(value: string) => {
             setEmail(value);
             if (loginError) setLoginError(null);
           }}
@@ -327,14 +331,16 @@ export default function Login() {
 
         <Button title="Continue with Google" variant="inverse" fullWidth disabled={loading} onPress={() => handleOAuth('google')} className="mb-3" />
 
-        <Button
-          testID="apple-login-button"
-          title={APPLE_AUTH_ENABLED ? 'Continue with Apple' : 'Apple Sign-In (coming soon)'}
-          variant="outline"
-          fullWidth
-          disabled={loading || !APPLE_AUTH_ENABLED}
-          onPress={() => handleOAuth('apple')}
-        />
+        {Platform.OS === 'ios' && APPLE_AUTH_ENABLED && (
+          <Button
+            testID="apple-login-button"
+            title="Continue with Apple"
+            variant="outline"
+            fullWidth
+            disabled={loading}
+            onPress={() => handleOAuth('apple')}
+          />
+        )}
 
         <Text className="text-slate-500 text-xs text-center mt-8">
           By continuing, you agree to our{' '}

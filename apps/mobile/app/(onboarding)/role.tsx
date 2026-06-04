@@ -37,7 +37,7 @@ export default function RoleSelection() {
       setErrorMessage(null);
       const providerRoute = getOnboardingRouteForRole('provider');
       try {
-        const { data: updatedProfile, error } = await (supabase.from('profiles') as any)
+        const { data: updatedProfile, error } = await supabase.from('profiles')
           .update(buildProviderProfileUpdate(new Date().toISOString()))
           .eq('id', user.id)
           .select(PROFILE_SELECT)
@@ -65,7 +65,7 @@ export default function RoleSelection() {
       step={1}
       totalSteps={2}
       footer={
-        <Button title="Continue" fullWidth disabled={!selected || submitting} onPress={handleContinue} />
+        <Button title="Continue" fullWidth disabled={!selected || submitting} loading={submitting} onPress={handleContinue} />
       }
     >
       <View className="gap-3">

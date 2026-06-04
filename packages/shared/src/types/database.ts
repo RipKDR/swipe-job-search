@@ -102,6 +102,7 @@ export type Database = {
           circle_id?: string;
           joined_at?: string;
         };
+        Relationships: [];
       };
       jobs: {
         Row: {
@@ -170,6 +171,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       swipes: {
         Row: {
@@ -193,6 +195,7 @@ export type Database = {
           direction?: 'right' | 'left' | 'applied';
           created_at?: string;
         };
+        Relationships: [];
       };
       messages: {
         Row: {
@@ -216,6 +219,7 @@ export type Database = {
           body?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       matches: {
         Row: {
@@ -245,6 +249,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       blocks: {
         Row: {
@@ -262,6 +267,7 @@ export type Database = {
           blocked_id?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       reports: {
         Row: {
@@ -294,6 +300,7 @@ export type Database = {
           match_id?: string | null;
           created_at?: string;
         };
+        Relationships: [];
       };
       salary_reports: {
         Row: {
@@ -320,6 +327,7 @@ export type Database = {
           reported_by?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       compliance_reports: {
         Row: {
@@ -364,6 +372,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       compliance_report_runs: {
         Row: {
@@ -405,6 +414,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       compliance_report_rows: {
         Row: {
@@ -464,6 +474,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       device_tokens: {
         Row: {
@@ -487,6 +498,7 @@ export type Database = {
           last_used_at?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       bulk_swipe_log: {
         Row: {
@@ -513,6 +525,7 @@ export type Database = {
           direction?: 'right' | 'left' | 'applied';
           created_at?: string;
         };
+        Relationships: [];
       };
     };
     Views: {
@@ -525,6 +538,7 @@ export type Database = {
           report_count: number;
           updated_at: string;
         };
+        Relationships: [];
       };
     };
     Functions: {
