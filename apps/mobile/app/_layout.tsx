@@ -1,5 +1,6 @@
 // Root layout with AuthProvider and auth gate
 // Per AUTH_FLOWS.md routing: unauthenticated → login, authenticated → role-based routing
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { ProfileLoadError } from '@/components/ui/ProfileLoadError';
 import { useAuth } from '@/hooks/useAuth';
@@ -131,7 +132,11 @@ function RootLayoutNav() {
     return <LoadingScreen message="Loading your profile…" />;
   }
 
-  return <Slot />;
+  return (
+    <ErrorBoundary>
+      <Slot />
+    </ErrorBoundary>
+  );
 }
 
 function RootLayout() {

@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { FlatList, useWindowDimensions } from 'react-native';
 import { View, Text, Pressable } from '@/components/tw';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { useRouter, type Href } from 'expo-router';
 import type { InboxMatch } from '@/hooks/useMatchInbox';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -110,19 +111,21 @@ export function MatchInboxList({ matches, isLoading, error, role }: MatchInboxLi
 
   return (
     <View className={`flex-1 w-full ${contentMaxWidthLg}`}>
-      <FlatList
-        key={`matches-cols-${numColumns}`}
-        data={matches}
-        numColumns={numColumns}
-        keyExtractor={(item) => item.id}
-        columnWrapperStyle={numColumns > 1 ? { gap: columnGap, paddingHorizontal: horizontalPad } : undefined}
-        contentContainerStyle={{
-          paddingHorizontal: numColumns > 1 ? 0 : horizontalPad,
-          paddingBottom: 24,
-          gap: 12,
-        }}
-        renderItem={renderItem}
-      />
+      <ErrorBoundary fallback={<Text className="text-slate-400 p-4">Something went wrong here.</Text>}>
+        <FlatList
+          key={`matches-cols-${numColumns}`}
+          data={matches}
+          numColumns={numColumns}
+          keyExtractor={(item) => item.id}
+          columnWrapperStyle={numColumns > 1 ? { gap: columnGap, paddingHorizontal: horizontalPad } : undefined}
+          contentContainerStyle={{
+            paddingHorizontal: numColumns > 1 ? 0 : horizontalPad,
+            paddingBottom: 24,
+            gap: 12,
+          }}
+          renderItem={renderItem}
+        />
+      </ErrorBoundary>
     </View>
   );
 }

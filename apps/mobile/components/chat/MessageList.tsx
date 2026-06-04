@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { View, Text } from '@/components/tw';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { FlatList } from 'react-native';
 import type { ChatMessage } from '@/hooks/useChat';
 import { contentMaxWidthChat, screenPadding } from '@/lib/responsive-layout';
@@ -57,13 +58,15 @@ export function MessageList({ messages, currentUserId, isLoading }: MessageListP
 
   return (
     <View className={`flex-1 w-full items-center ${contentMaxWidthChat}`}>
-      <FlatList
-        style={{ flex: 1, width: '100%' }}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{ padding: 16, gap: 8 }}
-        renderItem={renderItem}
-      />
+      <ErrorBoundary fallback={<Text className="text-slate-400 p-4">Something went wrong here.</Text>}>
+        <FlatList
+          style={{ flex: 1, width: '100%' }}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ padding: 16, gap: 8 }}
+          renderItem={renderItem}
+        />
+      </ErrorBoundary>
     </View>
   );
 }

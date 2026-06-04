@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable } from '@/components/tw';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { SwipeCard } from './SwipeCard';
 import { EmptyDeck } from './EmptyDeck';
 import type { Job } from '@hi-hired/shared';
@@ -63,15 +64,16 @@ export function SwipeDeck({ jobs, onSwipe, onCardPress, isLoading, userLocation 
         // Map reversed: last item in visibleJobs gets index 2 (bottom of stack)
         const stackDepth = visibleJobs.length - 1 - displayIndex;
         return (
-          <SwipeCard
-            key={job.id}
-            job={job}
-            index={stackDepth as 0 | 1 | 2}
-            onSwipeLeft={handleSwipeLeft}
-            onSwipeRight={handleSwipeRight}
-            onCardPress={onCardPress}
-            userLocation={userLocation}
-          />
+          <ErrorBoundary key={job.id} fallback={<Text className="text-slate-400 p-4">Something went wrong here.</Text>}>
+            <SwipeCard
+              job={job}
+              index={stackDepth as 0 | 1 | 2}
+              onSwipeLeft={handleSwipeLeft}
+              onSwipeRight={handleSwipeRight}
+              onCardPress={onCardPress}
+              userLocation={userLocation}
+            />
+          </ErrorBoundary>
         );
       })}
 
