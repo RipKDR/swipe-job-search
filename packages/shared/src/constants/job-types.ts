@@ -8,7 +8,3 @@ export const JOB_TYPE_LABELS: Record<JobType, string> = {
   part_time: 'Part-time',
   permanent: 'Permanent',
 };
-
-function isValidJobType(type: string): type is JobType {
-  return JOB_TYPES.includes(type as JobType);
-}
