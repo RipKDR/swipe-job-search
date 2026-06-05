@@ -10,7 +10,7 @@ export const WORK_RIGHTS = [
 
 export type WorkRights = typeof WORK_RIGHTS[number];
 
-export const WORK_RIGHTS_LABELS: Record<WorkRights, string> = {
+const WORK_RIGHTS_LABELS: Record<WorkRights, string> = {
   citizen: 'Australian Citizen',
   pr: 'Permanent Resident',
   visa_student_20hr: 'Student Visa (20hrs/week)',
