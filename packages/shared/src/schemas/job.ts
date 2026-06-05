@@ -1,19 +1,13 @@
 // Job Zod schemas per BACKEND.md jobs table
 import { z } from 'zod';
 import { JOB_TYPES } from '../constants/job-types';
-import { BEACHHEAD_SUBURBS } from '../constants';
-
-const BEACHHEAD_SUBURB_VALUES = [...BEACHHEAD_SUBURBS] as [
-  (typeof BEACHHEAD_SUBURBS)[number],
-  ...(typeof BEACHHEAD_SUBURBS)[number][],
-];
 
 // Job status from BACKEND.md enum
-export const JobStatusSchema = z.enum(['active', 'hired', 'expired', 'paused']);
+const JobStatusSchema = z.enum(['active', 'hired', 'expired', 'paused']);
 export type JobStatus = z.infer<typeof JobStatusSchema>;
 
 // Pay period from BACKEND.md CHECK constraint
-export const PayPeriodSchema = z.enum(['hour', 'week', 'year']);
+const PayPeriodSchema = z.enum(['hour', 'week', 'year']);
 export type PayPeriod = z.infer<typeof PayPeriodSchema>;
 
 // Full job schema from BACKEND.md jobs table
@@ -43,30 +37,3 @@ export const JobSchema = z.object({
 });
 
 export type Job = z.infer<typeof JobSchema>;
-
-// Job creation form schema
-// Per 02-mvp-definition.md §1: title, employer_name (from profile), job_type, pay_rate, hours, suburb, description, photo
-export const JobCreateSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters').max(100),
-  job_type: z.enum(JOB_TYPES, {
-    error: 'Please select a job type',
-  }),
-  pay_display: z
-    .string()
-    .min(1, 'Pay rate is required')
-    .max(50, 'Pay display too long')
-    .regex(/\$\d+/, 'Pay must start with $ followed by amount'),
-  pay_amount: z.number().positive('Pay amount must be positive'),
-  pay_period: PayPeriodSchema,
-  hours_text: z
-    .string()
-    .min(5, 'Please describe the hours')
-    .max(200, 'Hours description too long'),
-  suburb: z.enum(BEACHHEAD_SUBURB_VALUES, {
-    error: 'Please select a valid suburb',
-  }),
-  description: z.string().max(2000, 'Description too long').nullable().optional(),
-  photo_url: z.string().url().nullable().optional(),
-});
-
-export type JobCreateInput = z.infer<typeof JobCreateSchema>;

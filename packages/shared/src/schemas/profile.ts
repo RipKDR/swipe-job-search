@@ -12,25 +12,6 @@ const WORK_RIGHTS_VALUES = [...WORK_RIGHTS] as [
   ...(typeof WORK_RIGHTS)[number][],
 ]
 
-export const ProfileSchema = z.object({
-  id: z.string().uuid(),
-  role: z.enum(['candidate', 'employer']),
-  full_name: z.string().nullable(),
-  email: z.string().email(),
-  phone: z.string().nullable(),
-  suburb: z.string().nullable(),
-  avatar_url: z.string().url().nullable(),
-  experience_text: z.string().nullable(),
-  skills: z.array(z.string()).default([]),
-  availability_text: z.string().nullable(),
-  work_rights: z.string().nullable(),
-  onboarding_completed_at: z.string().datetime().nullable(),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
-})
-
-export type Profile = z.infer<typeof ProfileSchema>
-
 export const CandidateOnboardingSchema = z.object({
   full_name: z.string().min(1, 'Full name is required').max(100),
   suburb: z.enum(BEACHHEAD_SUBURB_VALUES, {

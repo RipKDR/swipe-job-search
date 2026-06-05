@@ -4,8 +4,6 @@
 // Schemas
 export * from './schemas/profile';
 export * from './schemas/job';
-export * from './schemas/swipe';
-export * from './schemas/match';
 
 // Constants
 export * from './constants';
