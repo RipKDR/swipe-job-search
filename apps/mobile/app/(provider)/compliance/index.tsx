@@ -120,7 +120,7 @@ export default function ComplianceScreen() {
       )
 
       if (!resp.ok) {
-        const errBody = await resp.json().catch(() => null)
+        const errBody = await resp.json().catch((): null => null)
         throw new Error(
           extractComplianceApiErrorMessage(errBody, `Server error (${resp.status})`)
         )
@@ -231,9 +231,9 @@ export default function ComplianceScreen() {
         ) : (
           <FlatList
             data={reports}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item: ComplianceReport) => item.id}
             contentContainerClassName="pb-8 gap-3"
-            renderItem={({ item }) => (
+            renderItem={({ item }: { item: ComplianceReport }) => (
               <ReportCard report={item} />
             )}
           />
@@ -417,7 +417,7 @@ function ReportCard({ report }: { report: ComplianceReport }) {
               })
 
               if (!resp.ok) {
-                const errBody = await resp.json().catch(() => null)
+                const errBody = await resp.json().catch((): null => null)
                 throw new Error(
                   extractComplianceApiErrorMessage(errBody, `PDF generation failed (${resp.status})`)
                 )

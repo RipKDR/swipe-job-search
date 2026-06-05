@@ -5,8 +5,8 @@ module.exports = {
   ScreenContainer: ({ children }: any) => require('react').createElement('div', null, children),
   NativeScreen: ({ children }: any) => require('react').createElement('div', null, children),
   ScreenStack: ({ children }: any) => require('react').createElement('div', null, children),
-  SearchBar: () => null,
+  SearchBar: (): null => null,
   FullWindowOverlay: ({ children }: any) => children,
-  ScreenStackHeaderConfig: () => null,
+  ScreenStackHeaderConfig: (): null => null,
   default: undefined,
 };

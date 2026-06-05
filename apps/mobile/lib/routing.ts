@@ -1,5 +1,4 @@
 import Constants from 'expo-constants';
-import type { Href } from 'expo-router';
 import { Platform } from 'react-native';
 
 export const ROUTES = {
@@ -12,10 +11,6 @@ export const ROUTES = {
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
-
-function routerHref(route: AppRoute): Href {
-  return route as Href;
-}
 
 export function getRoleHomeRoute(role: 'candidate' | 'employer' | 'provider' | null | undefined): AppRoute {
   if (role === 'candidate') return ROUTES.candidateDeck;

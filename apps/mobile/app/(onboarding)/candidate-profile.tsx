@@ -14,15 +14,6 @@ import { buildCandidateProfileUpdate } from "@/lib/onboarding-submit";
 import { pickAndUploadAvatar, uploadAvatarFromUri } from "@/lib/avatar-upload";
 import { getErrorMessage } from "@/lib/errors";
 
-let ImagePicker: typeof import("expo-image-picker") | null = null;
-if (Platform.OS !== "web") {
-  try {
-    ImagePicker = require("expo-image-picker");
-  } catch {
-    ImagePicker = null;
-  }
-}
-
 export default function CandidateProfile() {
   const { user, applyProfile } = useAuth();
   const posthog = usePostHog();
@@ -50,9 +41,9 @@ export default function CandidateProfile() {
     try {
       const nowIso = new Date().toISOString();
       const { data: updatedProfile, error: profileError } = await supabase.from("profiles")
-        .update(buildCandidateProfileUpdate(data, nowIso))
+        .update(buildCandidateProfileUpdate(data, nowIso) as Parameters<ReturnType<typeof supabase.from>["update"]>[0])
         .eq("id", user.id)
-        .select(PROFILE_SELECT)
+        .select(`${PROFILE_SELECT},bulk_swipe_consent,consent_granted_at`)
         .single();
 
       if (profileError) throw profileError;
@@ -104,6 +95,13 @@ export default function CandidateProfile() {
       return;
     }
 
+    let ImagePicker: typeof import("expo-image-picker") | null = null;
+    try {
+      ImagePicker = await import("expo-image-picker");
+    } catch {
+      ImagePicker = null;
+    }
+
     if (!ImagePicker) {
       Alert.alert("Not available", "Photo upload is not available on this device.");
       return;
@@ -113,7 +111,7 @@ export default function CandidateProfile() {
     try {
       const uploadedUrl = await pickAndUploadAvatar({
         userId: user.id,
-        imagePicker: ImagePicker as typeof import("expo-image-picker"),
+        imagePicker: ImagePicker,
         supabaseStorage: supabase.storage.from("avatars"),
         fetchImpl: fetch,
       });

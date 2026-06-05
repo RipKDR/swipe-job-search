@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, Pressable } from '@/components/tw';
-import { ScrollView, Alert, Linking, Switch, Platform } from 'react-native';
+import { ScrollView, Alert, Linking, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -57,7 +57,7 @@ function SettingSection({ title, children }: SettingSectionProps) {
 export default function SettingsScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { accent, setAccent, mode, setMode, toggleMode, themes } = useTheme();
+  const { mode, toggleMode } = useTheme();
   const [hapticsEnabled, setHapticsEnabled] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);

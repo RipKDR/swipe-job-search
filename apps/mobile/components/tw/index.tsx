@@ -3,7 +3,12 @@
  * Re-exports react-native-css components (single className→style mapping) with
  * forwardRef for Reanimated. Raw RN primitives get one useCssElement pass only.
  */
-import { StyleSheet, ViewStyle } from "react-native";
+import {
+  Pressable as RNPressable,
+  ScrollView as RNScrollView,
+  StyleSheet,
+  TouchableHighlight as RNTouchableHighlight,
+} from "react-native";
 import { Link as RouterLink } from "expo-router";
 import React from "react";
 import {
@@ -11,11 +16,6 @@ import {
   Text as CSSText,
   TextInput as CSSTextInput,
 } from "react-native-css/components";
-import {
-  Pressable as RNPressable,
-  ScrollView as RNScrollView,
-  TouchableHighlight as RNTouchableHighlight,
-} from "react-native";
 
 let useCssElement: (
   component: React.ComponentType<any>,
@@ -113,10 +113,9 @@ const XXTouchableHighlight = React.forwardRef<
   React.ElementRef<typeof RNTouchableHighlight>,
   React.ComponentProps<typeof RNTouchableHighlight>
 >(function XXTouchableHighlight(props, ref) {
-  const flattened = StyleSheet.flatten(props.style as ViewStyle | undefined) || {};
-  const { underlayColor, ...style } = flattened as ViewStyle & {
-    underlayColor?: string;
-  };
+  type FlatStyle = { underlayColor?: string; [key: string]: unknown };
+  const flattened = (StyleSheet.flatten(props.style) || {}) as FlatStyle;
+  const { underlayColor, ...style } = flattened;
   return (
     <RNTouchableHighlight
       ref={ref}

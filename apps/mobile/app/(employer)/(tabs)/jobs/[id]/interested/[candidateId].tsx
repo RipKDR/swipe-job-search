@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from '@/components/tw';
-import { Image, ScrollView } from 'react-native';
+import { Image } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCandidateProfile } from '@/hooks/useCandidateProfile';
 import { useCreateMatch } from '@/hooks/useCreateMatch';

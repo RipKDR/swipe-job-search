@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
 const mockUser = { id: 'user-1' } as User
 const mockSession = { user: mockUser } as Session
 
-const mockProfile = {
+const mockProfile: Profile = {
   id: 'user-1',
   role: 'candidate' as const,
   full_name: 'Ada',

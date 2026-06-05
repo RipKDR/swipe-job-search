@@ -60,7 +60,7 @@ export function buildJobInsertPayload({
     circle_id: circleId,
     ...buildJobEditablePayload(values, photoUrl),
     expires_at: expiresAt,
-  };
+  } as Database['public']['Tables']['jobs']['Insert'];
 }
 
 export function shouldUploadJobPhoto(nextPhotoUri: string, currentPhotoUrl?: string | null) {

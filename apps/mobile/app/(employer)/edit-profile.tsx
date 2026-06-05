@@ -203,7 +203,7 @@ export default function EmployerEditProfileScreen() {
           onBack={() => router.back()}
         />
         <Text className="text-slate-300 text-base text-center mb-6">
-          We couldn't load your authenticated profile. Please sign in again and retry.
+          We couldn&apos;t load your authenticated profile. Please sign in again and retry.
         </Text>
         <Button title="Go back" fullWidth onPress={() => router.back()} />
       </AppScreen>

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { generateResumeText } from '../resume-export';
+import { generateResumeText, type ResumeData } from '../resume-export';
 
 describe('generateResumeText', () => {
-  const minimumData = {
+  const minimumData: ResumeData = {
     full_name: null,
     email: null,
     suburb: null,

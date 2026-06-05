@@ -4,10 +4,11 @@ import {
   Image as RNImage,
   Platform,
   StyleSheet,
-  type ImageProps as RNImageProps,
 } from "react-native";
 import Animated from "react-native-reanimated";
 import { Image as ExpoImage } from "expo-image";
+
+type RNImageProps = React.ComponentProps<typeof RNImage>;
 
 const AnimatedExpoImage =
   Platform.OS === "web" ? null : Animated.createAnimatedComponent(ExpoImage);

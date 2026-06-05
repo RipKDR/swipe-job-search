@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { AppState, type AppStateStatus } from 'react-native';
+import { AppState } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { filterJobsByDistance } from '@/lib/distance';
@@ -133,7 +133,7 @@ export function useJobsPipeline(options?: JobsPipelineOptions): JobsPipelineStat
 
   // Re-prefetch on app foreground (reconnect/resume edge case)
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
+    const subscription = AppState.addEventListener('change', (state: 'active' | 'background' | 'inactive' | 'unknown' | 'extension') => {
       if (state === 'active') {
         const nextPage = currentPage + 1;
         queryClient.prefetchQuery({

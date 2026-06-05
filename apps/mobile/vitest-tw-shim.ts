@@ -16,7 +16,7 @@ const createElement =
   (globalThis as any).React?.createElement ??
   ((type: any, props: any) => ({ type, props }));
 
-type ViewProps = ComponentProps<'View'>;
+type ViewProps = ComponentProps<'div'>;
 
 export const Link = (props: ViewProps) => createElement(View, props);
 export const LinkTrigger = (props: ViewProps) => createElement(View, props);

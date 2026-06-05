@@ -10,7 +10,7 @@ import type { Database } from '@hi-hired/shared';
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export const PROFILE_SELECT =
-  'id, role, full_name, email, phone, suburb, avatar_url, experience_text, skills, availability_text, work_rights, onboarding_completed_at, created_at, updated_at';
+  'id, role, full_name, email, phone, suburb, avatar_url, experience_text, skills, availability_text, work_rights, onboarding_completed_at, bulk_swipe_consent, consent_granted_at, created_at, updated_at';
 
 const PROFILE_FETCH_EVENTS = new Set<AuthChangeEvent>([
   'INITIAL_SESSION',

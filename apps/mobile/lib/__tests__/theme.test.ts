@@ -5,8 +5,6 @@ import {
   parseThemeMode,
   accentHex,
   getAppThemes,
-  DEFAULT_ACCENT,
-  DEFAULT_MODE,
 } from '../theme';
 
 describe('buildTheme (pure palette builder)', () => {

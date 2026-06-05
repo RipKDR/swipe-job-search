@@ -94,7 +94,7 @@ describe('swipe-engine pure math (TDD per Phase 4)', () => {
 
     it('uses screen-width-based threshold (40%)', () => {
       const screenWidth = 400;
-      const expectedThreshold = screenWidth * 0.4; // 160
+      // expectedThreshold = screenWidth * 0.4 = 160
       // Just below threshold should be null
       expect(shouldSwipe(159, screenWidth)).toBeNull();
       // At threshold should fire

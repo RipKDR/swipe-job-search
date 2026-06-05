@@ -1,4 +1,4 @@
-import { createElement, type ComponentType } from 'react'
+import { createElement } from 'react'
 import { cleanup } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
 
@@ -80,7 +80,7 @@ vi.mock('react-native', () => {
     KeyboardAvoidingView: (props: any) => createElement('div', props),
     SafeAreaView: (props: any) => createElement('div', props),
     Modal: (props: any) => createElement('div', props),
-    StatusBar: (props: any) => null,
+    StatusBar: (props: any): null => null,
     AppState: { addEventListener: vi.fn(() => ({ remove: vi.fn() })), currentState: 'active' },
     Dimensions: { get: () => ({ width: 375, height: 812 }), addEventListener: vi.fn(), removeEventListener: vi.fn() },
   };
@@ -110,13 +110,13 @@ vi.mock('expo', () => ({}))
 vi.mock('react-native-screens', () => ({
   enableScreens: () => {},
   screensEnabled: () => false,
-  Screen: ({ children }: any) => null,
-  ScreenContainer: ({ children }: any) => null,
-  NativeScreen: ({ children }: any) => null,
-  ScreenStack: ({ children }: any) => null,
-  SearchBar: () => null,
-  FullWindowOverlay: ({ children }: any) => children,
-  ScreenStackHeaderConfig: () => null,
+  Screen: ({ children }: any): null => null,
+  ScreenContainer: ({ children }: any): null => null,
+  NativeScreen: ({ children }: any): null => null,
+  ScreenStack: ({ children }: any): null => null,
+  SearchBar: (): null => null,
+  FullWindowOverlay: ({ children }: any): unknown => children,
+  ScreenStackHeaderConfig: (): null => null,
 }))
 
 // Mock react-native-safe-area-context — also commonly loaded by expo-router
@@ -139,7 +139,7 @@ const { posthogHookStub } = vi.hoisted(() => {
     identify: vi.fn(),
     screen: vi.fn(),
     reset: vi.fn(),
-    getFeatureFlag: () => undefined,
+    getFeatureFlag: (): undefined => undefined,
     isFeatureEnabled: () => false,
     reloadFeatureFlags: () => Promise.resolve(),
   })
@@ -162,7 +162,7 @@ vi.mock('@react-navigation/native', () => ({
     getCurrentRoute: () => ({ name: 'Test' }),
     isReady: () => true,
   }),
-  useNavigationState: () => undefined,
+  useNavigationState: (): undefined => undefined,
   NavigationContainer: ({ children }: { children?: unknown }) => children ?? null,
 }))
 
@@ -185,7 +185,7 @@ vi.mock('react-native-css', () => {
   return {
     useCssElement: (Component: React.ComponentType<any>, props: Record<string, unknown>) =>
       React.createElement(Component, props),
-    useNativeVariable: () => undefined,
+    useNativeVariable: (): undefined => undefined,
   }
 })
 

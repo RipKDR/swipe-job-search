@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, TextInput } from '@/components/tw';
 import { submitSalaryReport, validateSalaryReport } from '@/lib/salary-report';
 import { supabase } from '@/lib/supabase';
-import type { ViewStyle } from 'react-native';
 
 interface PostHireSurveyProps {
   jobId: string;

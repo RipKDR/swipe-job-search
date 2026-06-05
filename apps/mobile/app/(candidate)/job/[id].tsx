@@ -12,7 +12,6 @@ import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { EmptyState } from '@/components/ui/EmptyState';
 
 /* ── Queries ──────────────────────────────────────────── */
 
@@ -60,7 +59,7 @@ async function fetchSimilarJobs(id: string, suburb: string, jobType: string): Pr
     .from('jobs')
     .select('id,title,suburb,pay_display,job_type,source')
     .eq('status', 'active')
-    .eq('job_type', jobType)
+    .eq('job_type', jobType as 'casual' | 'part_time' | 'permanent')
     .neq('id', id)
     .limit(3);
   return (sameType ?? []) as Partial<Job>[];
@@ -226,8 +225,12 @@ export default function JobDetail() {
         onBack={() => router.back()}
         title={job.title}
         subtitle={[job.suburb, jobTypeLabel].filter(Boolean).join(' · ')}
-        rightAction={
-          isExpired ? { label: 'Expired', onPress: () => {} } : undefined
+        actions={
+          isExpired ? (
+            <Text className="text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: '#7f1d1d', color: '#fca5a5' }}>
+              Expired
+            </Text>
+          ) : undefined
         }
       />
 

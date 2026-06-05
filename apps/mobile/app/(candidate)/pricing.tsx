@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, Pressable } from '@/components/tw';
+import React from 'react';
+import { View, Text } from '@/components/tw';
 import { ScrollView, Alert, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useTheme } from '@/providers/ThemeProvider';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
@@ -77,7 +76,6 @@ function FeatureRow({ text, included }: PlanFeature) {
 }
 
 function PricingCard({ plan, onSelect }: { plan: PricingPlan; onSelect: (id: string) => void }) {
-  const { colors } = useTheme();
 
   return (
     <View
@@ -123,14 +121,11 @@ function PricingCard({ plan, onSelect }: { plan: PricingPlan; onSelect: (id: str
 
 export default function PricingScreen() {
   const router = useRouter();
-  const { colors } = useTheme();
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
   const handleSelect = (planId: string) => {
     if (planId === 'free') return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
-    setSelectedPlan(planId);
 
     Alert.alert(
       'Coming soon',
@@ -182,7 +177,7 @@ export default function PricingScreen() {
             <View>
               <Text className="text-slate-300 text-sm font-medium">Is there a free trial?</Text>
               <Text className="text-slate-500 text-sm mt-1">
-                When Pro launches, we'll offer a 7-day free trial so you can experience the difference.
+                When Pro launches, we&apos;ll offer a 7-day free trial so you can experience the difference.
               </Text>
             </View>
           </View>

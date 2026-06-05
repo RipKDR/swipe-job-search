@@ -83,14 +83,6 @@ function createMockQueryResult(overrides: Partial<MockQueryResult> = {}): MockQu
   };
 }
 
-// Default useQuery return type shape
-const useQueryDefault: MockQueryResult = {
-  data: undefined as Job[] | undefined,
-  isLoading: false,
-  isFetching: false,
-  error: null as Error | null,
-};
-
 describe('useJobsPipeline', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -105,7 +97,7 @@ describe('useJobsPipeline', () => {
 
     const React = await import('react');
     const renderer = await import('react-test-renderer');
-    const HookProbe = () => {
+    const HookProbe = (): null => {
       latest = useJobsPipeline();
       return null;
     };
@@ -129,7 +121,7 @@ describe('useJobsPipeline', () => {
 
     const React = await import('react');
     const renderer = await import('react-test-renderer');
-    const HookProbe = () => {
+    const HookProbe = (): null => {
       latest = useJobsPipeline();
       return null;
     };
@@ -158,7 +150,7 @@ describe('useJobsPipeline', () => {
 
     const React = await import('react');
     const renderer = await import('react-test-renderer');
-    const HookProbe = () => {
+    const HookProbe = (): null => {
       latest = useJobsPipeline();
       return null;
     };
@@ -192,7 +184,7 @@ describe('useJobsPipeline', () => {
 
     const React = await import('react');
     const renderer = await import('react-test-renderer');
-    const HookProbe = () => {
+    const HookProbe = (): null => {
       latest = useJobsPipeline();
       return null;
     };
@@ -223,7 +215,7 @@ describe('useJobsPipeline', () => {
 
     const React = await import('react');
     const renderer = await import('react-test-renderer');
-    const HookProbe = () => {
+    const HookProbe = (): null => {
       latest = useJobsPipeline();
       return null;
     };
@@ -248,7 +240,7 @@ describe('useJobsPipeline', () => {
 
     const React = await import('react');
     const renderer = await import('react-test-renderer');
-    const HookProbe = () => {
+    const HookProbe = (): null => {
       latest = useJobsPipeline();
       return null;
     };
@@ -274,11 +266,6 @@ describe('useJobsPipeline', () => {
   it('does not show already-swiped jobs in the returned list', async () => {
     const page0 = makePage(0);
     mockUseQuery.mockReturnValue(createMockQueryResult({ data: page0 }));
-
-    // Only job-1 was swiped (candidate swiped right on it)
-    const mockSwipes = [
-      { job_id: 'job-1' },
-    ];
 
     // We need to override the fetchJobsPage logic — the existing mock
     // returns data directly. Instead, the hook's fetchJobsPage reads from

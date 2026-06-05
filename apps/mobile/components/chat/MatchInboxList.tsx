@@ -115,7 +115,7 @@ export function MatchInboxList({ matches, isLoading, error, role }: MatchInboxLi
         <FlatList
           data={matches}
           numColumns={numColumns}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: InboxMatch) => item.id}
           columnWrapperStyle={numColumns > 1 ? { gap: columnGap, paddingHorizontal: horizontalPad } : undefined}
           contentContainerStyle={{
             paddingHorizontal: numColumns > 1 ? 0 : horizontalPad,

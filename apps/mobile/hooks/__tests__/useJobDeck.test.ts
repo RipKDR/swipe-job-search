@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import renderer from 'react-test-renderer';
 import type { Job } from '@hi-hired/shared';
+import type { JobsPipelineState } from '@/hooks/useJobsPipeline';
 
 const mockSwipe = vi.fn().mockResolvedValue(undefined);
 const mockUseQuery = vi.fn();
@@ -24,16 +25,16 @@ vi.mock('@/lib/supabase', () => ({
 
 vi.mock('@/hooks/useUserLocation', () => ({
   useUserLocation: () => ({
-    location: null,
+    location: null as null,
     isLoading: false,
-    error: null,
+    error: null as string | null,
     refresh: vi.fn(),
   }),
 }));
 
 vi.mock('@/hooks/useJobsPipeline', () => ({
-  useJobsPipeline: () => ({
-    jobs: [],
+  useJobsPipeline: (): JobsPipelineState => ({
+    jobs: [] as Job[],
     currentPage: 0,
     currentIndex: 0,
     isLoading: false,
@@ -85,7 +86,7 @@ describe('useJobDeck', () => {
 
     const { useJobDeck } = await import('../useJobDeck');
     let latest: any = null;
-    const HookProbe = () => {
+    const HookProbe = (): null => {
       latest = useJobDeck();
       return null;
     };

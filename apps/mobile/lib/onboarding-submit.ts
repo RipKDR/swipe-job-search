@@ -14,7 +14,7 @@ export function buildCandidateProfileUpdate(
   nowIso: string
 ) {
   return {
-    role: 'candidate',
+    role: 'candidate' as const,
     full_name: data.full_name,
     suburb: data.suburb,
     experience_text: data.experience_text,
@@ -31,7 +31,7 @@ export function buildEmployerProfileUpdate(
   nowIso: string
 ) {
   return {
-    role: 'employer',
+    role: 'employer' as const,
     suburb: data.suburb,
     avatar_url: data.avatar_url ?? null,
     onboarding_completed_at: nowIso,

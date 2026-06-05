@@ -65,7 +65,7 @@ export function MessageList({ messages, currentUserId, isLoading }: MessageListP
         <FlatList
           style={{ flex: 1, width: '100%' }}
           data={invertedMessages}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item: ChatMessage) => item.id}
           contentContainerStyle={{ padding: 16, gap: 8 }}
           renderItem={renderItem}
           inverted

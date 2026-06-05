@@ -19,6 +19,7 @@ import { getErrorMessage } from "@/lib/errors";
 let ImagePicker: typeof import("expo-image-picker") | null = null;
 if (Platform.OS !== "web") {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     ImagePicker = require("expo-image-picker");
   } catch {
     ImagePicker = null;

@@ -94,7 +94,7 @@ async function fetchAppliedJobs(): Promise<AppliedJob[]> {
 
   if (error) throw error;
 
-  return (data ?? []) as AppliedJob[];
+  return (data ?? []) as unknown as AppliedJob[];
 }
 
 export default function AppliedJobsScreen() {

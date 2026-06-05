@@ -65,7 +65,7 @@ export default function CandidateTabsLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView>
       <CandidateTabs />
     </GestureHandlerRootView>
   );
