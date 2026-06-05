@@ -3,6 +3,7 @@
 import React, { createContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { DEV_AUTH_BYPASS, makeDevSession, makeDevProfile } from '@/lib/devAuth';
 import { posthog } from '@/lib/posthog';
 import { queryClient } from '@/lib/queryClient';
 import type { Database } from '@hi-hired/shared';
@@ -41,9 +42,9 @@ export const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(DEV_AUTH_BYPASS ? makeDevSession() : null);
+  const [profile, setProfile] = useState<Profile | null>(DEV_AUTH_BYPASS ? makeDevProfile() : null);
+  const [loading, setLoading] = useState(!DEV_AUTH_BYPASS);
   const [profileLoadFailed, setProfileLoadFailed] = useState(false);
   const profileEpochRef = useRef(0);
 
@@ -91,11 +92,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }, [fetchProfile]);
   const retryProfileFetch = useCallback(async () => {
-    if (!session?.user) return;
+    const user = session?.user;
+    if (!user) return;
     setProfileLoadFailed(false);
     const epochAtStart = profileEpochRef.current;
-    await loadProfile(session.user.id, epochAtStart);
-  }, [session?.user, loadProfile]);
+    await loadProfile(user.id, epochAtStart);
+  }, [session, loadProfile]);
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
@@ -115,6 +117,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [profile?.id]);
 
   useEffect(() => {
+    // Dev bypass: state is pre-seeded with a mock candidate; skip real auth.
+    if (DEV_AUTH_BYPASS) return;
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, nextSession) => {
