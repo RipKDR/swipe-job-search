@@ -54,12 +54,11 @@ export async function fetchMatchInbox(userId: string, role: 'candidate' | 'emplo
   if (messagesError) throw messagesError
 
   const lastMessageByMatch = new Map<string, { body: string; created_at: string }>()
-  for (const message of (messagesData ?? []) as any[]) {
-    const matchId = message.match_id as string
-    if (!lastMessageByMatch.has(matchId)) {
-      lastMessageByMatch.set(matchId, {
-        body: message.body as string,
-        created_at: message.created_at as string,
+  for (const message of messagesData ?? []) {
+    if (!lastMessageByMatch.has(message.match_id)) {
+      lastMessageByMatch.set(message.match_id, {
+        body: message.body,
+        created_at: message.created_at,
       })
     }
   }

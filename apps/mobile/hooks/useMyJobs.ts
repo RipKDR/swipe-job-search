@@ -29,8 +29,8 @@ export function useMyJobs() {
 
       if (jobsError) throw jobsError
 
-      const jobs = (jobsData ?? []) as any[]
-      const jobIds = (jobs ?? []).map((job) => job.id as string)
+      const jobs = jobsData ?? []
+      const jobIds = jobs.map((job) => job.id)
       if (jobIds.length === 0) return []
 
       const { data: swipesData, error: swipesError } = await supabase

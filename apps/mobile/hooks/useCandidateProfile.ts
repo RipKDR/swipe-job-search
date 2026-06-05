@@ -26,16 +26,15 @@ export function useCandidateProfile(candidateId: string) {
       if (error) throw error
       if (!data) throw new Error('Candidate not found')
 
-      const p = data as any
       return {
-        id: p.id as string,
-        fullName: (p.full_name as string | null) ?? 'Candidate',
-        suburb: (p.suburb as string | null) ?? 'Unknown suburb',
-        skills: (p.skills as string[] | null) ?? [],
-        avatarUrl: (p.avatar_url as string | null) ?? null,
-        experienceText: (p.experience_text as string | null) ?? null,
-        availabilityText: (p.availability_text as string | null) ?? null,
-        workRights: (p.work_rights as string | null) ?? null,
+        id: data.id,
+        fullName: data.full_name ?? 'Candidate',
+        suburb: data.suburb ?? 'Unknown suburb',
+        skills: (data.skills as string[] | null) ?? [],
+        avatarUrl: data.avatar_url ?? null,
+        experienceText: data.experience_text ?? null,
+        availabilityText: data.availability_text ?? null,
+        workRights: data.work_rights ?? null,
       }
     },
   })

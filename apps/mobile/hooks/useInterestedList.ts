@@ -28,8 +28,8 @@ export function useInterestedList(jobId: string) {
 
       if (swipesError) throw swipesError
 
-      const swipes = (swipesData ?? []) as any[]
-      const candidateIds = Array.from(new Set((swipes ?? []).map((row) => row.candidate_id as string)))
+      const swipes = swipesData ?? []
+      const candidateIds = Array.from(new Set(swipes.map((row) => row.candidate_id)))
       if (candidateIds.length === 0) return []
 
       const [
@@ -61,17 +61,17 @@ export function useInterestedList(jobId: string) {
       if (blocksByEmployerError) throw blocksByEmployerError
       if (blocksByCandidateError) throw blocksByCandidateError
 
-      const profiles = (profilesData ?? []) as any[]
-      const matches = (matchesData ?? []) as any[]
-      const blocksByEmployer = (blocksByEmployerData ?? []) as any[]
-      const blocksByCandidate = (blocksByCandidateData ?? []) as any[]
-      const matchedIds = new Set(matches.map((row) => row.candidate_id as string))
+      const profiles = profilesData ?? []
+      const matches = matchesData ?? []
+      const blocksByEmployer = blocksByEmployerData ?? []
+      const blocksByCandidate = blocksByCandidateData ?? []
+      const matchedIds = new Set(matches.map((row) => row.candidate_id))
       const blockedIds = new Set([
-        ...blocksByEmployer.map((row) => row.blocked_id as string),
-        ...blocksByCandidate.map((row) => row.blocker_id as string),
+        ...blocksByEmployer.map((row) => row.blocked_id),
+        ...blocksByCandidate.map((row) => row.blocker_id),
       ])
 
-      return (profiles ?? [])
+      return profiles
         .filter((candidate) => !matchedIds.has(candidate.id as string) && !blockedIds.has(candidate.id as string))
         .map((candidate) => ({
           id: candidate.id as string,
