@@ -1,10 +1,12 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useRouter, type Href } from 'expo-router';
 import { View, Text, Pressable } from '@/components/tw';
 import { Alert } from 'react-native';
 import { SwipeDeck } from '@/components/deck/SwipeDeck';
 import { EmptyDeck } from '@/components/deck/EmptyDeck';
+import { RadiusFilter } from '@/components/deck/RadiusFilter';
 import { useJobDeck } from '@/hooks/useJobDeck';
+import { useUserLocation } from '@/hooks/useUserLocation';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
@@ -12,7 +14,15 @@ import { TabWebShell } from '@/components/ui/TabWebShell';
 
 export default function DeckScreen() {
   const router = useRouter();
-  const { jobs, isLoading, error, swipe, isEmpty, reset, userLocation } = useJobDeck();
+  const [radiusKm, setRadiusKm] = useState(0);
+  const { isLoading: locationLoading, error: locationError } = useUserLocation();
+  const { jobs, isLoading, error, swipe, isEmpty, reset, userLocation } = useJobDeck({
+    radius_km: radiusKm,
+  });
+
+  const handleRadiusChange = useCallback((newRadius: number) => {
+    setRadiusKm(newRadius);
+  }, []);
 
   const handleSwipe = useCallback(
     async (_jobId: string, direction: 'left' | 'right' | 'super') => {
@@ -64,6 +74,12 @@ export default function DeckScreen() {
           title="Jobs"
           subtitle="Swipe right if you are interested · left to pass"
           className="pb-2"
+        />
+        <RadiusFilter
+          value={radiusKm}
+          onChange={handleRadiusChange}
+          locationLoading={locationLoading}
+          locationDenied={locationError !== null}
         />
         <View className="flex-1 w-full min-h-0">
           <SwipeDeck
