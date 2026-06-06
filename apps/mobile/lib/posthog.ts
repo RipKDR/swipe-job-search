@@ -69,6 +69,10 @@ let posthogInstance: PostHogClient;
 if (Platform.OS === 'web') {
   // Web: use posthog-js for real analytics
   try {
+    // Platform-conditional SDK: these are mutually exclusive by platform and must be
+    // resolved synchronously at module init time — dynamic import() is async and
+    // top-level await is not supported in Metro/Expo bundler.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const PostHogJS = require('posthog-js').default;
     PostHogJS.init(apiKey || 'placeholder', {
       api_host: host,
@@ -91,6 +95,10 @@ if (Platform.OS === 'web') {
 } else {
   // Native: use posthog-react-native
   try {
+    // Platform-conditional SDK: these are mutually exclusive by platform and must be
+    // resolved synchronously at module init time — dynamic import() is async and
+    // top-level await is not supported in Metro/Expo bundler.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const PostHog = require('posthog-react-native').default;
     posthogInstance = new PostHog(apiKey || 'placeholder', {
       host,

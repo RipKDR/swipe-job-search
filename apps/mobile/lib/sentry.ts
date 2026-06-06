@@ -18,6 +18,10 @@ export function initSentry(): void {
   if (!dsn) return;
 
   try {
+    // Native-only SDK: guard is Platform.OS !== 'web' above; require() is
+    // synchronous and intentional — dynamic import() is async and incompatible
+    // with this synchronous init pattern.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Sentry = require('@sentry/react-native');
     const integrations = ['mobileReplayIntegration', 'feedbackIntegration']
       .map((name: string) => {
@@ -48,6 +52,10 @@ export function initSentry(): void {
 export function wrapApp(AppComponent: React.ComponentType<unknown>): React.ComponentType<unknown> {
   if (Platform.OS === 'web') return AppComponent;
   try {
+    // Native-only SDK: guard is Platform.OS !== 'web' above; require() is
+    // synchronous and intentional — dynamic import() is async and incompatible
+    // with this synchronous wrap pattern.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Sentry = require('@sentry/react-native');
     return Sentry.wrap(AppComponent);
   } catch {
@@ -62,6 +70,10 @@ export function captureException(error: unknown, context?: Record<string, string
   if (!sdkReady || Platform.OS === 'web') return;
 
   try {
+    // Native-only SDK: guard is sdkReady && Platform.OS !== 'web' above; require() is
+    // synchronous and intentional — dynamic import() is async and incompatible
+    // with this synchronous capture pattern.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Sentry = require('@sentry/react-native');
     if (context) {
       Sentry.withScope((scope: { setContext: (k: string, v: unknown) => void }) => {

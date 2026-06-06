@@ -7,7 +7,7 @@ import type { Job } from '@hi-hired/shared';
 
 interface SwipeDeckProps {
   jobs: Job[];
-  onSwipe: (jobId: string, direction: 'left' | 'right') => Promise<void> | void;
+  onSwipe: (jobId: string, direction: 'left' | 'right' | 'super') => Promise<void> | void;
   onCardPress?: (job: Job) => void;
   isLoading?: boolean;
   /** Current user location for distance badge on JobCard */
@@ -55,7 +55,17 @@ export function SwipeDeck({ jobs, onSwipe, onCardPress, isLoading, userLocation 
     }
   }, [onSwipe, localJobs]);
 
-  const handleA11ySwipe = React.useCallback(async (direction: 'left' | 'right') => {
+  const handleSwipeUp = React.useCallback(async (jobId: string) => {
+    const removedJob = localJobs.find(j => j.id === jobId);
+    setLocalJobs((prev) => prev.filter((j) => j.id !== jobId));
+    try {
+      await onSwipe(jobId, 'super');
+    } catch {
+      if (removedJob) setLocalJobs(prev => [removedJob, ...prev]);
+    }
+  }, [onSwipe, localJobs]);
+
+  const handleA11ySwipe = React.useCallback(async (direction: 'left' | 'right' | 'super') => {
     const topJob = localJobs[0];
     if (!topJob) return;
     const removedJob = topJob;
@@ -89,6 +99,7 @@ export function SwipeDeck({ jobs, onSwipe, onCardPress, isLoading, userLocation 
               index={stackDepth as 0 | 1 | 2}
               onSwipeLeft={handleSwipeLeft}
               onSwipeRight={handleSwipeRight}
+              onSwipeUp={handleSwipeUp}
               onCardPress={onCardPress}
               userLocation={userLocation}
               isInteractive={stackDepth === 0}

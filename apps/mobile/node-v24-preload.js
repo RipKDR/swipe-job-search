@@ -19,6 +19,6 @@ try {
       console.log(`[node-v24] Patched exports for ${Object.keys(pkg.exports).length} entries`);
     }
   }
-} catch (e) {
+} catch (_e) {
   // Silently skip — pnpm doesn't have a root package.json in node_modules
 }

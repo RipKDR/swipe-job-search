@@ -15,7 +15,7 @@ export default function DeckScreen() {
   const { jobs, isLoading, error, swipe, isEmpty, reset, userLocation } = useJobDeck();
 
   const handleSwipe = useCallback(
-    async (_jobId: string, direction: 'left' | 'right') => {
+    async (_jobId: string, direction: 'left' | 'right' | 'super') => {
       try {
         await swipe(direction);
       } catch {

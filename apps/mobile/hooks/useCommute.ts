@@ -83,8 +83,10 @@ export function useCommute(
 ): UseCommuteResult {
   const { location: userLocation, isLoading: isUserLoading } = useUserLocation();
 
-  const [commuteMinutes, setCommuteMinutes] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [state, setState] = useState<{ commuteMinutes: number | null; isLoading: boolean }>({
+    commuteMinutes: null,
+    isLoading: false,
+  });
 
   // Ref to track active request so stale responses are ignored
   const activeRequestRef = useRef<symbol | null>(null);
@@ -105,21 +107,19 @@ export function useCommute(
       !userLocation ||
       isUserLoading
     ) {
-      setIsLoading(false);
-      setCommuteMinutes(null);
+      setState({ commuteMinutes: null, isLoading: false });
       return;
     }
 
     // Check cache first (instant response, no loading state)
     const cached = getCached(jobLat, jobLng);
     if (cached) {
-      setCommuteMinutes(cached.duration_minutes);
-      setIsLoading(false);
+      setState({ commuteMinutes: cached.duration_minutes, isLoading: false });
       return;
     }
 
     // Start debounce window — show loading but don't fire API yet
-    setIsLoading(true);
+    setState((prev) => ({ ...prev, isLoading: true }));
 
     const requestId = Symbol();
     activeRequestRef.current = requestId;
@@ -140,12 +140,11 @@ export function useCommute(
 
       if (result) {
         setCached(jobLat, jobLng, result);
-        setCommuteMinutes(result.duration_minutes);
+        setState({ commuteMinutes: result.duration_minutes, isLoading: false });
       } else {
-        setCommuteMinutes(null);
+        setState({ commuteMinutes: null, isLoading: false });
       }
 
-      setIsLoading(false);
       activeRequestRef.current = null;
     }, DEBOUNCE_MS);
 
@@ -159,5 +158,5 @@ export function useCommute(
     };
   }, [jobLat, jobLng, userLocation, isUserLoading]);
 
-  return { commuteMinutes, isLoading };
+  return state;
 }

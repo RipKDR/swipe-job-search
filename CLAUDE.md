@@ -87,6 +87,30 @@ From `apps/mobile` directly: `pnpm dev`, `pnpm typecheck`, `pnpm lint`, `pnpm te
   or `nativewind` without checking the pairing constraints in this file.
 - Don't switch package managers or disable `shamefully-hoist`.
 - Don't weaken TypeScript strictness to silence errors.
+- Don't use `as any` in hook files or Supabase query results — fix the type at its source.
+- Don't leave an incomplete refactor in a `git stash` at session end — use a WIP branch or revert.
+- Don't defer dead code removal — delete it at the moment of discovery (grep → no consumers → delete → typecheck).
+- Don't skip `git pull` at the start of a session — sync before any new work.
+
+## Quality gates (hard-won lessons — do not skip)
+
+These rules were established after a 39-commit, 262-file sprint that produced preventable debt:
+
+**Incremental typecheck**: Run `pnpm typecheck` after every logical change group, not just at commit time.
+50+ TS errors accumulated before a bulk audit — incremental checking prevents that entirely.
+
+**Supabase DB type stubs**: Every table in `database.types.ts` must include `Relationships: []`.
+Omitting it causes all insert/update types to resolve as `never`. Keep `apps/mobile/lib/database.types.ts`
+and `packages/shared/src/types/database.ts` in sync.
+
+**DB column addition checklist**: When adding a migration column, update all of:
+migration SQL → `Row` type → `Insert` type → `Update` type → both type files → any select constants.
+
+**Fix commit strategy**: Before fixing multiple bugs, run `pnpm typecheck && pnpm lint` first to see all
+issues at once. Group fixes by domain (security / data / perf / UX) — not by discovery order.
+
+**Merge sync**: First command of every session is `git pull`. If behind by >5 commits, sync and recheck
+types before starting new work.
 
 ## Known environment limitation (cloud sessions)
 `npx expo install --check`, expo-doctor's config-schema check, and the React Native

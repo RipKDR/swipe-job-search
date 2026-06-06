@@ -178,21 +178,21 @@ export type Database = {
           id: string;
           candidate_id: string;
           job_id: string;
-          direction: 'right' | 'left' | 'applied';
+          direction: 'right' | 'left' | 'applied' | 'super';
           created_at: string;
         };
         Insert: {
           id?: string;
           candidate_id: string;
           job_id: string;
-          direction: 'right' | 'left' | 'applied';
+          direction: 'right' | 'left' | 'applied' | 'super';
           created_at?: string;
         };
         Update: {
           id?: string;
           candidate_id?: string;
           job_id?: string;
-          direction?: 'right' | 'left' | 'applied';
+          direction?: 'right' | 'left' | 'applied' | 'super';
           created_at?: string;
         };
         Relationships: [];
@@ -506,7 +506,7 @@ export type Database = {
           provider_id: string;
           candidate_id: string;
           job_id: string;
-          direction: 'right' | 'left' | 'applied';
+          direction: 'right' | 'left' | 'applied' | 'super';
           created_at: string;
         };
         Insert: {
@@ -514,7 +514,7 @@ export type Database = {
           provider_id: string;
           candidate_id: string;
           job_id: string;
-          direction: 'right' | 'left' | 'applied';
+          direction: 'right' | 'left' | 'applied' | 'super';
           created_at?: string;
         };
         Update: {
@@ -522,7 +522,7 @@ export type Database = {
           provider_id?: string;
           candidate_id?: string;
           job_id?: string;
-          direction?: 'right' | 'left' | 'applied';
+          direction?: 'right' | 'left' | 'applied' | 'super';
           created_at?: string;
         };
         Relationships: [];
@@ -580,7 +580,7 @@ export type Database = {
       user_role: 'candidate' | 'employer' | 'provider';
       job_type: 'casual' | 'part_time' | 'permanent';
       job_status: 'active' | 'hired' | 'expired' | 'paused';
-      swipe_direction: 'right' | 'left' | 'applied';
+      swipe_direction: 'right' | 'left' | 'applied' | 'super';
       match_status: 'chatting' | 'hire_pending' | 'hired' | 'unmatched' | 'archived';
       compliance_report_type: 'weekly_summary' | 'fortnightly' | 'monthly' | 'bulk_swipe_audit' | 'other';
     };

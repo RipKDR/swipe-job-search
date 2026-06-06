@@ -34,5 +34,7 @@
   },
   "[jsonc]": {
     "editor.defaultFormatter": "vscode.json-language-features"
-  }
+  },
+  "python.analysis.autoImportCompletions": true,
+  "js/ts.tsdk.path": "node_modules/typescript/lib"
 }

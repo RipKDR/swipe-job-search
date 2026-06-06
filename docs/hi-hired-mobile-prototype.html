@@ -1,0 +1,1573 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hi-Hired Mobile Prototype</title>
+  <style>
+    :root {
+      --page: #090f1d;
+      --navy: #0f172a;
+      --slate: #162033;
+      --slate-2: #1e293b;
+      --line: rgba(148, 163, 184, 0.22);
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --dark-text: #111827;
+      --soft-text: #64748b;
+      --white: #ffffff;
+      --indigo: #7b61ff;
+      --indigo-2: #6d55ee;
+      --emerald: #10b981;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(123, 97, 255, 0.22), transparent 32%),
+        linear-gradient(135deg, #070b15 0%, #0f172a 48%, #111827 100%);
+      color: var(--text);
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+      border: 0;
+    }
+
+    .prototype {
+      width: min(100%, 430px);
+      display: grid;
+      gap: 14px;
+    }
+
+    .prototype-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 8px;
+    }
+
+    .prototype-title {
+      display: grid;
+      gap: 2px;
+    }
+
+    .prototype-title strong {
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .prototype-title span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .role-switch {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.72);
+    }
+
+    .role-switch button {
+      min-height: 36px;
+      min-width: 72px;
+      padding: 0 14px;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .role-switch button.active {
+      background: var(--white);
+      color: var(--dark-text);
+    }
+
+    .phone {
+      position: relative;
+      width: min(100%, 390px);
+      height: min(844px, calc(100vh - 40px));
+      min-height: 720px;
+      margin: 0 auto;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 36px;
+      background: var(--navy);
+      box-shadow: var(--shadow);
+      isolation: isolate;
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      top: 9px;
+      left: 50%;
+      z-index: 5;
+      width: 106px;
+      height: 25px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: #060911;
+      box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    .app-header {
+      position: relative;
+      z-index: 3;
+      display: grid;
+      grid-template-columns: 58px 1fr 58px;
+      align-items: center;
+      min-height: 86px;
+      padding: 28px 14px 10px;
+      background: rgba(15, 23, 42, 0.9);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+      backdrop-filter: blur(16px);
+    }
+
+    .icon-button,
+    .avatar-button,
+    .logo-mark {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-weight: 900;
+    }
+
+    .logo-mark {
+      background: var(--indigo);
+      color: var(--white);
+    }
+
+    .avatar-button {
+      overflow: hidden;
+      background: #243044;
+      border: 2px solid rgba(16, 185, 129, 0.92);
+    }
+
+    .icon-button.compact {
+      width: 44px;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .avatar-button.text-action {
+      width: 58px;
+      padding: 0;
+      border: 0;
+      border-radius: 14px;
+      background: transparent;
+      color: #dbeafe;
+      font-size: 11px;
+      font-weight: 950;
+    }
+
+    .avatar-button img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .header-copy {
+      min-width: 0;
+      text-align: center;
+    }
+
+    .header-copy strong {
+      display: block;
+      overflow: hidden;
+      color: var(--white);
+      font-size: 16px;
+      font-weight: 900;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .header-copy span {
+      display: block;
+      overflow: hidden;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .screen {
+      position: absolute;
+      inset: 86px 0 76px;
+      display: none;
+      overflow: hidden auto;
+      padding: 14px;
+      scrollbar-width: none;
+    }
+
+    .screen::-webkit-scrollbar {
+      width: 0;
+    }
+
+    .screen.active {
+      display: block;
+      animation: screenIn 180ms ease both;
+    }
+
+    @keyframes screenIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .bottom-tabs {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 4;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      height: 76px;
+      padding: 8px 12px 13px;
+      border-top: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(15, 23, 42, 0.94);
+      backdrop-filter: blur(18px);
+    }
+
+    .tab-button {
+      display: grid;
+      place-items: center;
+      gap: 3px;
+      min-height: 52px;
+      border-radius: 18px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .tab-button .tab-icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .tab-button.active {
+      background: rgba(123, 97, 255, 0.18);
+      color: var(--white);
+    }
+
+    .deck-stage {
+      position: relative;
+      height: calc(100% - 82px);
+      min-height: 492px;
+    }
+
+    .job-card,
+    .next-card {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      border-radius: 28px;
+      background: #111827;
+      box-shadow: 0 22px 46px rgba(0, 0, 0, 0.32);
+      touch-action: none;
+      user-select: none;
+    }
+
+    .next-card {
+      z-index: 0;
+      transform: translateY(18px) scale(0.95);
+      opacity: 0.7;
+    }
+
+    .job-card {
+      z-index: 1;
+      transform-origin: 50% 86%;
+      transition: transform 220ms ease;
+    }
+
+    .job-card.dragging {
+      transition: none;
+    }
+
+    .job-photo,
+    .next-photo {
+      position: absolute;
+      inset: 0;
+      background-position: center;
+      background-size: cover;
+      filter: saturate(1.05);
+    }
+
+    .job-photo::after,
+    .next-photo::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.12) 40%, rgba(0, 0, 0, 0.76) 100%),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.26), transparent 40%);
+    }
+
+    .card-badge-row {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      left: 14px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .pill,
+    .dark-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.94);
+      color: var(--dark-text);
+    }
+
+    .dark-pill {
+      background: rgba(15, 23, 42, 0.74);
+      color: var(--white);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+    }
+
+    .swipe-stamp {
+      position: absolute;
+      top: 92px;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      min-width: 118px;
+      height: 48px;
+      border: 4px solid currentColor;
+      border-radius: 14px;
+      font-size: 19px;
+      font-weight: 950;
+      letter-spacing: 1px;
+      opacity: 0;
+      transform: rotate(-12deg);
+    }
+
+    .swipe-stamp.yes {
+      right: 22px;
+      color: var(--emerald);
+      transform: rotate(12deg);
+    }
+
+    .swipe-stamp.no {
+      left: 22px;
+      color: var(--red);
+    }
+
+    .job-overlay {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      left: 12px;
+      z-index: 2;
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 24px;
+      background: rgba(2, 6, 23, 0.68);
+      backdrop-filter: blur(18px);
+    }
+
+    .job-title-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .job-title-row h1 {
+      margin: 0;
+      color: var(--white);
+      font-size: 24px;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .job-title-row small {
+      display: block;
+      margin-top: 4px;
+      color: #dbeafe;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .pay-badge {
+      align-self: start;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.92);
+      color: #062f23;
+      font-size: 14px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .shift-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .job-desc {
+      margin: 0;
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .deck-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      padding: 16px 44px 0;
+    }
+
+    .round-action {
+      display: grid;
+      place-items: center;
+      width: 64px;
+      height: 64px;
+      margin: 0 auto;
+      border-radius: 50%;
+      background: var(--white);
+      color: var(--red);
+      font-size: 24px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+    }
+
+    .round-action.yes {
+      background: var(--indigo);
+      color: var(--white);
+    }
+
+    .form-shell {
+      display: grid;
+      gap: 11px;
+      padding-bottom: 78px;
+    }
+
+    .form-field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .form-field label {
+      color: #dbeafe;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .field,
+    textarea.field {
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 13px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 16px;
+      outline: none;
+      background: var(--slate-2);
+      color: var(--white);
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    textarea.field {
+      min-height: 86px;
+      resize: none;
+      line-height: 1.4;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .select-pills {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .select-pills button {
+      min-height: 42px;
+      border-radius: 14px;
+      background: var(--slate-2);
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .select-pills button.active {
+      background: var(--indigo);
+      color: var(--white);
+    }
+
+    .award-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      color: #b7f7dc;
+      font-size: 11px;
+      font-weight: 850;
+    }
+
+    .upload-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 58px;
+      padding: 12px;
+      border: 1px dashed rgba(148, 163, 184, 0.42);
+      border-radius: 18px;
+      background: rgba(30, 41, 59, 0.82);
+      color: #cbd5e1;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .upload-box span {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      background: rgba(123, 97, 255, 0.18);
+      color: var(--white);
+    }
+
+    .sticky-actions {
+      position: sticky;
+      bottom: -14px;
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 10px;
+      padding: 12px 0 0;
+      background: linear-gradient(180deg, transparent, var(--navy) 24%);
+    }
+
+    .primary,
+    .secondary {
+      min-height: 50px;
+      border-radius: 16px;
+      font-weight: 950;
+    }
+
+    .primary {
+      background: var(--indigo);
+      color: var(--white);
+    }
+
+    .secondary {
+      background: transparent;
+      color: var(--white);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .list-header {
+      display: grid;
+      gap: 7px;
+      margin: 2px 0 12px;
+    }
+
+    .list-header h1 {
+      margin: 0;
+      font-size: 27px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .list-header p,
+    .dense-stats {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 750;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      margin: 0 -14px 10px;
+      padding: 0 14px;
+      scrollbar-width: none;
+    }
+
+    .filter-row::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    .filter-row button {
+      flex: 0 0 auto;
+      min-height: 36px;
+      padding: 0 13px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .filter-row button.active {
+      background: var(--indigo);
+      color: var(--white);
+    }
+
+    .candidate-list {
+      display: grid;
+      gap: 10px;
+      padding-bottom: 8px;
+    }
+
+    .candidate-card {
+      display: grid;
+      gap: 11px;
+      padding: 13px;
+      border-radius: 18px;
+      background: var(--white);
+      color: var(--dark-text);
+    }
+
+    .candidate-top {
+      display: grid;
+      grid-template-columns: 52px 1fr auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .candidate-photo,
+    .small-avatar,
+    .profile-photo {
+      overflow: hidden;
+      border-radius: 50%;
+      background: #e2e8f0;
+    }
+
+    .candidate-photo {
+      width: 52px;
+      height: 52px;
+    }
+
+    .candidate-photo img,
+    .small-avatar img,
+    .profile-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .candidate-card h2 {
+      margin: 0;
+      color: var(--dark-text);
+      font-size: 15px;
+      line-height: 1.2;
+    }
+
+    .candidate-card h3 {
+      margin: 3px 0 0;
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .candidate-card p {
+      margin: 0;
+      color: #475569;
+      font-size: 12px;
+      line-height: 1.35;
+      font-weight: 650;
+    }
+
+    .available {
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.13);
+      color: #047857;
+      font-size: 10px;
+      font-weight: 950;
+      white-space: nowrap;
+    }
+
+    .skill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .skill-row span {
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: #334155;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .candidate-bottom {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .metadata {
+      color: var(--soft-text);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .chat-cta {
+      min-width: 78px;
+      min-height: 42px;
+      border-radius: 14px;
+      background: var(--indigo);
+      color: var(--white);
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .expanded-detail {
+      display: none;
+      padding-top: 8px;
+      border-top: 1px solid #e2e8f0;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .candidate-card.expanded .expanded-detail {
+      display: block;
+    }
+
+    .chat-screen {
+      padding: 0;
+      background: #111827;
+    }
+
+    .chat-meta {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-height: 44px;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(17, 24, 39, 0.92);
+      color: #dbeafe;
+      backdrop-filter: blur(14px);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    .chat-messages {
+      display: grid;
+      gap: 12px;
+      padding: 14px 14px 112px;
+    }
+
+    .message-row {
+      display: flex;
+      align-items: end;
+      gap: 8px;
+    }
+
+    .message-row.mine {
+      justify-content: end;
+    }
+
+    .small-avatar {
+      flex: 0 0 auto;
+      width: 28px;
+      height: 28px;
+    }
+
+    .bubble {
+      max-width: 78%;
+      padding: 10px 12px;
+      border-radius: 18px 18px 18px 6px;
+      background: #374151;
+      color: #f8fafc;
+      font-size: 13px;
+      line-height: 1.38;
+      font-weight: 700;
+    }
+
+    .message-row.mine .bubble {
+      border-radius: 18px 18px 6px 18px;
+      background: var(--indigo);
+      color: var(--white);
+    }
+
+    .time {
+      display: block;
+      margin-bottom: 4px;
+      color: #cbd5e1;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .success-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(16, 185, 129, 0.14);
+      color: #bbf7d0;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.35;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .chat-screen.hired .success-banner {
+      display: flex;
+    }
+
+    .chat-input-bar {
+      position: sticky;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      padding: 10px 14px 14px;
+      border-top: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(17, 24, 39, 0.96);
+      backdrop-filter: blur(16px);
+    }
+
+    .hired-action {
+      grid-column: 1 / -1;
+      min-height: 42px;
+      border-radius: 14px;
+      background: var(--indigo);
+      color: var(--white);
+      font-size: 14px;
+      font-weight: 950;
+    }
+
+    .chat-screen.hired .hired-action {
+      background: rgba(16, 185, 129, 0.2);
+      color: #bbf7d0;
+      cursor: default;
+    }
+
+    .message-input {
+      min-height: 44px;
+      padding: 0 13px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+      outline: none;
+      background: var(--slate-2);
+      color: var(--white);
+    }
+
+    .send-button {
+      min-width: 62px;
+      min-height: 44px;
+      border-radius: 999px;
+      background: var(--white);
+      color: var(--dark-text);
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    .profile-card {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 14px;
+      padding: 14px;
+      border-radius: 22px;
+      background: var(--white);
+      color: var(--dark-text);
+    }
+
+    .profile-photo {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      outline: 4px solid rgba(16, 185, 129, 0.72);
+      outline-offset: 2px;
+    }
+
+    .profile-main h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .profile-main p {
+      margin: 5px 0 10px;
+      color: var(--soft-text);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .tag-row span {
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #4338ca;
+      font-size: 11px;
+      font-weight: 950;
+    }
+
+    .bio {
+      grid-column: 1 / -1;
+      margin: 0;
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.4;
+      font-weight: 720;
+    }
+
+    .profile-stats {
+      margin: 12px 0;
+      padding: 10px 0;
+      border-top: 1px solid rgba(148, 163, 184, 0.18);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+      color: #dbeafe;
+      font-size: 12px;
+      font-weight: 850;
+      text-align: center;
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .detail-item {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .detail-item strong {
+      display: block;
+      color: var(--white);
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .detail-item span:last-child {
+      display: block;
+      margin-top: 3px;
+      color: #cbd5e1;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .back-text {
+      background: transparent;
+      color: #dbeafe;
+      font-size: 13px;
+      font-weight: 950;
+    }
+
+    @media (max-width: 460px) {
+      body {
+        align-items: start;
+        padding: 10px;
+        background: var(--navy);
+      }
+
+      .prototype {
+        width: 100%;
+        gap: 8px;
+      }
+
+      .prototype-top {
+        display: flex;
+        padding: 0 4px;
+      }
+
+      .prototype-title strong {
+        font-size: 13px;
+      }
+
+      .prototype-title span {
+        display: none;
+      }
+
+      .role-switch button {
+        min-width: 64px;
+      }
+
+      .phone {
+        width: 100%;
+        height: calc(100vh - 60px);
+        min-height: 680px;
+        border-radius: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="prototype" aria-label="Hi-Hired interactive mobile prototype">
+    <section class="prototype-top" aria-label="Prototype controls">
+      <div class="prototype-title">
+        <strong>Hi-Hired prototype</strong>
+        <span>Interactive mobile frame · 390x844</span>
+      </div>
+      <div class="role-switch" role="tablist" aria-label="Persona switch">
+        <button id="role-worker" class="active" type="button" role="tab" aria-selected="true">Mia</button>
+        <button id="role-employer" type="button" role="tab" aria-selected="false">Venue</button>
+      </div>
+    </section>
+
+    <section class="phone" aria-label="Hi-Hired mobile app">
+      <header class="app-header">
+        <button class="icon-button" type="button" aria-label="Back or menu" id="left-action">
+          <span id="left-icon">H</span>
+        </button>
+        <div class="header-copy">
+          <strong id="header-title">Good arvo, Mia</strong>
+          <span id="header-subtitle">12 jobs today</span>
+        </div>
+        <button class="avatar-button" type="button" aria-label="Open profile" id="right-action">
+          <img alt="" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&amp;fit=crop&amp;w=160&amp;q=80">
+        </button>
+      </header>
+
+      <section id="screen-swipe" class="screen active" aria-label="Swipe deck">
+        <div class="deck-stage">
+          <article class="next-card" aria-hidden="true">
+            <div class="next-photo" id="next-photo"></div>
+          </article>
+          <article class="job-card" id="job-card" aria-label="Current job card">
+            <div class="job-photo" id="job-photo"></div>
+            <div class="card-badge-row">
+              <span class="pill" id="job-suburb">Fitzroy</span>
+              <span class="dark-pill" id="job-type">Casual</span>
+            </div>
+            <div class="swipe-stamp yes" id="stamp-yes">I'M IN</div>
+            <div class="swipe-stamp no" id="stamp-no">PASS</div>
+            <div class="job-overlay">
+              <div class="job-title-row">
+                <div>
+                  <h1 id="job-title">Front Counter + Coffee Runner</h1>
+                  <small id="job-business">Market Lane Espresso</small>
+                </div>
+                <span class="pay-badge" id="job-pay">$32/hr</span>
+              </div>
+              <div class="shift-line">
+                <span aria-hidden="true">◷</span>
+                <span id="job-shift">Tomorrow · 7am-2pm</span>
+              </div>
+              <p class="job-desc" id="job-desc">Busy breakfast rush support. POS, customer runs, and keeping tables clear.</p>
+            </div>
+          </article>
+        </div>
+        <div class="deck-actions" aria-label="Swipe actions">
+          <button class="round-action no" type="button" id="pass-button" aria-label="Pass on this job">X</button>
+          <button class="round-action yes" type="button" id="like-button" aria-label="Apply to this job">✓</button>
+        </div>
+      </section>
+
+      <section id="screen-post" class="screen" aria-label="Post a shift">
+        <form class="form-shell">
+          <div class="form-field">
+            <label for="job-title-field">Job title</label>
+            <input id="job-title-field" class="field" value="Warehouse picker / packer">
+          </div>
+          <div class="form-field">
+            <label for="venue-field">Employer / venue name</label>
+            <input id="venue-field" class="field" value="Northside Fulfilment">
+          </div>
+          <div class="form-field">
+            <label>Job type</label>
+            <div class="select-pills" aria-label="Job type">
+              <button class="active" type="button">Casual</button>
+              <button type="button">Part-time</button>
+              <button type="button">Full-time</button>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="form-field">
+              <label for="pay-field">Pay rate</label>
+              <input id="pay-field" class="field" value="$34/hr">
+              <span class="award-note">✓ Calculated Award Minimum: Passed</span>
+            </div>
+            <div class="form-field">
+              <label for="shift-field">Shift hours</label>
+              <input id="shift-field" class="field" value="Mon-Fri · 6am-2pm">
+            </div>
+          </div>
+          <div class="form-field">
+            <label for="suburb-field">Suburb</label>
+            <input id="suburb-field" class="field" value="Brunswick East">
+          </div>
+          <div class="form-field">
+            <label for="description-field">Short description</label>
+            <textarea id="description-field" class="field">Busy, organized team. Handover, wrapping, RF scanning. Forklift ticket is a bonus.</textarea>
+          </div>
+          <div class="upload-box" role="button" tabindex="0" aria-label="Upload cover photo">
+            <span aria-hidden="true">▣</span>
+            <strong>Cafe counter, storefront, or loading dock.</strong>
+          </div>
+          <p class="dense-stats">Expires in 30 days.</p>
+          <div class="sticky-actions">
+            <button class="secondary" type="button">Save Draft</button>
+            <button class="primary" type="button">Publish Job</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="screen-interested" class="screen" aria-label="Interested candidates">
+        <div class="list-header">
+          <h1>Interested Candidates</h1>
+          <p>Front Counter + Coffee Runner · Fitzroy</p>
+          <p class="dense-stats">18 swiped right · 7 available now · 3 chats open</p>
+        </div>
+        <div class="filter-row" aria-label="Candidate filters">
+          <button class="active" type="button">All</button>
+          <button type="button">Hospitality</button>
+          <button type="button">Weekends</button>
+          <button type="button">Full Rights</button>
+        </div>
+        <div class="candidate-list">
+          <article class="candidate-card" tabindex="0" aria-label="Ava Nguyen candidate profile">
+            <div class="candidate-top">
+              <div class="candidate-photo">
+                <img alt="" src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&amp;fit=crop&amp;w=160&amp;q=80">
+              </div>
+              <div>
+                <h2>Ava Nguyen, 24 · Footscray</h2>
+                <h3>Retail + cafe all-rounder</h3>
+              </div>
+              <span class="available">Available Now</span>
+            </div>
+            <p>3 years across cafe open, POS, stock, and closing shifts. Ready this week.</p>
+            <div class="skill-row">
+              <span>POS</span><span>Coffee</span><span>Stockroom</span>
+            </div>
+            <div class="candidate-bottom">
+              <span class="metadata">Weekdays + weekends<br>Full work rights</span>
+              <button class="chat-cta" type="button" data-chat>Chat</button>
+            </div>
+            <div class="expanded-detail">Recent shifts: Brunswick cafe, CBD retail close, Collingwood grocer. Prefers tram-accessible shifts under 35 minutes from Footscray.</div>
+          </article>
+          <article class="candidate-card" tabindex="0" aria-label="Ruby Clarke candidate profile">
+            <div class="candidate-top">
+              <div class="candidate-photo">
+                <img alt="" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&amp;fit=crop&amp;w=160&amp;q=80">
+              </div>
+              <div>
+                <h2>Ruby Clarke, 21 · Northcote</h2>
+                <h3>Coffee, floor, and opening shift support</h3>
+              </div>
+              <span class="available">Available Now</span>
+            </div>
+            <p>Two years in busy brunch venues. Calm in peak service and can start at 6am.</p>
+            <div class="skill-row">
+              <span>Latte Art</span><span>Till</span><span>Weekends</span>
+            </div>
+            <div class="candidate-bottom">
+              <span class="metadata">Saturdays only<br>Student Visa (24h)</span>
+              <button class="chat-cta" type="button" data-chat>Chat</button>
+            </div>
+            <div class="expanded-detail">Best fit: weekend opening shifts and front-of-house support. Profile notes a 24-hour weekly work cap during study periods.</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="screen-chat" class="screen chat-screen" aria-label="Matched chat">
+        <div class="chat-meta">
+          <span>$32/hr · Tomorrow, 7am-2pm</span>
+          <button class="back-text" type="button">Unmatch</button>
+        </div>
+        <div class="chat-messages">
+          <div class="success-banner" id="success-banner">
+            <span aria-hidden="true">✓</span>
+            <span>Hired! Sofia locked you in for Tomorrow at 7:00 AM.</span>
+          </div>
+          <div class="message-row">
+            <div class="small-avatar">
+              <img alt="" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&amp;fit=crop&amp;w=100&amp;q=80">
+            </div>
+            <div class="bubble">
+              <span class="time">Sofia · 4:14 pm</span>
+              Hey Mia - saw your profile and you look like a strong fit for tomorrow morning. Are you still free?
+            </div>
+          </div>
+          <div class="message-row mine">
+            <div class="bubble">
+              <span class="time">Mia · 4:16 pm</span>
+              Yep, I can do the full shift and I am close by in Carlton. Happy to jump in early too.
+            </div>
+          </div>
+          <div class="message-row">
+            <div class="small-avatar">
+              <img alt="" src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&amp;fit=crop&amp;w=100&amp;q=80">
+            </div>
+            <div class="bubble">
+              <span class="time">Sofia · 4:18 pm</span>
+              Perfect. It is mostly counter, coffee runs, and keeping the front tidy during the breakfast rush.
+            </div>
+          </div>
+          <div class="message-row mine">
+            <div class="bubble">
+              <span class="time">Mia · 4:19 pm</span>
+              That sounds good. I have done similar brunch shifts and can handle POS and busy starts.
+            </div>
+          </div>
+        </div>
+        <div class="chat-input-bar">
+          <button class="hired-action" id="hired-button" type="button">Hired ✓</button>
+          <input class="message-input" aria-label="Message Sofia" placeholder="Message Sofia...">
+          <button class="send-button" type="button">Send</button>
+        </div>
+      </section>
+
+      <section id="screen-profile" class="screen" aria-label="Worker profile">
+        <article class="profile-card">
+          <div class="profile-photo">
+            <img alt="" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&amp;fit=crop&amp;w=180&amp;q=80">
+          </div>
+          <div class="profile-main">
+            <h1>Mia Tran</h1>
+            <p>Carlton · Melbourne</p>
+            <div class="tag-row">
+              <span>Hospitality</span>
+              <span>Retail</span>
+            </div>
+          </div>
+          <p class="bio">Friendly all-rounder with cafe, counter, and stock experience. Keen for local shifts.</p>
+        </article>
+        <div class="profile-stats">46 swipes right · 12 active chats · 4 completed hires</div>
+        <div class="detail-list">
+          <div class="detail-item">
+            <span aria-hidden="true">Skill</span>
+            <span><strong>Top skills</strong><span>Coffee, POS, table service, cash handling</span></span>
+          </div>
+          <div class="detail-item">
+            <span aria-hidden="true">Cal</span>
+            <span><strong>Availability</strong><span>Mon-Thu mornings, weekends anytime</span></span>
+          </div>
+          <div class="detail-item">
+            <span aria-hidden="true">ID</span>
+            <span><strong>Work rights</strong><span>Australian citizen (No restrictions)</span></span>
+          </div>
+          <div class="detail-item">
+            <span aria-hidden="true">Pin</span>
+            <span><strong>Preferred area</strong><span>Inner North & Melbourne CBD</span></span>
+          </div>
+        </div>
+      </section>
+
+      <nav class="bottom-tabs" aria-label="Main navigation" id="bottom-tabs"></nav>
+    </section>
+  </main>
+
+  <script>
+    const jobs = [
+      {
+        suburb: 'Fitzroy',
+        type: 'Casual',
+        title: 'Front Counter + Coffee Runner',
+        business: 'Market Lane Espresso',
+        pay: '$32/hr',
+        shift: 'Tomorrow · 7am-2pm',
+        desc: 'Busy breakfast rush support. POS, customer runs, and keeping tables clear.',
+        image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80'
+      },
+      {
+        suburb: 'Carlton',
+        type: 'Casual',
+        title: 'Pasta Bar Floor Support',
+        business: 'Neighbourhood Pasta',
+        pay: '$33/hr',
+        shift: 'Friday · 5pm-11pm',
+        desc: 'Fast front room service, water runs, table resets, and close support near Lygon Street.',
+        image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=900&q=80'
+      },
+      {
+        suburb: 'Brunswick East',
+        type: 'Part-time',
+        title: 'Warehouse Picker / Packer',
+        business: 'Northside Fulfilment',
+        pay: '$34/hr',
+        shift: 'Mon-Fri · 6am-2pm',
+        desc: 'Handover, wrapping, RF scanning, and organized dispatch support. Forklift ticket is a bonus.',
+        image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?auto=format&fit=crop&w=900&q=80'
+      }
+    ];
+
+    const tabsByRole = {
+      worker: [
+        { id: 'swipe', label: 'Deck', icon: '◇' },
+        { id: 'chat', label: 'Chat', icon: '✉' },
+        { id: 'profile', label: 'Profile', icon: '●' }
+      ],
+      employer: [
+        { id: 'post', label: 'Post', icon: '+' },
+        { id: 'interested', label: 'Talent', icon: '≡' },
+        { id: 'chat', label: 'Chat', icon: '✉' }
+      ]
+    };
+
+    const headers = {
+      swipe: ['Good arvo, Mia', '12 jobs today', 'H', 'avatar'],
+      post: ['Post a Shift', 'Northside Fulfilment', '‹', 'Preview'],
+      interested: ['Interested Candidates', 'Front Counter + Coffee Runner', '‹', 'Preview'],
+      chat: ['Sofia · Neighbourhood Pasta', 'Carlton · Front counter', '‹', ''],
+      profile: ['My Profile', 'Mia Tran · Available now', '‹', 'Edit']
+    };
+
+    let role = 'worker';
+    let screen = 'swipe';
+    let jobIndex = 0;
+    let dragStartX = 0;
+    let dragX = 0;
+    let dragging = false;
+
+    const screenEls = {
+      swipe: document.getElementById('screen-swipe'),
+      post: document.getElementById('screen-post'),
+      interested: document.getElementById('screen-interested'),
+      chat: document.getElementById('screen-chat'),
+      profile: document.getElementById('screen-profile')
+    };
+
+    const bottomTabs = document.getElementById('bottom-tabs');
+    const roleWorker = document.getElementById('role-worker');
+    const roleEmployer = document.getElementById('role-employer');
+    const headerTitle = document.getElementById('header-title');
+    const headerSubtitle = document.getElementById('header-subtitle');
+    const leftIcon = document.getElementById('left-icon');
+    const rightAction = document.getElementById('right-action');
+    const jobCard = document.getElementById('job-card');
+    const jobPhoto = document.getElementById('job-photo');
+    const nextPhoto = document.getElementById('next-photo');
+    const stampYes = document.getElementById('stamp-yes');
+    const stampNo = document.getElementById('stamp-no');
+
+    function setRole(nextRole) {
+      role = nextRole;
+      screen = role === 'worker' ? 'swipe' : 'post';
+      roleWorker.classList.toggle('active', role === 'worker');
+      roleEmployer.classList.toggle('active', role === 'employer');
+      roleWorker.setAttribute('aria-selected', String(role === 'worker'));
+      roleEmployer.setAttribute('aria-selected', String(role === 'employer'));
+      render();
+    }
+
+    function setScreen(nextScreen) {
+      screen = nextScreen;
+      render();
+    }
+
+    function render() {
+      Object.entries(screenEls).forEach(([id, el]) => {
+        el.classList.toggle('active', id === screen);
+      });
+
+      const header = headers[screen];
+      headerTitle.textContent = header[0];
+      headerSubtitle.textContent = header[1];
+      leftIcon.textContent = header[2];
+      document.getElementById('left-action').classList.toggle('compact', header[2] === '‹');
+      rightAction.classList.toggle('text-action', header[3] !== 'avatar');
+      rightAction.style.visibility = header[3] ? 'visible' : 'hidden';
+      rightAction.innerHTML = header[3] === 'avatar'
+        ? '<img alt="" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=160&q=80">'
+        : `<span style="font-size:12px;font-weight:950">${header[3]}</span>`;
+      rightAction.setAttribute('aria-label', header[3] === 'avatar' ? 'Open profile' : header[3] || 'No secondary action');
+
+      bottomTabs.innerHTML = '';
+      tabsByRole[role].forEach(tab => {
+        const button = document.createElement('button');
+        button.className = `tab-button ${screen === tab.id ? 'active' : ''}`;
+        button.type = 'button';
+        button.setAttribute('aria-label', tab.label);
+        button.innerHTML = `<span class="tab-icon">${tab.icon}</span><span>${tab.label}</span>`;
+        button.addEventListener('click', () => setScreen(tab.id));
+        bottomTabs.appendChild(button);
+      });
+    }
+
+    function renderJob() {
+      const current = jobs[jobIndex % jobs.length];
+      const next = jobs[(jobIndex + 1) % jobs.length];
+      document.getElementById('job-suburb').textContent = current.suburb;
+      document.getElementById('job-type').textContent = current.type;
+      document.getElementById('job-title').textContent = current.title;
+      document.getElementById('job-business').textContent = current.business;
+      document.getElementById('job-pay').textContent = current.pay;
+      document.getElementById('job-shift').textContent = current.shift;
+      document.getElementById('job-desc').textContent = current.desc;
+      jobPhoto.style.backgroundImage = `url("${current.image}")`;
+      nextPhoto.style.backgroundImage = `url("${next.image}")`;
+      resetCard();
+    }
+
+    function resetCard() {
+      dragX = 0;
+      jobCard.classList.remove('dragging');
+      jobCard.style.transform = '';
+      stampYes.style.opacity = '0';
+      stampNo.style.opacity = '0';
+    }
+
+    function moveCard(x) {
+      dragX = x;
+      const rotate = x / 16;
+      jobCard.style.transform = `translateX(${x}px) rotate(${rotate}deg)`;
+      stampYes.style.opacity = String(Math.min(Math.max(x / 120, 0), 1));
+      stampNo.style.opacity = String(Math.min(Math.max(-x / 120, 0), 1));
+    }
+
+    function completeSwipe(direction) {
+      const exitX = direction === 'yes' ? 480 : -480;
+      jobCard.classList.remove('dragging');
+      jobCard.style.transform = `translateX(${exitX}px) rotate(${direction === 'yes' ? 18 : -18}deg)`;
+      setTimeout(() => {
+        jobIndex += 1;
+        renderJob();
+      }, 180);
+    }
+
+    jobCard.addEventListener('pointerdown', event => {
+      dragging = true;
+      dragStartX = event.clientX;
+      jobCard.classList.add('dragging');
+      jobCard.setPointerCapture(event.pointerId);
+    });
+
+    jobCard.addEventListener('pointermove', event => {
+      if (!dragging) return;
+      moveCard(event.clientX - dragStartX);
+    });
+
+    jobCard.addEventListener('pointerup', () => {
+      if (!dragging) return;
+      dragging = false;
+      if (dragX > 96) completeSwipe('yes');
+      else if (dragX < -96) completeSwipe('no');
+      else resetCard();
+    });
+
+    jobCard.addEventListener('pointercancel', () => {
+      dragging = false;
+      resetCard();
+    });
+
+    document.getElementById('pass-button').addEventListener('click', () => completeSwipe('no'));
+    document.getElementById('like-button').addEventListener('click', () => completeSwipe('yes'));
+
+    document.getElementById('hired-button').addEventListener('click', () => {
+      const chat = document.getElementById('screen-chat');
+      chat.classList.add('hired');
+      document.getElementById('hired-button').textContent = 'Shift locked';
+      document.getElementById('success-banner').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+
+    document.querySelectorAll('.candidate-card').forEach(card => {
+      card.addEventListener('click', event => {
+        if (event.target.matches('[data-chat]')) return;
+        card.classList.toggle('expanded');
+      });
+      card.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          card.classList.toggle('expanded');
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-chat]').forEach(button => {
+      button.addEventListener('click', event => {
+        event.stopPropagation();
+        setScreen('chat');
+      });
+    });
+
+    roleWorker.addEventListener('click', () => setRole('worker'));
+    roleEmployer.addEventListener('click', () => setRole('employer'));
+    rightAction.addEventListener('click', () => {
+      if (screen === 'swipe') setScreen('profile');
+    });
+
+    renderJob();
+    render();
+  </script>
+</body>
+</html>

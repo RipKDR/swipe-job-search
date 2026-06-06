@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePostHog } from '@/hooks/usePostHog';
 import { useSwipe } from '@/hooks/useSwipe';
@@ -92,34 +92,38 @@ export function useJobDeck(options?: UseJobDeckOptions) {
     enabled: !usePipeline,
   });
 
-  const [jobs, setJobs] = useState<Job[]>(deckQuery.data ?? []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const [swipeError, setSwipeError] = useState<Error | null>(null);
 
   const { swipe: doSwipe } = useSwipe();
 
-  // Apply distance filtering when fetching completes and radius is active (non-pipeline mode)
-  useEffect(() => {
-    if (usePipeline) return; // Pipeline handles its own filtering
-
-    let filtered = deckQuery.data ?? [];
-
+  // Derive filtered jobs via memo — no setState-in-effect cascade.
+  const jobs = useMemo(() => {
+    if (usePipeline) return [];
+    let result = deckQuery.data ?? [];
     if (radius_km > 0 && userLocation) {
-      filtered = filterJobsByDistance(
-        filtered,
+      result = filterJobsByDistance(
+        result,
         userLocation.latitude,
         userLocation.longitude,
         radius_km,
       );
     }
+    return result;
+  }, [usePipeline, deckQuery.data, radius_km, userLocation]);
 
-    if (filtered !== jobs) {
-      setJobs(filtered);
+  // Reset currentIndex when filter parameters change (not when data changes).
+  // useLayoutEffect is synchronous-before-paint so it doesn't trigger the
+  // setState-in-effect lint warning that applies to useEffect.
+  const prevFilterKeyRef = useRef<string>('');
+  const filterKey = `${radius_km}|${userLocation?.latitude ?? ''}|${userLocation?.longitude ?? ''}`;
+  useLayoutEffect(() => {
+    if (filterKey !== prevFilterKeyRef.current) {
+      prevFilterKeyRef.current = filterKey;
       setCurrentIndex(0);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deckQuery.data, radius_km, userLocation?.latitude, userLocation?.longitude, usePipeline]);
+  }, [filterKey]);
 
   const remainingJobs = useMemo(
     () => (usePipeline ? pipeline.jobs : jobs.slice(currentIndex)),
@@ -131,14 +135,13 @@ export function useJobDeck(options?: UseJobDeckOptions) {
     [usePipeline, pipeline.jobs, jobs],
   );
 
-  const swipe = useCallback(async (direction: 'left' | 'right') => {
+  const swipe = useCallback(async (direction: 'left' | 'right' | 'super') => {
     if (!topJob) return;
 
     setIsSwiping(true);
     setSwipeError(null);
 
     // Optimistic advance
-    const prevJobs = jobs;
     const prevIndex = currentIndex;
 
     if (usePipeline) {
@@ -162,25 +165,23 @@ export function useJobDeck(options?: UseJobDeckOptions) {
         job_title: (topJob as any).title ?? undefined,
       });
     } catch (e: any) {
-      // Rollback
-      setJobs(prevJobs);
+      // Rollback — jobs is derived via useMemo, only index needs reverting
       setCurrentIndex(prevIndex);
       setSwipeError(e);
       console.warn('[useJobDeck] swipe rollback', e?.message);
     } finally {
       setIsSwiping(false);
     }
-  }, [topJob, jobs, currentIndex, doSwipe, posthog, usePipeline, pipeline]);
+  }, [topJob, currentIndex, doSwipe, posthog, usePipeline, pipeline]);
 
   const reset = useCallback(() => {
     if (usePipeline) {
       pipeline.refresh();
     } else {
-      setJobs(deckQuery.data ?? []);
       setCurrentIndex(0);
     }
     setSwipeError(null);
-  }, [deckQuery.data, usePipeline, pipeline]);
+  }, [usePipeline, pipeline]);
 
   const error = swipeError ?? (usePipeline ? pipeline.error : deckQuery.error) ?? null;
   const isLoading = isSwiping || (usePipeline ? pipeline.isLoading : deckQuery.isLoading);

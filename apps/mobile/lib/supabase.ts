@@ -91,17 +91,19 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Auth state listener — stores/clears tokens in SecureStore on auth events
+// Auth state listener — stores/clears tokens in SecureStore on auth events.
+// Dynamic import() breaks the circular dependency:
+//   supabase.ts → (static) → token-refresh.ts → (static) → supabase.ts
 if (Platform.OS !== 'web') {
   supabase.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
-      const { storeTokens } = require('@/lib/auth/token-refresh');
+      const { storeTokens } = await import('@/lib/auth/token-refresh');
       await storeTokens(session.access_token, session.refresh_token);
     } else if (event === 'SIGNED_OUT') {
-      const { clearTokens } = require('@/lib/auth/token-refresh');
+      const { clearTokens } = await import('@/lib/auth/token-refresh');
       await clearTokens();
     } else if (event === 'TOKEN_REFRESHED' && session) {
-      const { storeTokens } = require('@/lib/auth/token-refresh');
+      const { storeTokens } = await import('@/lib/auth/token-refresh');
       await storeTokens(session.access_token, session.refresh_token);
     }
   });

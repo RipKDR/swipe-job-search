@@ -1,9 +1,6 @@
 import { createElement } from 'react'
-import { cleanup } from '@testing-library/react'
+import { cleanup, fireEvent } from '@testing-library/react'
 import { afterEach, vi } from 'vitest'
-
-// Make fireEvent.press an alias for fireEvent.click (DOM equivalent of RN press)
-import { fireEvent } from '@testing-library/react'
 ;(fireEvent as any).press = fireEvent.click
 
 // --- Shared props normaliser for all RN mocks ---
@@ -121,7 +118,9 @@ vi.mock('react-native-screens', () => ({
 
 // Mock react-native-safe-area-context — also commonly loaded by expo-router
 vi.mock('react-native-safe-area-context', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   SafeAreaProvider: ({ children }: any) => require('react').createElement('div', null, children),
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   SafeAreaView: ({ children }: any) => require('react').createElement('div', null, children),
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
   useSafeAreaFrame: () => ({ x: 0, y: 0, width: 375, height: 812 }),
@@ -181,6 +180,7 @@ vi.mock('expo-constants', () => ({
 vi.mock('react-native-url-polyfill/auto', () => ({}))
 
 vi.mock('react-native-css', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react')
   return {
     useCssElement: (Component: React.ComponentType<any>, props: Record<string, unknown>) =>
@@ -223,6 +223,7 @@ vi.mock('react-native-gesture-handler', () => ({
 
 // Mock @/components/tw — reuse shared normalizeRNProps so RN event handlers work
 vi.mock('@/components/tw', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { createElement: ce } = require('react');
   const View = (props: any) => ce('div', normalizeRNProps(props));
   const Text = (props: any) => ce('span', normalizeRNProps(props));

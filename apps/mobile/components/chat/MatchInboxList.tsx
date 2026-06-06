@@ -49,17 +49,28 @@ type MatchInboxListProps = {
   isLoading?: boolean;
   error?: unknown;
   role: 'candidate' | 'employer';
+  /** When set, new-match taps call this callback instead of navigating to chat.
+   *  The parent can then show a celebration overlay and decide when to navigate. */
+  onCelebrateMatch?: (match: InboxMatch) => void;
 };
 
-export function MatchInboxList({ matches, isLoading, error, role }: MatchInboxListProps) {
+export function MatchInboxList({ matches, isLoading, error, role, onCelebrateMatch }: MatchInboxListProps) {
   const router = useRouter();
   const numColumns = useListColumns(2);
   const { width } = useWindowDimensions();
   const isWide = width >= BREAKPOINTS.md;
 
   const handleMatchPress = useCallback(
-    (id: string) => router.push(`/chat/${id}` as Href),
-    [router],
+    (id: string) => {
+      const match = matches.find((m) => m.id === id);
+      if (match?.isNewMatch && onCelebrateMatch) {
+        // Let the parent show the celebration overlay first
+        onCelebrateMatch(match);
+      } else {
+        router.push(`/chat/${id}` as Href);
+      }
+    },
+    [router, matches, onCelebrateMatch],
   );
 
   const renderItem = useCallback(
