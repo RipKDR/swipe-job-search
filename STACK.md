@@ -15,7 +15,7 @@ When docs disagree, **this file wins**.
 
 ## Product
 
-**Hi-Hired** — mobile-first job finder for casual, part-time, and permanent roles. Job seekers swipe local jobs; employers review interested candidates and start chat. Bilateral opt-in before messaging. Transparent pay on every card.
+**Hi-Hired** — mobile-first market correction tool for casual, part-time, and permanent roles. Built to dismantle the opaque, high-fee recruitment agency model. Job seekers swipe local jobs with transparent pay on every card; employers review interested candidates and start chat. Bilateral opt-in before messaging. No applications into a black hole. No commission-chasing middlemen.
 
 **Tagline:** *The algorithm is you.*
 

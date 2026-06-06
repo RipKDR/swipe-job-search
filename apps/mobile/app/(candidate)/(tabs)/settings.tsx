@@ -4,6 +4,7 @@ import { ScrollView, Alert, Linking, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import { useRadiusPreference } from '@/hooks/useRadiusPreference';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -60,6 +61,7 @@ export default function SettingsScreen() {
   const { mode, toggleMode } = useTheme();
   const [hapticsEnabled, setHapticsEnabled] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const { radiusKm, setRadiusKm } = useRadiusPreference();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Load persisted preferences
@@ -181,6 +183,35 @@ export default function SettingsScreen() {
                 trackColor={{ false: '#334155', true: '#166534' }}
                 thumbColor={hapticsEnabled ? '#4ade80' : '#64748b'}
               />
+            }
+          />
+          <SettingRow
+            label="Search radius"
+            description={radiusKm === 0 ? 'Showing jobs anywhere' : `Within ${radiusKm} km of your location`}
+            rightElement={
+              <View className="flex-row gap-1.5">
+                {[0, 5, 10, 25, 50].map((km) => (
+                  <Pressable
+                    key={km}
+                    onPress={() => setRadiusKm(km)}
+                    accessibilityLabel={km === 0 ? 'Anywhere' : `${km} km`}
+                    accessibilityRole="button"
+                    className={`px-3 py-1.5 rounded-full border ${
+                      radiusKm === km
+                        ? 'bg-emerald-600/20 border-emerald-500'
+                        : 'bg-slate-800/70 border-slate-700/60 active:bg-slate-700/80'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-medium ${
+                        radiusKm === km ? 'text-emerald-300' : 'text-slate-300'
+                      }`}
+                    >
+                      {km === 0 ? 'Any' : `${km}`}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             }
           />
         </SettingSection>

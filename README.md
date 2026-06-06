@@ -4,6 +4,8 @@
 
 Hi-Hired is a mobile-first job marketplace that replaces opaque, high-fee recruitment agencies with direct, transparent hiring. Every card shows real pay and hours. Every applicant is a real person. No ghosting, no black holes, no commission-chasing middlemen.
 
+This isn't a job board — it's a market correction tool. We exist to break the cycle of applying into a black hole, dealing with commission-chasing recruiters who don't answer emails, and never knowing what a role actually pays until the offer (if it comes). Transparent pay is the price of entry. Bilateral opt-in means nobody wastes time. Local-first means your next shift is down the road, not across the city.
+
 **Tagline:** *The algorithm is you.*
 
 ---
