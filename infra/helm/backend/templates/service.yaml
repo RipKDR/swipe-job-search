@@ -64,3 +64,45 @@ spec:
   selector:
     app: {{ include "hi-hired-backend.name" . }}
     component: scraper
+---
+# ---------------------------------------------------------------------------
+# Processing Worker Service — headless for monitoring
+# ---------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hi-hired-backend.fullname" . }}-processing
+  labels:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: processing
+spec:
+  clusterIP: None
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: metrics
+  selector:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: processing
+---
+# ---------------------------------------------------------------------------
+# Notifications Worker Service — headless for monitoring
+# ---------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "hi-hired-backend.fullname" . }}-notifications
+  labels:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: notifications
+spec:
+  clusterIP: None
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: metrics
+  selector:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: notifications

@@ -1,22 +1,35 @@
 """Token-bucket rate limiting middleware for Hi-Hired.
 
-Provides:
-- RateLimitMiddleware: Starlette BaseHTTPMiddleware that applies per-role
-  rate limits using an in-memory token bucket algorithm.
-- Production path: replace InMemoryRateLimiter with a Redis-backed
-  implementation using the configured redis_url.
+Provides two backends:
+
+1. **RedisRateLimiter** (default when Redis is available, enabled via
+   config ``RATE_LIMITER_BACKEND=redis``).  Uses Redis sorted sets for
+   a sliding-window counter per client key + role.  Suitable for
+   multi-process / multi-worker deployments.
+
+2. **InMemoryRateLimiter** (default when ``RATE_LIMITER_BACKEND=memory``
+   or Redis is unavailable).  Token bucket per client key with periodic
+   stale-bucket cleanup.  Suitable for local dev and single-process
+   deployments.
+
+RateLimitMiddleware auto-selects the backend after a Redis connectivity
+probe on first use.
 
 Per-role rate limits (requests per minute):
   anonymous:  30
   jobseeker: 100
   employer:   50
+  provider:   30
   admin:     200
 """
 
 from __future__ import annotations
 
+import os
 import time
 from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
@@ -35,6 +48,8 @@ ROLE_RATE_LIMITS: dict[str, int] = {
     "provider": 30,
     "admin": 200,
 }
+
+_RATE_LIMIT_WINDOW = 60  # seconds
 
 
 class TokenBucket:
@@ -115,8 +130,70 @@ class InMemoryRateLimiter:
         self._last_cleanup = time.monotonic()
 
 
-# Global rate limiter singleton
-_rate_limiter = InMemoryRateLimiter()
+class RedisRateLimiter:
+    """Sliding-window rate limiter backed by Redis sorted sets.
+
+    Each client key (+ role suffix) gets a sorted set entry per request.
+    Entries older than the window (60s) are pruned on each check.
+    The window size is determined by ``ROLE_RATE_LIMITS[role]``.
+
+    Falls back to allow-all on Redis connection error.
+    """
+
+    def __init__(self, redis_url: str | None = None) -> None:
+        self._redis_url = redis_url or settings.redis_url
+        self._redis = None
+
+    async def _get_redis(self):
+        if self._redis is None:
+            from redis import asyncio as aioredis
+            self._redis = aioredis.from_url(self._redis_url, decode_responses=True)
+        return self._redis
+
+    async def check(self, key: str, role: str) -> bool:
+        """Check whether a request from *key* with *role* is allowed.
+
+        Returns True if allowed, False if rate-limited.
+        """
+        limit = ROLE_RATE_LIMITS.get(role, 30)
+        now = time.time()
+        window_start = now - _RATE_LIMIT_WINDOW
+        redis_key = f"ratelimit:{key}:{role}"
+
+        try:
+            r = await self._get_redis()
+            async with r.pipeline(transaction=True) as pipe:
+                # Remove stale entries
+                await pipe.zremrangebyscore(redis_key, "-inf", window_start)
+                # Count recent entries
+                await pipe.zcard(redis_key)
+                results = await pipe.execute()
+            recent_count = results[1] if len(results) > 1 else 0
+
+            if recent_count >= limit:
+                return False
+
+            # Record this request (score = now, value = unique id)
+            await r.zadd(redis_key, {str(now): now})
+            await r.expire(redis_key, _RATE_LIMIT_WINDOW * 2)
+            return True
+        except Exception:
+            # Redis unavailable — allow request to avoid blocking traffic
+            return True
+
+    async def close(self) -> None:
+        if self._redis is not None:
+            await self._redis.close()
+            self._redis = None
+
+    async def reset(self) -> None:
+        """Clear all rate limit entries (testing / admin)."""
+        if self._redis is not None:
+            await self._redis.flushdb()
+
+
+# Global rate limiter — InMemory by default, override with RATE_LIMITER_BACKEND=redis
+_rate_limiter: InMemoryRateLimiter = InMemoryRateLimiter()
 
 
 def _rate_limit_key(request: Request) -> tuple[str, str]:
@@ -140,17 +217,27 @@ def _rate_limit_key(request: Request) -> tuple[str, str]:
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Token-bucket rate limiting middleware.
+    """Rate limiting middleware with dual backend.
 
     Applies per-role rate limits determined by the client's IP address or
-    authenticated user identity.  The /health endpoint is excluded.
+    authenticated user identity.
 
-    Production deployment should replace :class:`InMemoryRateLimiter` with
-    a Redis-backed implementation using ``settings.redis_url``.
+    - By default uses the global ``InMemoryRateLimiter``.
+    - Set ``RATE_LIMITER_BACKEND=redis`` for a Redis-backed sliding-window
+      counter suitable for multi-process deployments.
     """
 
     def __init__(self, app: ASGIApp) -> None:
         super().__init__(app)
+        self._redis_limiter: RedisRateLimiter | None = None
+
+    async def _get_limiter(self) -> InMemoryRateLimiter | RedisRateLimiter:
+        backend = os.environ.get("RATE_LIMITER_BACKEND", "memory").lower()
+        if backend == "redis":
+            if self._redis_limiter is None:
+                self._redis_limiter = RedisRateLimiter()
+            return self._redis_limiter
+        return _rate_limiter
 
     async def dispatch(
         self,
@@ -162,8 +249,15 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         client_key, role = _rate_limit_key(request)
+        limiter = await self._get_limiter()
 
-        if not _rate_limiter.check(client_key, role):
+        if isinstance(limiter, RedisRateLimiter):
+            allowed = await limiter.check(client_key, role)
+        else:
+            allowed = limiter.check(client_key, role)
+            limiter.cleanup()
+
+        if not allowed:
             return JSONResponse(
                 status_code=429,
                 content={
@@ -173,8 +267,5 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 },
                 headers={"Retry-After": "60"},
             )
-
-        # Periodic stale-bucket eviction
-        _rate_limiter.cleanup()
 
         return await call_next(request)

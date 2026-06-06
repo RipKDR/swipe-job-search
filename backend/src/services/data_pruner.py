@@ -28,6 +28,10 @@ EXPIRED_INDICATORS: list[str] = [
 DEFAULT_VERIFY_TIMEOUT = 15.0
 JOB_AGE_HOURS = 24
 
+# ── Prune audit table configuration ─────────────────────────────────────────
+
+PRUNE_AUDIT_TABLE = "prune_audit"
+
 
 # ── Public service ───────────────────────────────────────────────────────────
 
@@ -192,6 +196,16 @@ class DataPruner:
                 # ScraperHealthMonitor automatically lifts quarantine after
                 # a successful attempt — no extra work needed.
 
+        # ── Log to prune audit table ────────────────────────────────────
+        await self._log_prune_audit(
+            supabase,
+            {
+                "checked": checked,
+                "expired": expired,
+                "healthy_sources": self.health.get_health_summary(),
+            },
+        )
+
         if expired:
             logger.warning(
                 "verify_active_jobs_complete",
@@ -207,3 +221,76 @@ class DataPruner:
             )
 
         return checked, expired
+
+    # ── Audit logging ────────────────────────────────────────────────────
+
+    async def _log_prune_audit(
+        self, supabase: Any, summary: dict[str, Any]
+    ) -> None:
+        """Write a prune audit record to Supabase.
+
+        Creates a row in ``PRUNE_AUDIT_TABLE`` (default ``prune_audit``)
+        so that pruning activity is visible in dashboards and operations
+        tooling.
+
+        Errors are logged but not propagated — audit writes must never
+        break the pruning pipeline.
+        """
+        try:
+            from datetime import datetime, timezone
+
+            record = {
+                "ran_at": datetime.now(timezone.utc).isoformat(),
+                "checked": summary.get("checked", 0),
+                "expired": summary.get("expired", 0),
+                "healthy_sources": summary.get("healthy_sources", {}),
+            }
+            supabase.table(PRUNE_AUDIT_TABLE).insert(record).execute()
+            logger.debug(
+                "prune_audit_written",
+                checked=record["checked"],
+                expired=record["expired"],
+            )
+        except Exception as exc:
+            logger.warning(
+                "prune_audit_write_failed",
+                error=str(exc),
+            )
+
+    def get_prune_summary(
+        self, supabase: Any, limit: int = 20
+    ) -> list[dict[str, Any]]:
+        """Fetch the most recent prune audit entries.
+
+        Useful for admin dashboard endpoints to visualise pruning
+        activity over time.
+
+        Parameters
+        ----------
+        supabase:
+            Supabase client instance.
+        limit:
+            Maximum number of audit rows to fetch (default 20).
+
+        Returns
+        -------
+        list[dict]
+            Chronologically-ordered list of audit records, newest first.
+            Each record contains ``ran_at``, ``checked``, ``expired``,
+            and ``healthy_sources`` fields.
+        """
+        try:
+            result = (
+                supabase.table(PRUNE_AUDIT_TABLE)
+                .select("*")
+                .order("ran_at", desc=True)
+                .limit(limit)
+                .execute()
+            )
+            return result.data if hasattr(result, "data") else []
+        except Exception as exc:
+            logger.warning(
+                "prune_summary_fetch_failed",
+                error=str(exc),
+            )
+            return []

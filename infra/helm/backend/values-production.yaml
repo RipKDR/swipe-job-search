@@ -1,0 +1,133 @@
+# ---------------------------------------------------------------------------
+# Hi-Hired Backend — Production Overrides
+# ---------------------------------------------------------------------------
+# Full replicas, larger instances, maximum resilience.
+# Used with: helm install --values values-production.yaml
+# ---------------------------------------------------------------------------
+
+# -- Environment label for resource tagging
+environment: production
+
+# -- Image — production ECR repository
+image:
+  repository: hi-hired-production-backend
+  tag: stable
+
+# -- Full replica counts for production
+replicaCount:
+  api: 3
+  worker: 3
+  scraper: 2
+  processing: 3
+  notifications: 2
+
+# -- Resources — production-grade
+resources:
+  api:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  worker:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  scraper:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  processing:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+  notifications:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+# -- Ingress — production hostname
+ingress:
+  enabled: true
+  hosts:
+    - host: api.hi-hired.com.au
+      paths:
+        - path: /
+          pathType: Prefix
+
+# -- Autoscaling — full production thresholds
+autoscaling:
+  api:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  worker:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  processing:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  notifications:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+# -- ServiceAccount annotations (IRSA) — set during CI/CD deploy
+serviceAccount:
+  annotations:
+    apiRoleArn: ""            # Set by CI/CD from Terraform output
+    workerRoleArn: ""         # Set by CI/CD from Terraform output
+    scraperRoleArn: ""        # Set by CI/CD from Terraform output
+    processingRoleArn: ""     # Set by CI/CD from Terraform output
+    notificationsRoleArn: ""  # Set by CI/CD from Terraform output
+
+# -- Env overrides for production
+env:
+  configMap:
+    CORS_ORIGINS: "https://hi-hired.com.au,https://www.hi-hired.com.au"
+    LOG_LEVEL: "INFO"
+
+# -- PodDisruptionBudget — HA in production
+podDisruptionBudget:
+  api:
+    enabled: true
+    minAvailable: 1
+  worker:
+    enabled: true
+    minAvailable: 1
+  processing:
+    enabled: true
+    minAvailable: 1
+  notifications:
+    enabled: true
+    minAvailable: 1
+
+# -- Celery — full concurrency for production
+celery:
+  workerConcurrency: 8
+  scraperConcurrency: 4
+  processingConcurrency: 4
+  notificationsConcurrency: 4

@@ -3,6 +3,8 @@
 # ---------------------------------------------------------------------------
 # CloudWatch log groups for EKS workloads (API, worker, scraper) and an SNS
 # topic with email subscription for alarm notifications.
+#
+# Includes a 5xx error rate alarm on the ALB at the application layer.
 # ---------------------------------------------------------------------------
 
 variable "environment" {
@@ -18,6 +20,12 @@ variable "project_name" {
 variable "alert_email" {
   description = "Email address for alarm notifications"
   type        = string
+}
+
+variable "alb_name" {
+  description = "Name of the Application Load Balancer for 5xx alarm dimensions"
+  type        = string
+  default     = ""
 }
 
 locals {
@@ -201,13 +209,57 @@ resource "aws_cloudwatch_metric_alarm" "eks_node_cpu_high" {
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = "2"
   metric_name         = "CPUUtilization"
-  namespace           = "AWS/ECS" # ContainerInsights publishes under ECS/ContainerInsights
+  namespace           = "ContainerInsights" # EKS CloudWatch Container Insights namespace
   period              = "300"
   statistic           = "Average"
   threshold           = "80"
   alarm_description   = "EKS node CPU utilization exceeds 80%"
   alarm_actions       = [aws_sns_topic.alarms.arn]
   ok_actions          = [aws_sns_topic.alarms.arn]
+}
+
+# ALB 5xx error rate > 5% over 5 minutes
+resource "aws_cloudwatch_metric_alarm" "alb_5xx_rate_high" {
+  alarm_name          = "${local.name_prefix}-alb-5xx-rate-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = "1"
+  threshold           = "5"
+  alarm_description   = "Application Load Balancer 5xx error rate exceeds 5% over 5 minutes"
+  alarm_actions       = [aws_sns_topic.alarms.arn]
+  ok_actions          = [aws_sns_topic.alarms.arn]
+
+  metric_query {
+    id          = "e1"
+    expression  = "IF(m2 > 0, (m1 / m2) * 100, 0)"
+    label       = "5xxErrorRatePercent"
+    return_data = true
+  }
+
+  metric_query {
+    id = "m1"
+    metric {
+      metric_name = "HTTPCode_Target_5XX_Count"
+      namespace   = "AWS/ApplicationELB"
+      period      = 300
+      stat        = "Sum"
+      dimensions = {
+        LoadBalancer = var.alb_name != "" ? var.alb_name : "${local.name_prefix}-alb"
+      }
+    }
+  }
+
+  metric_query {
+    id = "m2"
+    metric {
+      metric_name = "RequestCount"
+      namespace   = "AWS/ApplicationELB"
+      period      = 300
+      stat        = "Sum"
+      dimensions = {
+        LoadBalancer = var.alb_name != "" ? var.alb_name : "${local.name_prefix}-alb"
+      }
+    }
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -236,4 +288,9 @@ output "cloudwatch_log_group_scraper" {
 output "cloudwatch_log_group_eks" {
   description = "CloudWatch log group name for EKS cluster"
   value       = aws_cloudwatch_log_group.eks_cluster.name
+}
+
+output "cloudwatch_alarm_alb_5xx" {
+  description = "CloudWatch alarm name for ALB 5xx rate"
+  value       = aws_cloudwatch_metric_alarm.alb_5xx_rate_high.alarm_name
 }

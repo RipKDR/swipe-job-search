@@ -321,6 +321,154 @@ resource "aws_iam_role_policy" "backend_scraper" {
 }
 
 # ---------------------------------------------------------------------------
+# IAM Role: Backend Processing Worker
+# ---------------------------------------------------------------------------
+# Used by the Celery processing queue worker on EKS via IRSA.
+# Needs: S3 read/write for attachments, SSM read, CloudWatch logs.
+# ---------------------------------------------------------------------------
+resource "aws_iam_role" "backend_processing" {
+  name = "${local.name_prefix}-backend-processing"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = var.eks_cluster_oidc_arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(var.eks_cluster_oidc_url, "https://", "")}:sub" = "system:serviceaccount:default:backend-processing"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "backend_processing" {
+  name = "${local.name_prefix}-backend-processing"
+  role = aws_iam_role.backend_processing.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = concat(
+      [
+        {
+          Sid    = "S3JobAttachmentsFull"
+          Effect = "Allow"
+          Action = [
+            "s3:GetObject",
+            "s3:PutObject",
+            "s3:DeleteObject",
+            "s3:ListBucket",
+          ]
+          Resource = [
+            var.s3_job_attachments_arn,
+            "${var.s3_job_attachments_arn}/*",
+          ]
+        },
+        {
+          Sid    = "SSMReadParameters"
+          Effect = "Allow"
+          Action = [
+            "ssm:GetParameter",
+            "ssm:GetParameters",
+            "ssm:GetParametersByPath",
+          ]
+          Resource = [
+            "arn:aws:ssm:*:*:parameter/${local.name_prefix}/*",
+          ]
+        },
+      ],
+      [
+        {
+          Sid      = "CommonPermissions"
+          Effect   = "Allow"
+          Action   = local.common_permissions
+          Resource = local.common_resources
+        }
+      ]
+    )
+  })
+}
+
+# ---------------------------------------------------------------------------
+# IAM Role: Backend Notifications Worker
+# ---------------------------------------------------------------------------
+# Used by the Celery notifications queue worker on EKS via IRSA.
+# Needs: SSM read for API keys (email/push), S3 read for templates.
+# ---------------------------------------------------------------------------
+resource "aws_iam_role" "backend_notifications" {
+  name = "${local.name_prefix}-backend-notifications"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Federated = var.eks_cluster_oidc_arn
+        }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          StringEquals = {
+            "${replace(var.eks_cluster_oidc_url, "https://", "")}:sub" = "system:serviceaccount:default:backend-notifications"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "backend_notifications" {
+  name = "${local.name_prefix}-backend-notifications"
+  role = aws_iam_role.backend_notifications.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = concat(
+      [
+        {
+          Sid    = "S3ReadAttachments"
+          Effect = "Allow"
+          Action = [
+            "s3:GetObject",
+            "s3:ListBucket",
+          ]
+          Resource = [
+            var.s3_job_attachments_arn,
+            "${var.s3_job_attachments_arn}/*",
+          ]
+        },
+        {
+          Sid    = "SSMReadParameters"
+          Effect = "Allow"
+          Action = [
+            "ssm:GetParameter",
+            "ssm:GetParameters",
+            "ssm:GetParametersByPath",
+          ]
+          Resource = [
+            "arn:aws:ssm:*:*:parameter/${local.name_prefix}/*",
+          ]
+        },
+      ],
+      [
+        {
+          Sid      = "CommonPermissions"
+          Effect   = "Allow"
+          Action   = local.common_permissions
+          Resource = local.common_resources
+        }
+      ]
+    )
+  })
+}
+
+# ---------------------------------------------------------------------------
 # IAM Role: GitHub Actions OIDC
 # ---------------------------------------------------------------------------
 # Allows GitHub Actions workflows (deploy, release) to assume this role
@@ -449,6 +597,16 @@ output "backend_worker_role_arn" {
 output "backend_scraper_role_arn" {
   description = "IAM role ARN for the backend scraper service"
   value       = aws_iam_role.backend_scraper.arn
+}
+
+output "backend_processing_role_arn" {
+  description = "IAM role ARN for the backend processing worker service"
+  value       = aws_iam_role.backend_processing.arn
+}
+
+output "backend_notifications_role_arn" {
+  description = "IAM role ARN for the backend notifications worker service"
+  value       = aws_iam_role.backend_notifications.arn
 }
 
 output "github_actions_role_arn" {

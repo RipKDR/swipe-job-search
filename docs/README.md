@@ -71,3 +71,47 @@ See gap §4 for full rationale (avoids sprawl, DRY, agent/human-friendly, pre-co
 See [../README.md](../README.md) (Next Step + "Full docs complete 2026-05-28" + hygiene list), [../foundational-docs/README.md](../foundational-docs/README.md) (authority + 2026-05-28 pointers + 04-legal note), [research/swarm-dispatch-2026-05-28-full-docs.md](research/swarm-dispatch-2026-05-28-full-docs.md) (cards + log templates + synthesis), design spec 2026-05-28 (full rationale + ACs + swarm model + verification), gap §9 (artifacts + next), AGENTS.md (full ops + examples). All DRY, cited, consistent voice (tables, banners, "zero blockers", authority notes). Re-audit on major changes (SDK/Fair Work/Privacy). Human legal signoff + logs verified before scaffold.
 
 *Maintained 2026-05-28 onward via manifest + gap triggers. Update on authoring. Swarm coordinator (orchestrator + sam) gate + human compliance signoff.*
+
+## Generated Assets
+
+### Cover Background Images
+
+DOCX cover pages and body backgrounds are generated from SVG templates.
+
+**Script:** `docs/scripts/gen-cover-bg.py`
+
+**How to regenerate:**
+
+```bash
+cd docs/scripts
+python3 gen-cover-bg.py
+```
+
+**Output:** `docs/scripts/output/<name>.png` (4 images, A4-sized at 794×1123 px):
+
+| File | Usage |
+|------|-------|
+| `doc1_cover_bg.png` | Product Strategy document cover |
+| `doc2_cover_bg.png` | Technical Architecture document cover |
+| `doc3_cover_bg.png` | AI Prompts & Workflows document cover |
+| `body_bg.png` | Body page subtle background |
+
+**Dependencies:**
+
+- Python 3.12+
+- `playwright` (with Chromium installed): `pip install playwright && playwright install chromium`
+
+**Customisation:**
+
+Each cover is defined as an inline SVG at the top of `gen-cover-bg.py`. To change colours, gradients, or layout, edit the SVG markup and re-run the script. The script renders each SVG to PNG at 2x resolution via Playwright headless Chromium.
+
+### Prompt Collection DOCX
+
+To assemble the full prompt collection as a DOCX with the cover backgrounds:
+
+1. Generate cover images via the script above
+2. Open `docs/prompt-collection/PROMPT_COLLECTION.docx` or create a new DOCX
+3. Insert Page → Picture → select the appropriate PNG for each cover page
+4. Use `body_bg.png` as a page background (Design → Watermark → Custom → Picture)
+
+See `docs/prompt-collection/` for the prompt collection source files.

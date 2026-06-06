@@ -1,5 +1,5 @@
-import { Alert } from 'react-native';
-import { useState } from 'react';
+import { Alert, Platform } from 'react-native';
+import { useCallback, useRef, useState, type ChangeEvent } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { EmployerOnboardingSchema, type EmployerOnboarding } from '@hi-hired/shared';
@@ -9,11 +9,15 @@ import { Button } from '@/components/ui/Button';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { pickAndUploadAvatar, uploadAvatarFromUri } from '@/lib/avatar-upload';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function EmployerProfile() {
-  const { applyProfile } = useAuth();
+  const { user, applyProfile } = useAuth();
   const posthog = usePostHog();
   const [submitting, setSubmitting] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const webFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const form = useForm<EmployerOnboarding>({
     resolver: zodResolver(EmployerOnboardingSchema),
@@ -44,9 +48,85 @@ export default function EmployerProfile() {
       applyProfile(updatedProfile);
     } catch (error) {
       console.error('[onboarding] Employer profile error:', error);
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
+      Alert.alert('Error', getErrorMessage(error, 'Failed to save profile. Please try again.'));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const uploadFromUri = useCallback(
+    async (uri: string) => {
+      if (!user) return;
+      setAvatarUploading(true);
+      try {
+        const uploadedUrl = await uploadAvatarFromUri({
+          userId: user.id,
+          uri,
+          supabaseStorage: supabase.storage.from('avatars'),
+          fetchImpl: fetch,
+        });
+        if (uploadedUrl) {
+          form.setValue('avatar_url', uploadedUrl, { shouldValidate: true });
+        }
+      } catch (error) {
+        console.error('[onboarding] Avatar upload error:', error);
+        Alert.alert('Upload failed', getErrorMessage(error, 'Could not upload photo. Please try again.'));
+      } finally {
+        setAvatarUploading(false);
+      }
+    },
+    [form, user],
+  );
+
+  const handleAvatarPick = async () => {
+    if (!user) return;
+
+    if (Platform.OS === 'web') {
+      webFileInputRef.current?.click();
+      return;
+    }
+
+    let ImagePicker: typeof import('expo-image-picker') | null = null;
+    try {
+      ImagePicker = await import('expo-image-picker');
+    } catch {
+      ImagePicker = null;
+    }
+
+    if (!ImagePicker) {
+      Alert.alert('Not available', 'Photo upload is not available on this device.');
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const uploadedUrl = await pickAndUploadAvatar({
+        userId: user.id,
+        imagePicker: ImagePicker,
+        supabaseStorage: supabase.storage.from('avatars'),
+        fetchImpl: fetch,
+      });
+
+      if (uploadedUrl) {
+        form.setValue('avatar_url', uploadedUrl, { shouldValidate: true });
+      }
+    } catch (error) {
+      console.error('[onboarding] Avatar upload error:', error);
+      Alert.alert('Upload failed', getErrorMessage(error, 'Could not upload photo. Please try again.'));
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleWebAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const uri = URL.createObjectURL(file);
+    try {
+      await uploadFromUri(uri);
+    } finally {
+      URL.revokeObjectURL(uri);
+      event.target.value = '';
     }
   };
 
@@ -66,7 +146,20 @@ export default function EmployerProfile() {
         />
       }
     >
-      <EmployerProfileForm form={form} />
+      {Platform.OS === 'web' ? (
+        <input
+          ref={webFileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={handleWebAvatarChange}
+        />
+      ) : null}
+      <EmployerProfileForm
+        form={form}
+        avatarUploading={avatarUploading}
+        onAvatarPick={handleAvatarPick}
+      />
     </OnboardingShell>
   );
 }

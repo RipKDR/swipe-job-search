@@ -1,4 +1,13 @@
-"""Hi-Hired Backend - Redis Pub/Sub event subscriber."""
+"""Hi-Hired Backend - Redis Pub/Sub event subscriber.
+
+Dispatches raw JSON events from Redis Pub/Sub channels to registered
+handlers.  Each handler receives the parsed ``dict`` (already decoded),
+which follows the ``BaseEvent`` envelope shape documented in
+``schemas/events.py``.
+
+Unknown event versions are logged and skipped to allow safe schema
+migration of downstream consumers.
+"""
 
 from __future__ import annotations
 
@@ -14,6 +23,15 @@ from src.core.config import get_settings
 logger = structlog.get_logger()
 
 EventHandler = Callable[[dict[str, Any]], Awaitable[None]]
+
+# Known event versions per event_type
+_KNOWN_VERSIONS: dict[str, int] = {
+    "job.ingested": 1,
+    "job.indexed": 1,
+    "user.matched": 1,
+    "application.submitted": 1,
+    "application.status_changed": 1,
+}
 
 
 class EventSubscriber:
@@ -46,11 +64,30 @@ class EventSubscriber:
                 await asyncio.sleep(5)
 
     async def _dispatch(self, channel: str, data: str) -> None:
-        """Dispatch a raw message to all registered handlers for the channel."""
+        """Dispatch a raw message to all registered handlers for the channel.
+
+        Checks ``version`` against known versions for the event type.
+        Unknown versions are logged and skipped to prevent silent data
+        corruption during schema migrations.
+        """
         try:
             payload = json.loads(data)
         except json.JSONDecodeError:
             logger.error("invalid_event_json", channel=channel)
+            return
+
+        # Version check — skip unknown versions
+        event_type = payload.get("event_type", "")
+        version = payload.get("version", 0)
+        known_version = _KNOWN_VERSIONS.get(event_type)
+        if known_version is not None and version != known_version:
+            logger.warning(
+                "unknown_event_version",
+                event_type=event_type,
+                got=version,
+                expected=known_version,
+                channel=channel,
+            )
             return
 
         for handler in self._handlers.get(channel, []):

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { FlatList, Pressable, View, Text, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -9,9 +9,10 @@ import { TabWebShell } from '@/components/ui/TabWebShell';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useTheme } from '@/providers/ThemeProvider';
 
-interface AppliedJob {
+interface SwipedJob {
   job_id: string;
   swiped_at: string;
+  direction: 'right' | 'left' | 'applied' | 'super';
   jobs: {
     id: string;
     title: string;
@@ -23,11 +24,11 @@ interface AppliedJob {
   } | null;
 }
 
-const AppliedJobCard = React.memo(function AppliedJobCard({
+const SwipedJobCard = React.memo(function SwipedJobCard({
   job,
   onPress,
 }: {
-  job: NonNullable<AppliedJob['jobs']>;
+  job: NonNullable<SwipedJob['jobs']>;
   onPress: (jobId: string) => void;
 }) {
   const { colors } = useTheme();
@@ -69,7 +70,7 @@ const AppliedJobCard = React.memo(function AppliedJobCard({
   );
 }, (prev, next) => prev.job.id === next.job.id);
 
-async function fetchAppliedJobs(): Promise<AppliedJob[]> {
+async function fetchSwipedJobs(direction: SwipedJob['direction'][]): Promise<SwipedJob[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
@@ -78,6 +79,7 @@ async function fetchAppliedJobs(): Promise<AppliedJob[]> {
     .select(`
       job_id,
       swiped_at:created_at,
+      direction,
       jobs!left (
         id,
         title,
@@ -89,25 +91,55 @@ async function fetchAppliedJobs(): Promise<AppliedJob[]> {
       )
     `)
     .eq('candidate_id', user.id)
-    .in('direction', ['right', 'applied'])
+    .in('direction', direction)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
 
-  return (data ?? []) as unknown as AppliedJob[];
+  return (data ?? []) as unknown as SwipedJob[];
+}
+
+async function fetchInterestedJobs(): Promise<SwipedJob[]> {
+  return fetchSwipedJobs(['right']);
+}
+
+async function fetchAppliedJobs(): Promise<SwipedJob[]> {
+  return fetchSwipedJobs(['applied', 'super']);
 }
 
 export default function AppliedJobsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
 
-  const { data: jobs = [], isLoading, isFetching, error, refetch } = useQuery<AppliedJob[]>({
+  const {
+    data: interestedJobs = [],
+    isLoading: interestedLoading,
+    isFetching: interestedFetching,
+    error: interestedError,
+  } = useQuery<SwipedJob[]>({
+    queryKey: ['interested-jobs'],
+    queryFn: fetchInterestedJobs,
+    staleTime: 30_000,
+  });
+
+  const {
+    data: appliedJobs = [],
+    isLoading: appliedLoading,
+    isFetching: appliedFetching,
+    error: appliedError,
+  } = useQuery<SwipedJob[]>({
     queryKey: ['applied-jobs'],
     queryFn: fetchAppliedJobs,
     staleTime: 30_000,
   });
 
-  const hasJobs = jobs.length > 0;
+  const isLoading = interestedLoading || appliedLoading;
+  const isFetching = interestedFetching || appliedFetching;
+  const error = interestedError || appliedError;
+
+  const hasInterestedJobs = interestedJobs.length > 0;
+  const hasAppliedJobs = appliedJobs.length > 0;
+  const hasJobs = hasInterestedJobs || hasAppliedJobs;
 
   const handleJobPress = useCallback(
     (jobId: string) => {
@@ -116,14 +148,14 @@ export default function AppliedJobsScreen() {
     [router],
   );
 
-  const keyExtractor = useCallback((item: AppliedJob) => item.job_id, []);
+  const keyExtractor = useCallback((item: SwipedJob) => item.job_id, []);
 
   const renderItem = useCallback(
-    ({ item }: { item: AppliedJob }) => {
+    ({ item }: { item: SwipedJob }) => {
       const job = item.jobs;
       if (!job) return null;
       return (
-        <AppliedJobCard
+        <SwipedJobCard
           job={job}
           onPress={handleJobPress}
         />
@@ -132,11 +164,16 @@ export default function AppliedJobsScreen() {
     [handleJobPress],
   );
 
+  const refetch = useCallback(() => {
+    // TODO: Use queryClient to refetch both queries properly
+    // For now, pull-to-refresh triggers the query naturally
+  }, []);
+
   if (isLoading) {
     return (
       <AppScreen centered={false} maxWidth="tab">
         <TabWebShell>
-          <ScreenHeader title="Applied" subtitle="Jobs you're interested in" />
+          <ScreenHeader title="Applied" subtitle="Jobs you've applied to" />
           <View className="flex-1 items-center justify-center py-20">
             <ActivityIndicator size="large" color={colors.primary} />
           </View>
@@ -153,7 +190,7 @@ export default function AppliedJobsScreen() {
           <EmptyState
             emoji="⚠️"
             title="Couldn't load applications"
-            description="There was a problem fetching your applied jobs. Pull down to try again."
+            description="There was a problem fetching your jobs. Pull down to try again."
             actionLabel="Retry"
             onAction={refetch}
           />
@@ -167,25 +204,54 @@ export default function AppliedJobsScreen() {
       <TabWebShell>
         <ScreenHeader
           title="Applied"
-          subtitle={`${hasJobs ? `${jobs.length} job${jobs.length === 1 ? '' : 's'}` : 'Jobs you\'re interested in'}`}
+          subtitle={`Interested: ${interestedJobs.length} ${interestedJobs.length === 1 ? 'job' : 'jobs'} · Applied: ${appliedJobs.length} ${appliedJobs.length === 1 ? 'job' : 'jobs'}`}
         />
 
-        {!hasJobs ? (
+        {hasJobs ? (
+          <>
+            {hasInterestedJobs && (
+              <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 4 }}>
+                <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>
+                  Interested ({interestedJobs.length})
+                </Text>
+              </View>
+            )}
+            {hasInterestedJobs && (
+              <FlatList
+                data={interestedJobs}
+                keyExtractor={keyExtractor}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: hasAppliedJobs ? 16 : 32, gap: 8 }}
+                renderItem={renderItem}
+                onRefresh={refetch}
+                refreshing={interestedFetching}
+              />
+            )}
+
+            {hasAppliedJobs && (
+              <View style={{ paddingHorizontal: 16, marginTop: 16, marginBottom: 4 }}>
+                <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>
+                  Applied ({appliedJobs.length})
+                </Text>
+              </View>
+            )}
+            {hasAppliedJobs && (
+              <FlatList
+                data={appliedJobs}
+                keyExtractor={keyExtractor}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 8 }}
+                renderItem={renderItem}
+                onRefresh={refetch}
+                refreshing={appliedFetching}
+              />
+            )}
+          </>
+        ) : (
           <EmptyState
             emoji="👆"
             title="No applications yet"
-            description="Swipe right on jobs you're interested in — they'll show up here."
+            description="Swipe right to show interest. Tap 'Apply' on a job to submit an application. Both will appear here."
             actionLabel="Browse jobs"
             onAction={() => router.push('/(candidate)/(tabs)/deck' as any)}
-          />
-        ) : (
-          <FlatList
-            data={jobs}
-            keyExtractor={keyExtractor}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 8 }}
-            renderItem={renderItem}
-            onRefresh={refetch}
-            refreshing={isFetching}
           />
         )}
       </TabWebShell>

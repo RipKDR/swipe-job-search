@@ -23,6 +23,7 @@ logger = structlog.get_logger()
 
 COLLECTION_NAME = "hi_hired_jobs"
 VECTOR_SIZE = 1536
+COLLECTION_VERSION = 1  # bump on breaking payload schema change
 
 # Payload keys stored on each point
 _PAYLOAD_KEYS = {
@@ -37,6 +38,7 @@ _PAYLOAD_KEYS = {
     "source_name",
     "posted_at",
     "is_active",
+    "_version",
 }
 
 
@@ -98,6 +100,7 @@ def _job_to_payload(job: NormalizedJob) -> dict[str, Any]:
         "source_name": job.source_name,
         "posted_at": job.posted_at.isoformat(),
         "is_active": job.is_active,
+        "_version": COLLECTION_VERSION,
     }
 
 
@@ -279,6 +282,103 @@ class VectorStore:
         deleted = result.status == UpdateStatus.COMPLETED or result.status == "completed"
         logger.info("job_deleted", job_id=str_id, status=str(result.status))
         return True if deleted else bool(result.status)
+
+    # ------------------------------------------------------------------
+    # Cache coherence helpers
+    # ------------------------------------------------------------------
+
+    def get_versions_for_cache_invalidation(self) -> list[dict[str, Any]]:
+        """Return all indexed job IDs with their version and updated_at.
+
+        Callers can compare this with cached data to determine which
+        cached entries are stale.  Useful for selective cache invalidation
+        rather than flushing the entire cache.
+        """
+        try:
+            scroll_result = self._client.scroll(
+                collection_name=self.collection,
+                limit=10000,
+                with_payload=["job_id", "_version", "posted_at"],
+                with_vectors=False,
+            )
+        except Exception:
+            logger.exception("get_versions_for_cache_invalidation_failed")
+            return []
+
+        versions: list[dict[str, Any]] = []
+        for point in scroll_result[0]:
+            if point.payload:
+                versions.append({
+                    "job_id": point.payload.get("job_id"),
+                    "_version": point.payload.get("_version"),
+                    "posted_at": point.payload.get("posted_at"),
+                })
+        return versions
+
+    def reindex_all(self, jobs: list[NormalizedJob], embeddings: list[list[float]]) -> int:
+        """Delete all points and reindex a batch of jobs.
+
+        Useful for full reindex after a payload schema version bump.
+        Jobs and embeddings must be aligned lists (same length, same order).
+
+        Returns the number of points indexed.
+        """
+        if len(jobs) != len(embeddings):
+            raise ValueError(f"jobs ({len(jobs)}) and embeddings ({len(embeddings)}) must be same length")
+
+        # Delete all existing points
+        self._client.delete(
+            collection_name=self.collection,
+            points_selector=qdrant_models.Filter(
+                must=[
+                    qdrant_models.FieldCondition(
+                        key="_version",
+                        match=qdrant_models.MatchValue(value=COLLECTION_VERSION),
+                    )
+                ]
+            ),
+        )
+
+        # Reindex fresh
+        points = [
+            PointStruct(
+                id=str(job.id),
+                vector=embedding,
+                payload=_job_to_payload(job),
+            )
+            for job, embedding in zip(jobs, embeddings, strict=False)
+        ]
+
+        if points:
+            self._client.upsert(collection_name=self.collection, points=points)
+
+        logger.info("reindex_complete", count=len(points), collection=self.collection)
+        return len(points)
+
+    def count_stale_points(self) -> int:
+        """Count points with a ``_version`` that does not match ``COLLECTION_VERSION``.
+
+        Returns 0 if all points are at the current version.
+        Useful for monitoring drift after schema changes.
+        """
+        try:
+            total = self._client.count(collection_name=self.collection, exact=True).count
+            current = self._client.count(
+                collection_name=self.collection,
+                exact=True,
+                count_filter=qdrant_models.Filter(
+                    must=[
+                        qdrant_models.FieldCondition(
+                            key="_version",
+                            match=qdrant_models.MatchValue(value=COLLECTION_VERSION),
+                        )
+                    ]
+                ),
+            ).count
+            return total - current
+        except Exception:
+            logger.exception("count_stale_points_failed")
+            return -1
 
     def health(self) -> dict[str, Any]:
         """Return a health-check dict for the vector store.

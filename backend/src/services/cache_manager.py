@@ -331,7 +331,7 @@ class CacheManager:
 
                     # Store at both levels
                     serialized = json.dumps(value, default=str)
-                    await r.setex(key, ttl, serialized)
+                    await r.set(key, serialized, ex=ttl)
                     self.memory_set(key, value, ttl)
 
                     return value

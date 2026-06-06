@@ -5,8 +5,11 @@ import {
 } from '@/lib/login-config';
 
 describe('Login screen', () => {
-  it('disables Apple auth entry point until credentials are configured', () => {
-    expect(APPLE_AUTH_ENABLED).toBe(false);
+  it('enables Apple auth entry point on iOS', () => {
+    expect(APPLE_AUTH_ENABLED).toBe(true);
+  });
+
+  it('has a disabled copy string for fallback messaging', () => {
     expect(APPLE_AUTH_DISABLED_COPY).toMatch(/enabled in production/i);
   });
 });

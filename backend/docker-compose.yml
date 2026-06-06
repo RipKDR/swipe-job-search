@@ -8,16 +8,43 @@ services:
     env_file: .env
     depends_on:
       - redis
-      - worker
+      - worker-scrapers
+      - worker-processing
+      - worker-notifications
       - jaeger
       - vault
 
-  worker:
+  worker-scrapers:
     build: .
-    command: celery -A src.workers.celery_app.celery_app worker --loglevel=info
+    command: celery -A src.workers.celery_app.celery_app worker -Q scrapers --loglevel=info --concurrency=4
     env_file: .env
     depends_on:
       - redis
+    restart: unless-stopped
+
+  worker-processing:
+    build: .
+    command: celery -A src.workers.celery_app.celery_app worker -Q processing --loglevel=info --concurrency=2
+    env_file: .env
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  worker-notifications:
+    build: .
+    command: celery -A src.workers.celery_app.celery_app worker -Q notifications --loglevel=info --concurrency=2
+    env_file: .env
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  worker-default:
+    build: .
+    command: celery -A src.workers.celery_app.celery_app worker -Q default --loglevel=warning --concurrency=1
+    env_file: .env
+    depends_on:
+      - redis
+    restart: unless-stopped
 
   celery-beat:
     build: .
@@ -25,7 +52,9 @@ services:
     env_file: .env
     depends_on:
       - redis
-      - worker
+      - worker-scrapers
+      - worker-processing
+      - worker-notifications
 
   redis:
     image: redis:7-alpine

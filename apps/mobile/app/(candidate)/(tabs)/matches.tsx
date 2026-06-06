@@ -32,15 +32,6 @@ export default function CandidateMatchesScreen() {
     router.push(`/chat/${id}` as Href);
   }, [celebratingMatch, router]);
 
-  const handleProposeTrialShift = useCallback(() => {
-    // For now, navigates to chat — same as send message.
-    // This can later trigger a "propose trial shift" specific flow.
-    if (!celebratingMatch) return;
-    const id = celebratingMatch.id;
-    setCelebratingMatch(null);
-    router.push(`/chat/${id}` as Href);
-  }, [celebratingMatch, router]);
-
   return (
     <>
       <AppScreen centered={false} maxWidth="tab">
@@ -67,7 +58,6 @@ export default function CandidateMatchesScreen() {
         userName={profile?.full_name ?? 'You'}
         role="candidate"
         onSendMessage={handleSendMessage}
-        onProposeTrialShift={handleProposeTrialShift}
         onClose={closeCelebration}
       />
     </>

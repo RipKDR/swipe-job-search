@@ -5,11 +5,14 @@ import {
   type JobType,
   isBelowFairWorkMinimum,
   fairWorkWarningMessage,
+  type BeachheadSuburb,
+  BEACHHEAD_SUBURBS,
 } from '@hi-hired/shared';
 import { getErrorMessage } from '../../lib/errors';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
 import { FormBlock } from '@/components/onboarding/FormBlock';
+import { SuburbPicker } from '../forms/SuburbPicker';
 
 export type JobFormValues = {
   title: string;
@@ -17,7 +20,7 @@ export type JobFormValues = {
   payAmount: string;
   payPeriod: 'hour' | 'week' | 'year';
   hoursText: string;
-  suburb: string;
+  suburb: BeachheadSuburb;
   description: string;
   photoUri: string;
 };
@@ -37,7 +40,7 @@ export const emptyJobFormValues: JobFormValues = {
   payAmount: '',
   payPeriod: 'hour',
   hoursText: '',
-  suburb: '',
+  suburb: BEACHHEAD_SUBURBS[0],
   description: '',
   photoUri: '',
 };
@@ -65,7 +68,7 @@ export function JobForm({
   const canSubmit =
     values.title.trim().length > 2 &&
     values.hoursText.trim().length > 2 &&
-    values.suburb.trim().length > 1 &&
+    values.suburb &&
     Number.isFinite(payNumeric) &&
     payNumeric > 0;
 
@@ -146,12 +149,10 @@ export function JobForm({
         onChangeText={(value: string) => update('hoursText', value)}
         placeholder="Mon–Fri 7am–3pm"
       />
-      <TextField
-        label="Suburb *"
-        className={inputClass}
+      <SuburbPicker
         value={values.suburb}
-        onChangeText={(value: string) => update('suburb', value)}
-        placeholder="Moonee Ponds"
+        onChange={(suburb) => update('suburb', suburb)}
+        error={canSubmit && !values.suburb ? 'Please select a suburb' : undefined}
       />
       <TextField
         label="Description"

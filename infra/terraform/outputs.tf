@@ -107,6 +107,16 @@ output "backend_scraper_role_arn" {
   value       = module.iam.backend_scraper_role_arn
 }
 
+output "backend_processing_role_arn" {
+  description = "IAM role ARN for the backend processing worker service"
+  value       = module.iam.backend_processing_role_arn
+}
+
+output "backend_notifications_role_arn" {
+  description = "IAM role ARN for the backend notifications worker service"
+  value       = module.iam.backend_notifications_role_arn
+}
+
 output "github_actions_role_arn" {
   description = "IAM role ARN for GitHub Actions OIDC federation"
   value       = module.iam.github_actions_role_arn
@@ -126,4 +136,9 @@ output "cloudwatch_log_group_api" {
 output "cloudwatch_log_group_worker" {
   description = "CloudWatch log group name for the worker service"
   value       = module.monitoring.cloudwatch_log_group_worker
+}
+
+output "cloudwatch_log_group_scraper" {
+  description = "CloudWatch log group name for the scraper service"
+  value       = module.monitoring.cloudwatch_log_group_scraper
 }

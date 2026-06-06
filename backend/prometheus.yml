@@ -34,12 +34,12 @@ scrape_configs:
           service: "hi-hired-backend"
           tier: "api"
 
-  - job_name: "hi-hired-celery"
+  - job_name: "hi-hired-worker"
     scrape_interval: 15s
     metrics_path: /metrics
     static_configs:
       - targets:
-          - "worker:8001"
+          - "worker:8000"
         labels:
           service: "hi-hired-backend"
           tier: "worker"
@@ -49,10 +49,20 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets:
-          - "celery-beat:8002"
+          - "celery-beat:8000"
         labels:
           service: "hi-hired-backend"
           tier: "celery-beat"
+
+  - job_name: "hi-hired-scraper"
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - "scraper:8000"
+        labels:
+          service: "hi-hired-backend"
+          tier: "scraper"
 
   # === Infrastructure ===
 

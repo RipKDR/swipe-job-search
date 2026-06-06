@@ -153,6 +153,8 @@ spec:
             - --loglevel=info
             - --concurrency={{ .Values.celery.workerConcurrency }}
             - --max-tasks-per-child=100
+            - -Q
+            - default
           envFrom:
             - configMapRef:
                 name: {{ include "hi-hired-backend.fullname" . }}-config
@@ -267,3 +269,174 @@ spec:
                   optional: true
           resources:
             {{- toYaml .Values.resources.scraper | nindent 12 }}
+
+---
+# ---------------------------------------------------------------------------
+# Processing Worker Deployment (Celery — processing queue)
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hi-hired-backend.fullname" . }}-processing
+  labels:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: processing
+    environment: {{ .Values.environment | default "staging" }}
+spec:
+  replicas: {{ .Values.replicaCount.processing }}
+  selector:
+    matchLabels:
+      app: {{ include "hi-hired-backend.name" . }}
+      component: processing
+  template:
+    metadata:
+      labels:
+        app: {{ include "hi-hired-backend.name" . }}
+        component: processing
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      serviceAccountName: {{ include "hi-hired-backend.serviceAccountName" . }}-processing
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: processing
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - celery
+            - -A
+            - src.workers.celery_app.celery_app
+            - worker
+            - --loglevel=info
+            - --concurrency={{ .Values.celery.processingConcurrency }}
+            - --max-tasks-per-child=100
+            - -Q
+            - processing
+          envFrom:
+            - configMapRef:
+                name: {{ include "hi-hired-backend.fullname" . }}-config
+          env:
+            - name: SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: SUPABASE_SERVICE_KEY
+                  optional: true
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: MLFLOW_TRACKING_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: MLFLOW_TRACKING_URI
+                  optional: true
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: AWS_ACCESS_KEY_ID
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+                  optional: true
+          resources:
+            {{- toYaml .Values.resources.processing | nindent 12 }}
+
+---
+# ---------------------------------------------------------------------------
+# Notifications Worker Deployment (Celery — notifications queue)
+# ---------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "hi-hired-backend.fullname" . }}-notifications
+  labels:
+    app: {{ include "hi-hired-backend.name" . }}
+    component: notifications
+    environment: {{ .Values.environment | default "staging" }}
+spec:
+  replicas: {{ .Values.replicaCount.notifications }}
+  selector:
+    matchLabels:
+      app: {{ include "hi-hired-backend.name" . }}
+      component: notifications
+  template:
+    metadata:
+      labels:
+        app: {{ include "hi-hired-backend.name" . }}
+        component: notifications
+    spec:
+      serviceAccountName: {{ include "hi-hired-backend.serviceAccountName" . }}-notifications
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: notifications
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - celery
+            - -A
+            - src.workers.celery_app.celery_app
+            - worker
+            - --loglevel=info
+            - --concurrency={{ .Values.celery.notificationsConcurrency }}
+            - --max-tasks-per-child=100
+            - -Q
+            - notifications
+          envFrom:
+            - configMapRef:
+                name: {{ include "hi-hired-backend.fullname" . }}-config
+          env:
+            - name: SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: SUPABASE_SERVICE_KEY
+                  optional: true
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: MLFLOW_TRACKING_URI
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: MLFLOW_TRACKING_URI
+                  optional: true
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: AWS_ACCESS_KEY_ID
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "hi-hired-backend.fullname" . }}-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+                  optional: true
+          resources:
+            {{- toYaml .Values.resources.notifications | nindent 12 }}

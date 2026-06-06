@@ -32,13 +32,6 @@ export default function EmployerMatchesScreen() {
     router.push(`/chat/${id}` as Href);
   }, [celebratingMatch, router]);
 
-  const handleProposeTrialShift = useCallback(() => {
-    if (!celebratingMatch) return;
-    const id = celebratingMatch.id;
-    setCelebratingMatch(null);
-    router.push(`/chat/${id}` as Href);
-  }, [celebratingMatch, router]);
-
   return (
     <>
       <AppScreen centered={false} maxWidth="tab">
@@ -65,7 +58,6 @@ export default function EmployerMatchesScreen() {
         userName={profile?.full_name ?? 'You'}
         role="employer"
         onSendMessage={handleSendMessage}
-        onProposeTrialShift={handleProposeTrialShift}
         onClose={closeCelebration}
       />
     </>

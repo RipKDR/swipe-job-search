@@ -16,6 +16,7 @@ import {
   uploadJobPhoto,
 } from '@/lib/job-submit';
 import type { Database } from '@hi-hired/shared';
+import { BEACHHEAD_SUBURBS, type BeachheadSuburb } from '@hi-hired/shared';
 
 type JobRow = Pick<
   Database['public']['Tables']['jobs']['Row'],
@@ -38,13 +39,17 @@ function getJobId(id: string | string[] | undefined) {
 }
 
 function mapJobToFormValues(job: JobRow): JobFormValues {
+  const suburb = BEACHHEAD_SUBURBS.includes(job.suburb as BeachheadSuburb)
+    ? (job.suburb as BeachheadSuburb)
+    : BEACHHEAD_SUBURBS[0];
+
   return {
     title: job.title,
     jobType: job.job_type,
     payAmount: String(Number(job.pay_amount)),
     payPeriod: job.pay_period,
     hoursText: job.hours_text,
-    suburb: job.suburb,
+    suburb: suburb as BeachheadSuburb,
     description: job.description ?? '',
     photoUri: job.photo_url ?? '',
   };

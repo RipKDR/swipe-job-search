@@ -31,7 +31,6 @@ const itIsAMatch = (_content: string, element: Element | null): boolean =>
 
 function renderMatchCelebration(overrides: Record<string, unknown> = {}) {
   const onSendMessage = vi.fn();
-  const onProposeTrialShift = vi.fn();
   const onClose = vi.fn();
 
   const result = render(
@@ -42,13 +41,12 @@ function renderMatchCelebration(overrides: Record<string, unknown> = {}) {
       userName="Alex"
       role="candidate"
       onSendMessage={onSendMessage}
-      onProposeTrialShift={onProposeTrialShift}
       onClose={onClose}
       {...overrides}
     />,
   );
 
-  return { onSendMessage, onProposeTrialShift, onClose, result };
+  return { onSendMessage, onClose, result };
 }
 
 /* ── Tests ────────────────────────────────────────────────────────────── */
@@ -63,7 +61,6 @@ describe('MatchCelebration', () => {
         userName="Alex"
         role="candidate"
         onSendMessage={vi.fn()}
-        onProposeTrialShift={vi.fn()}
         onClose={vi.fn()}
       />,
     );
@@ -104,13 +101,6 @@ describe('MatchCelebration', () => {
     expect(onSendMessage).toHaveBeenCalledTimes(1);
   });
 
-  it('calls onProposeTrialShift when Propose trial shift button is pressed', () => {
-    const { onProposeTrialShift } = renderMatchCelebration();
-
-    fireEvent.click(screen.getByText('Propose trial shift'));
-
-    expect(onProposeTrialShift).toHaveBeenCalledTimes(1);
-  });
 
   it('calls onClose when backdrop is pressed', () => {
     const { onClose } = renderMatchCelebration();

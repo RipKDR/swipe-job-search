@@ -12,6 +12,8 @@ Provides :class:`MatchTrainingPipeline` that:
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 import numpy as np
@@ -22,6 +24,8 @@ import xgboost as xgb
 from optuna.samplers import TPESampler
 from sklearn.metrics import ndcg_score, precision_score
 from sklearn.model_selection import train_test_split
+
+from src.services.mlflow_service import MLflowService
 
 logger = structlog.get_logger()
 
@@ -34,6 +38,9 @@ _FEATURE_NAMES = [
     "type_match",
     "bias",
 ]
+
+# Promotion gate: minimum NDCG to register the model
+_PROMOTION_GATE = 0.3
 
 
 class MatchTrainingPipeline:
@@ -50,7 +57,7 @@ class MatchTrainingPipeline:
         self,
         mlflow_tracking_uri: str | None = None,
     ) -> None:
-        self._tracking_uri = mlflow_tracking_uri or "file:./mlruns"
+        self._mlflow = MLflowService(tracking_uri=mlflow_tracking_uri)
 
     # ------------------------------------------------------------------
     # Public API
@@ -71,10 +78,14 @@ class MatchTrainingPipeline:
         Returns
         -------
         dict
-            Keys: ``run_id``, ``precision``, ``ndcg``, ``model_registered``.
+            Keys: ``run_id``, ``precision``, ``ndcg``, ``model_registered``,
+            ``data_hash``.
         """
         if data is None:
             data = self._create_dummy_data(n_samples=1000)
+
+        # Compute a hash of the training data for reproducibility
+        data_hash = self._compute_data_hash(data)
 
         # Train / test split
         y = data["label"].values
@@ -122,9 +133,13 @@ class MatchTrainingPipeline:
         precision = precision_score(y_test, y_pred_binary, zero_division=0.0)
         ndcg = float(ndcg_score(y_test.reshape(1, -1), y_pred_prob.reshape(1, -1)))
 
-        logger.info("Evaluation results", precision=round(precision, 4), ndcg=round(ndcg, 4))
+        logger.info(
+            "Evaluation results",
+            precision=round(precision, 4),
+            ndcg=round(ndcg, 4),
+        )
 
-        # MLflow tracking
+        # MLflow tracking via MLflowService
         run_id = self._log_to_mlflow(
             final_model,
             xgb_params,
@@ -133,19 +148,23 @@ class MatchTrainingPipeline:
             ndcg,
             X_train,
             y_train,
+            data_hash,
         )
 
-        # Promotion gate — only register if NDCG > 0.3
+        # Promotion gate — only register if NDCG > _PROMOTION_GATE
         model_registered = False
-        if ndcg > 0.3:
+        if ndcg > _PROMOTION_GATE:
             self._register_model(run_id)
             model_registered = True
-            logger.info("Model registered in MLflow Model Registry (NDCG > 0.3)")
+            logger.info(
+                "Model registered in MLflow Model Registry (NDCG > %s)",
+                _PROMOTION_GATE,
+            )
         else:
             logger.warning(
                 "Model NOT registered — NDCG below promotion gate",
                 ndcg=round(ndcg, 4),
-                gate=0.3,
+                gate=_PROMOTION_GATE,
             )
 
         return {
@@ -153,7 +172,13 @@ class MatchTrainingPipeline:
             "precision": round(precision, 4),
             "ndcg": round(ndcg, 4),
             "model_registered": model_registered,
+            "data_hash": data_hash,
         }
+
+    @property
+    def promotion_gate(self) -> float:
+        """Return the current promotion gate threshold."""
+        return _PROMOTION_GATE
 
     # ------------------------------------------------------------------
     # Hyper-parameter optimisation
@@ -254,7 +279,19 @@ class MatchTrainingPipeline:
         return df
 
     # ------------------------------------------------------------------
-    # MLflow integration
+    # Data hashing for reproducibility
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _compute_data_hash(data: pd.DataFrame) -> str:
+        """Compute a SHA-256 hash of the training data for reproducibility."""
+        # Sort columns first to ensure deterministic key order
+        sorted_data = data[data.columns.sort_values()]
+        raw = sorted_data.to_json(orient="records")
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+    # ------------------------------------------------------------------
+    # MLflow integration via MLflowService
     # ------------------------------------------------------------------
 
     def _log_to_mlflow(
@@ -266,6 +303,7 @@ class MatchTrainingPipeline:
         ndcg: float,
         X_train: np.ndarray,
         y_train: np.ndarray,
+        data_hash: str,
     ) -> str:
         """Log the model, params, and metrics to MLflow.
 
@@ -273,21 +311,28 @@ class MatchTrainingPipeline:
         """
         import mlflow
 
-        mlflow.set_tracking_uri(self._tracking_uri)
+        self._mlflow.setup_tracking()
         mlflow.set_experiment("hi-hired-match-scorer")
 
         with mlflow.start_run() as run:
             run_id = run.info.run_id
 
-            # Log all params
+            # Log all params via MLflowService
+            mlflow_params = {}
             for k, v in xgb_params.items():
                 if k != "seed":
-                    mlflow.log_param(k, v)
+                    mlflow_params[k] = v
             for k, v in optuna_params.items():
-                mlflow.log_param(f"optuna_{k}", v)
+                mlflow_params[f"optuna_{k}"] = v
+            self._mlflow.log_params(mlflow_params)
 
-            mlflow.log_metric("precision", precision)
-            mlflow.log_metric("ndcg", ndcg)
+            # Log metrics
+            self._mlflow.log_metrics(
+                {
+                    "precision": precision,
+                    "ndcg": ndcg,
+                }
+            )
 
             # Log feature importance
             importance = model.get_score(importance_type="gain")
@@ -301,12 +346,13 @@ class MatchTrainingPipeline:
                 registered_model_name=None,  # we register separately
             )
 
-            # Log training feature stats for reproducibility
-            mlflow.log_dict(
+            # Log training metadata and data hash for reproducibility
+            self._mlflow.log_dict(
                 {
                     "feature_names": _FEATURE_NAMES,
                     "feature_count": _FEATURE_COUNT,
                     "train_samples": int(X_train.shape[0]),
+                    "data_hash": data_hash,
                 },
                 "training_metadata.json",
             )
@@ -316,11 +362,31 @@ class MatchTrainingPipeline:
     def _register_model(self, run_id: str) -> None:
         """Register the model from *run_id* in the MLflow Model Registry.
 
-        The registered model is named ``match-scorer``.
+        The registered model is staged as ``Staging``.
+        Promotion to ``Production`` is a separate manual or automated step.
         """
-        import mlflow
+        self._mlflow.register_model(run_id=run_id, model_name="match-scorer")
 
-        mlflow.set_tracking_uri(self._tracking_uri)
 
-        model_uri = f"runs:/{run_id}/model"
-        mlflow.register_model(model_uri=model_uri, name="match-scorer")
+# ── Standalone entry point for Celery tasks ──────────────────────────────
+
+
+async def run_training_pipeline() -> dict[str, Any]:
+    """Run the match scoring training pipeline.
+
+    Convenience wrapper around :class:`MatchTrainingPipeline` for use
+    by Celery beat tasks. Returns the same metrics dict.
+    """
+    pipeline = MatchTrainingPipeline(
+        mlflow_tracking_uri=os.environ.get("MLFLOW_TRACKING_URI"),
+    )
+    result = pipeline.train()
+    return result
+
+
+if __name__ == "__main__":
+    """Run the pipeline from the command line (for testing)."""
+    import asyncio
+
+    result = asyncio.run(run_training_pipeline())
+    print(json.dumps(result, indent=2))

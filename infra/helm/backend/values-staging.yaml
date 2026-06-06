@@ -1,0 +1,108 @@
+# ---------------------------------------------------------------------------
+# Hi-Hired Backend — Staging Overrides
+# ---------------------------------------------------------------------------
+# Smaller replicas, cheaper instances, developer-friendly settings.
+# Used with: helm install --values values-staging.yaml
+# ---------------------------------------------------------------------------
+
+# -- Environment label for resource tagging
+environment: staging
+
+# -- Image — staging ECR repository
+image:
+  repository: hi-hired-staging-backend
+  tag: latest
+
+# -- Reduced replica counts for staging
+replicaCount:
+  api: 1
+  worker: 1
+  scraper: 1
+  processing: 1
+  notifications: 1
+
+# -- Resources — modest for staging
+resources:
+  api:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  worker:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  scraper:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  processing:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  notifications:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+# -- Ingress — staging hostname
+ingress:
+  enabled: true
+  hosts:
+    - host: api.staging.hi-hired.com.au
+      paths:
+        - path: /
+          pathType: Prefix
+
+# -- Autoscaling — more conservative for staging
+autoscaling:
+  api:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+  worker:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+  processing:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 5
+  notifications:
+    enabled: false
+
+# -- ServiceAccount annotations (IRSA) — set during CI/CD deploy
+serviceAccount:
+  annotations:
+    apiRoleArn: ""            # Set by CI/CD from Terraform output
+    workerRoleArn: ""         # Set by CI/CD from Terraform output
+    scraperRoleArn: ""        # Set by CI/CD from Terraform output
+    processingRoleArn: ""     # Set by CI/CD from Terraform output
+    notificationsRoleArn: ""  # Set by CI/CD from Terraform output
+
+# -- Env overrides for staging
+env:
+  configMap:
+    CORS_ORIGINS: "https://staging.hi-hired.com.au,http://localhost:3000"
+    LOG_LEVEL: "DEBUG"
+
+# -- Celery — lower concurrency for staging
+celery:
+  workerConcurrency: 2
+  scraperConcurrency: 1
+  processingConcurrency: 1
+  notificationsConcurrency: 1

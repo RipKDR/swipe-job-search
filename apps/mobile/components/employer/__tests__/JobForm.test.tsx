@@ -81,6 +81,32 @@ vi.mock('@/components/onboarding/FormBlock', () => ({
   },
 }));
 
+vi.mock('../forms/SuburbPicker', () => ({
+  SuburbPicker: ({
+    value,
+    onChange,
+    error,
+  }: {
+    value: string;
+    onChange?: (suburb: string) => void;
+    error?: string;
+  }) => {
+    const React = require('react');
+    return React.createElement(
+      'label',
+      { 'data-testid': 'suburb-picker' },
+      React.createElement('span', null, value),
+      React.createElement('input', {
+        type: 'hidden',
+        value,
+        'data-testid': 'suburb-input',
+        readOnly: true,
+      }),
+      error ? React.createElement('span', { className: 'error' }, error) : null,
+    );
+  },
+}));
+
 const existingJobValues: JobFormValues = {
   title: 'Weekend barista',
   jobType: 'part_time',
@@ -110,7 +136,7 @@ describe('JobForm', () => {
     expect(screen.getByDisplayValue('Weekend barista')).toBeTruthy();
     expect(screen.getByDisplayValue('32')).toBeTruthy();
     expect(screen.getByDisplayValue('Sat–Sun 7am–2pm')).toBeTruthy();
-    expect(screen.getByDisplayValue('Moonee Ponds')).toBeTruthy();
+    expect(screen.getByText('Moonee Ponds')).toBeTruthy();
     expect(screen.getByDisplayValue('Fast-paced cafe with a small team.')).toBeTruthy();
     expect(screen.getByDisplayValue('https://example.com/job.jpg')).toBeTruthy();
     expect(screen.getByText('Update job')).toBeTruthy();

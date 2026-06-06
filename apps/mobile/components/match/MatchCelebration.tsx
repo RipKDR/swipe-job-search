@@ -24,8 +24,6 @@ interface MatchCelebrationProps {
   role: 'candidate' | 'employer';
   /** Called when user taps "Send a message". */
   onSendMessage: () => void;
-  /** Called when user taps "Propose trial shift". */
-  onProposeTrialShift: () => void;
   /** Called when the overlay is dismissed (backdrop tap / close). */
   onClose: () => void;
 }
@@ -59,7 +57,6 @@ export function MatchCelebration({
   userName,
   role,
   onSendMessage,
-  onProposeTrialShift,
   onClose,
 }: MatchCelebrationProps) {
   const { width: screenWidth } = useWindowDimensions();
@@ -202,18 +199,6 @@ export function MatchCelebration({
             >
               <Text className="text-white text-base font-semibold">
                 Send a message
-              </Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => {
-                onProposeTrialShift();
-                onClose();
-              }}
-              className="w-full py-4 rounded-xl bg-orange-500 items-center active:bg-orange-600"
-            >
-              <Text className="text-white text-base font-semibold">
-                Propose trial shift
               </Text>
             </Pressable>
           </View>

@@ -1,9 +1,15 @@
 # ---------------------------------------------------------------------------
 # Release Pipeline — tag push (v*)
 # ---------------------------------------------------------------------------
-# Triggered on version tag pushes (e.g., v1.2.3). Deploys the tagged Docker
-# image to EKS via Helm, and submits the mobile app to app stores via EAS
-# Submit.
+# Triggered on version tag pushes (e.g., v1.2.3).
+#
+# Flow:
+#   1. Validate tag format (semver)
+#   2. Create GitHub Release with auto-generated changelog
+#   3. Terraform plan + apply (production)
+#   4. Backend Docker: build, tag with release version, scan, push to ECR
+#   5. Helm deploy to production EKS
+#   6. EAS Submit to app stores (disabled until EXPO_TOKEN configured)
 # ---------------------------------------------------------------------------
 name: Release
 
@@ -14,11 +20,11 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false # Do not cancel releases — they are sequential by design
+  cancel-in-progress: false
 
 permissions:
   id-token: write
-  contents: read
+  contents: write  # needed for creating GitHub Release
 
 env:
   AWS_REGION: ap-southeast-2
@@ -29,14 +35,17 @@ env:
   BACKEND_DIR: backend
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # Validate tag format
-  # ---------------------------------------------------------------------------
+  # -------------------------------------------------------------------------
+  # 1. Validate tag format
+  # -------------------------------------------------------------------------
   validate:
-    name: Validate Tag
+    name: Validate tag
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.parse.outputs.version }}
     steps:
       - name: Check tag format
+        id: parse
         run: |
           TAG=${{ github.ref_name }}
           if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -44,10 +53,58 @@ jobs:
             exit 1
           fi
           echo "Tag '$TAG' is valid"
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
 
-  # ---------------------------------------------------------------------------
-  # Terraform Plan/Apply (production)
-  # ---------------------------------------------------------------------------
+  # -------------------------------------------------------------------------
+  # 2. Create GitHub Release
+  # -------------------------------------------------------------------------
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # Collect commits since last tag
+          PREV_TAG=$(git tag --sort=-creatordate | head -2 | tail -1 || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="HEAD"
+          else
+            RANGE="$PREV_TAG..HEAD"
+          fi
+          echo "## What's Changed" > /tmp/release-body.md
+          git log --oneline --no-decorate $RANGE -- \
+            ':(exclude)docs/' \
+            ':(exclude)**.md' \
+            ':(exclude).github/' \
+            >> /tmp/release-body.md 2>/dev/null || true
+          # Include CHANGELOG section if available
+          if [ -f CHANGELOG.md ]; then
+            echo "" >> /tmp/release-body.md
+            echo "---" >> /tmp/release-body.md
+            echo "See [CHANGELOG.md](CHANGELOG.md) for full details." >> /tmp/release-body.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body_path: /tmp/release-body.md
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+
+  # -------------------------------------------------------------------------
+  # 3. Terraform plan + apply (production)
+  # -------------------------------------------------------------------------
   terraform:
     name: Terraform (production)
     runs-on: ubuntu-latest
@@ -100,9 +157,9 @@ jobs:
         working-directory: ${{ env.TERRAFORM_DIR }}
         run: terraform apply -auto-approve tfplan
 
-  # ---------------------------------------------------------------------------
-  # Backend Docker: Build, Tag with version, Push to ECR
-  # ---------------------------------------------------------------------------
+  # -------------------------------------------------------------------------
+  # 4. Backend Docker: build, tag with release version, scan, push
+  # -------------------------------------------------------------------------
   docker-build:
     name: Backend Docker Build & Push
     runs-on: ubuntu-latest
@@ -134,9 +191,11 @@ jobs:
           docker build \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG-$(date +%Y%m%d%H%M%S) \
             .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG-$(date +%Y%m%d%H%M%S)
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Scan Docker image with Trivy
@@ -154,14 +213,14 @@ jobs:
           sarif_file: trivy-results.sarif
           category: release-container
 
-  # ---------------------------------------------------------------------------
-  # Helm Deploy to EKS
-  # ---------------------------------------------------------------------------
+  # -------------------------------------------------------------------------
+  # 5. Helm deploy to production EKS
+  # -------------------------------------------------------------------------
   helm-deploy:
     name: Helm Deploy to EKS
     runs-on: ubuntu-latest
     environment: production
-    needs: [validate, terraform, docker-build]
+    needs: [validate, create-release, terraform, docker-build]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -210,31 +269,35 @@ jobs:
           kubectl rollout status deployment/backend-api -n hi-hired --timeout=5m
           kubectl rollout status deployment/backend-worker -n hi-hired --timeout=5m
 
-  # ---------------------------------------------------------------------------
-  # EAS Submit (App Stores)
-  # ---------------------------------------------------------------------------
+      - name: Post-deploy smoke test
+        run: |
+          PROD_URL="https://hihired.com"
+          echo "Smoke testing $PROD_URL ..."
+          curl -sSf --max-time 30 "$PROD_URL/health" | head -c 500
+          echo ""
+          echo "Production smoke test passed"
+
+  # -------------------------------------------------------------------------
+  # 6. EAS Submit (disabled until EXPO_TOKEN + store creds configured)
+  # -------------------------------------------------------------------------
   eas-submit:
     name: EAS Submit (App Stores)
     runs-on: ubuntu-latest
     needs: [helm-deploy]
-    if: false  # Enable when EXPO_TOKEN and store credentials are configured
+    if: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 8
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --config.engine-strict=false
-
       - name: Submit to stores
         uses: expo/expo-github-action@v8
         with:

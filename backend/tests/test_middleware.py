@@ -330,7 +330,7 @@ class TestProfileRoleLookup:
     """Profile role fallback must not grant admin via profiles.role."""
 
     @patch("src.api.middleware.auth._get_service_client")
-    def test_get_profile_role_returns_peer_roles_only(self, mock_get_client: MagicMock) -> None:
+    async def test_get_profile_role_returns_peer_roles_only(self, mock_get_client: MagicMock) -> None:
         mock_table = MagicMock()
         mock_get_client.return_value.table.return_value = mock_table
         mock_table.select.return_value.eq.return_value.maybe_single.return_value.execute.side_effect = [
@@ -340,10 +340,10 @@ class TestProfileRoleLookup:
             MagicMock(data={"role": "jobseeker"}),
         ]
 
-        assert _get_profile_role("user-1") == "provider"
-        assert _get_profile_role("user-2") == "employer"
-        assert _get_profile_role("user-3") is None
-        assert _get_profile_role("user-4") is None
+        assert await _get_profile_role("user-1") == "provider"
+        assert await _get_profile_role("user-2") == "employer"
+        assert await _get_profile_role("user-3") is None
+        assert await _get_profile_role("user-4") is None
 
     @patch("src.api.middleware.auth._get_service_client")
     def test_profile_admin_does_not_bypass_peer_role_gate(

@@ -13,6 +13,7 @@ utc = tz.utc
 class BaseEvent(BaseModel):
     event_id: UUID = Field(default_factory=uuid4)
     event_type: str
+    version: int = 1
     timestamp: datetime = Field(default_factory=lambda: datetime.now(tz=utc))
     correlation_id: UUID
     payload: dict[str, Any]

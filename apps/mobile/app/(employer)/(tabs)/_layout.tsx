@@ -22,13 +22,6 @@ export default function EmployerTabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="post-job"
-        options={{
-          title: 'Post Job',
-          tabBarIcon: ({ color }) => <TabIcon emoji="➕" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="matches"
         options={{
           title: 'Matches',
