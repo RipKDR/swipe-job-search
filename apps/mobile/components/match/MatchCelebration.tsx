@@ -138,7 +138,7 @@ export function MatchCelebration({
               {role === 'candidate' ? 'Employer wants to chat' : 'New match'}
             </Text>
             <Text className="text-white text-3xl font-extrabold tracking-tight text-center">
-              IT'S A{' '}
+              IT&apos;S A{' '}
               <Text className="text-emerald-400">MATCH</Text>
             </Text>
           </View>

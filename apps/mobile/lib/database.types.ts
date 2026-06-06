@@ -128,12 +128,12 @@ export type Database = {
           lng: number | null;
           description: string | null;
           photo_url: string | null;
+          source: string | null;
           status: 'active' | 'hired' | 'expired' | 'paused';
           expires_at: string;
           hired_at: string | null;
           created_at: string;
           updated_at: string;
-          source?: string | null;
         };
         Insert: {
           id?: string;
@@ -150,12 +150,12 @@ export type Database = {
           lng?: number | null;
           description?: string | null;
           photo_url?: string | null;
+          source?: string | null;
           status?: 'active' | 'hired' | 'expired' | 'paused';
           expires_at: string;
           hired_at?: string | null;
           created_at?: string;
           updated_at?: string;
-          source?: string | null;
         };
         Update: {
           id?: string;
@@ -172,12 +172,12 @@ export type Database = {
           lng?: number | null;
           description?: string | null;
           photo_url?: string | null;
+          source?: string | null;
           status?: 'active' | 'hired' | 'expired' | 'paused';
           expires_at?: string;
           hired_at?: string | null;
           created_at?: string;
           updated_at?: string;
-          source?: string | null;
         };
         Relationships: [];
       };
@@ -186,21 +186,21 @@ export type Database = {
           id: string;
           candidate_id: string;
           job_id: string;
-          direction: 'right' | 'left' | 'applied';
+          direction: 'right' | 'left' | 'applied' | 'super';
           created_at: string;
         };
         Insert: {
           id?: string;
           candidate_id: string;
           job_id: string;
-          direction: 'right' | 'left' | 'applied';
+          direction: 'right' | 'left' | 'applied' | 'super';
           created_at?: string;
         };
         Update: {
           id?: string;
           candidate_id?: string;
           job_id?: string;
-          direction?: 'right' | 'left' | 'applied';
+          direction?: 'right' | 'left' | 'applied' | 'super';
           created_at?: string;
         };
         Relationships: [];
@@ -514,7 +514,7 @@ export type Database = {
           provider_id: string;
           candidate_id: string;
           job_id: string;
-          direction: 'right' | 'left' | 'applied';
+          direction: 'right' | 'left' | 'applied' | 'super';
           created_at: string;
         };
         Insert: {
@@ -522,7 +522,7 @@ export type Database = {
           provider_id: string;
           candidate_id: string;
           job_id: string;
-          direction?: 'right' | 'left' | 'applied';
+          direction: 'right' | 'left' | 'applied' | 'super';
           created_at?: string;
         };
         Update: {
@@ -530,7 +530,7 @@ export type Database = {
           provider_id?: string;
           candidate_id?: string;
           job_id?: string;
-          direction?: 'right' | 'left' | 'applied';
+          direction?: 'right' | 'left' | 'applied' | 'super';
           created_at?: string;
         };
         Relationships: [];

@@ -11,7 +11,7 @@
  * the same job (e.g. after a bounce-back) does not re-fetch.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { computeTransitTime, type CommuteResult } from '@/lib/commute';
 
@@ -77,13 +77,32 @@ export interface UseCommuteResult {
  * through jobs, only the last job's coordinates trigger a fetch.
  * Results are cached per coordinate pair to avoid redundant API calls.
  */
+type CommuteAction =
+  | { type: 'loading' }
+  | { type: 'result'; commuteMinutes: number | null }
+  | { type: 'reset' };
+
+function commuteReducer(
+  _prev: UseCommuteResult,
+  action: CommuteAction,
+): UseCommuteResult {
+  switch (action.type) {
+    case 'loading':
+      return { commuteMinutes: null, isLoading: true };
+    case 'result':
+      return { commuteMinutes: action.commuteMinutes, isLoading: false };
+    case 'reset':
+      return { commuteMinutes: null, isLoading: false };
+  }
+}
+
 export function useCommute(
   jobLat: number | null,
   jobLng: number | null,
 ): UseCommuteResult {
   const { location: userLocation, isLoading: isUserLoading } = useUserLocation();
 
-  const [state, setState] = useState<{ commuteMinutes: number | null; isLoading: boolean }>({
+  const [state, dispatch] = useReducer(commuteReducer, {
     commuteMinutes: null,
     isLoading: false,
   });
@@ -107,19 +126,19 @@ export function useCommute(
       !userLocation ||
       isUserLoading
     ) {
-      setState({ commuteMinutes: null, isLoading: false });
+      dispatch({ type: 'reset' });
       return;
     }
 
     // Check cache first (instant response, no loading state)
     const cached = getCached(jobLat, jobLng);
     if (cached) {
-      setState({ commuteMinutes: cached.duration_minutes, isLoading: false });
+      dispatch({ type: 'result', commuteMinutes: cached.duration_minutes });
       return;
     }
 
     // Start debounce window — show loading but don't fire API yet
-    setState((prev) => ({ ...prev, isLoading: true }));
+    dispatch({ type: 'loading' });
 
     const requestId = Symbol();
     activeRequestRef.current = requestId;
@@ -140,9 +159,9 @@ export function useCommute(
 
       if (result) {
         setCached(jobLat, jobLng, result);
-        setState({ commuteMinutes: result.duration_minutes, isLoading: false });
+        dispatch({ type: 'result', commuteMinutes: result.duration_minutes });
       } else {
-        setState({ commuteMinutes: null, isLoading: false });
+        dispatch({ type: 'result', commuteMinutes: null });
       }
 
       activeRequestRef.current = null;

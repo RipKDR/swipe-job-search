@@ -35,6 +35,8 @@ export type Database = {
           availability_text?: string | null;
           work_rights?: string | null;
           onboarding_completed_at?: string | null;
+          bulk_swipe_consent?: boolean;
+          consent_granted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -51,6 +53,8 @@ export type Database = {
           availability_text?: string | null;
           work_rights?: string | null;
           onboarding_completed_at?: string | null;
+          bulk_swipe_consent?: boolean;
+          consent_granted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
