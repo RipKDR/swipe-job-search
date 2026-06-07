@@ -25,7 +25,6 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import uuid
 from datetime import datetime, timezone as tz
 from typing import Any
@@ -33,7 +32,6 @@ from typing import Any
 import structlog
 from supabase import Client as SupabaseClient
 
-from src.schemas.events import BaseEvent
 
 logger = structlog.get_logger()
 
@@ -119,10 +117,12 @@ class EventOutbox:
         """Mark a single outbox row as delivered."""
         result = (
             self._supabase.table(OUTBOX_TABLE)
-            .update({
-                "status": "delivered",
-                "delivered_at": datetime.now(utc).isoformat(),
-            })
+            .update(
+                {
+                    "status": "delivered",
+                    "delivered_at": datetime.now(utc).isoformat(),
+                }
+            )
             .eq("id", row_id)
             .eq("status", "pending")
             .execute()
@@ -138,11 +138,13 @@ class EventOutbox:
         """
         result = (
             self._supabase.table(OUTBOX_TABLE)
-            .update({
-                "retry_count": self._supabase.rpc("increment_int", {"col": "retry_count"}),
-                "last_error": error_message[:500],
-                "status": "pending",
-            })
+            .update(
+                {
+                    "retry_count": self._supabase.rpc("increment_int", {"col": "retry_count"}),
+                    "last_error": error_message[:500],
+                    "status": "pending",
+                }
+            )
             .eq("id", row_id)
             .execute()
         )
@@ -172,7 +174,9 @@ class EventOutbox:
 
         return result.data or []
 
-    def backfill(self, event_type_filter: str | None = None, limit: int = 200) -> list[dict[str, Any]]:
+    def backfill(
+        self, event_type_filter: str | None = None, limit: int = 200
+    ) -> list[dict[str, Any]]:
         """Re-deliver past events by resetting their status to 'pending'.
 
         Useful when a downstream consumer needs to catch up after an outage.

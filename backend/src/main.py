@@ -1,9 +1,11 @@
 """Hi-Hired Backend - FastAPI application entrypoint."""
 
 import logging
+import os
 import time
 
-from fastapi import FastAPI, HTTPException
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import Counter, Histogram, generate_latest
 
@@ -14,6 +16,9 @@ from src.core.errors import APIException, api_error_handler
 from src.core.telemetry import setup_telemetry
 
 logger = logging.getLogger(__name__)
+
+# Load .env at startup so Settings reads HH_-prefixed vars from the file.
+load_dotenv()
 
 settings = get_settings()
 
@@ -45,8 +50,6 @@ app = FastAPI(
 # --- Prometheus metrics endpoint (registered before middleware stack) ---
 @app.get("/metrics")
 async def metrics_endpoint():
-    from fastapi.responses import Response
-
     return Response(content=generate_latest(), media_type="text/plain; version=0.0.4")
 
 
@@ -62,17 +65,19 @@ async def prometheus_metrics_middleware(request, call_next):
         path = route.path
 
     start = time.monotonic()
+    status = "500"  # default if exception occurs before response
     try:
         response = await call_next(request)
         status = str(response.status_code)
         return response
-    except Exception as exc:
-        status = "500"
+    except Exception:
         raise
     finally:
         duration = time.monotonic() - start
         HTTP_REQUESTS_TOTAL.labels(method=method, path=path, status=status).inc()
-        HTTP_REQUEST_DURATION_SECONDS.labels(method=method, path=path, status=status).observe(duration)
+        HTTP_REQUEST_DURATION_SECONDS.labels(
+            method=method, path=path, status=status
+        ).observe(duration)
 
 
 # Register standardised error handlers

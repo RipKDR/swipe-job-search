@@ -134,6 +134,7 @@ class TestRedisCache:
     async def test_redis_get_miss(self):
         cache = CacheManager()
         from src.services.cache_manager import _MISS
+
         result = await cache.redis_get("nonexistent:key")
         assert result is _MISS, "redis_get should return _MISS sentinel on cache miss"
 
@@ -159,6 +160,7 @@ class TestRedisCache:
         assert result == "gone"
         await asyncio.sleep(1.5)
         from src.services.cache_manager import _MISS
+
         result = await cache.redis_get("test:expires")
         assert result is _MISS, "expired key should return _MISS sentinel"
 
@@ -168,7 +170,10 @@ class TestRedisCache:
         assert await cache.redis_get("test:inval") == "data"
         await cache.redis_invalidate("test:inval")
         from src.services.cache_manager import _MISS
-        assert await cache.redis_get("test:inval") is _MISS, "invalidated key should return _MISS sentinel"
+
+        assert await cache.redis_get("test:inval") is _MISS, (
+            "invalidated key should return _MISS sentinel"
+        )
 
     async def test_redis_invalidate_missing(self):
         cache = CacheManager()

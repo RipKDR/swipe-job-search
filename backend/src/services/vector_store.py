@@ -308,11 +308,13 @@ class VectorStore:
         versions: list[dict[str, Any]] = []
         for point in scroll_result[0]:
             if point.payload:
-                versions.append({
-                    "job_id": point.payload.get("job_id"),
-                    "_version": point.payload.get("_version"),
-                    "posted_at": point.payload.get("posted_at"),
-                })
+                versions.append(
+                    {
+                        "job_id": point.payload.get("job_id"),
+                        "_version": point.payload.get("_version"),
+                        "posted_at": point.payload.get("posted_at"),
+                    }
+                )
         return versions
 
     def reindex_all(self, jobs: list[NormalizedJob], embeddings: list[list[float]]) -> int:
@@ -324,7 +326,9 @@ class VectorStore:
         Returns the number of points indexed.
         """
         if len(jobs) != len(embeddings):
-            raise ValueError(f"jobs ({len(jobs)}) and embeddings ({len(embeddings)}) must be same length")
+            raise ValueError(
+                f"jobs ({len(jobs)}) and embeddings ({len(embeddings)}) must be same length"
+            )
 
         # Delete all existing points
         self._client.delete(

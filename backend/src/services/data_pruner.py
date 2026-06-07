@@ -224,9 +224,7 @@ class DataPruner:
 
     # ── Audit logging ────────────────────────────────────────────────────
 
-    async def _log_prune_audit(
-        self, supabase: Any, summary: dict[str, Any]
-    ) -> None:
+    async def _log_prune_audit(self, supabase: Any, summary: dict[str, Any]) -> None:
         """Write a prune audit record to Supabase.
 
         Creates a row in ``PRUNE_AUDIT_TABLE`` (default ``prune_audit``)
@@ -257,9 +255,7 @@ class DataPruner:
                 error=str(exc),
             )
 
-    def get_prune_summary(
-        self, supabase: Any, limit: int = 20
-    ) -> list[dict[str, Any]]:
+    def get_prune_summary(self, supabase: Any, limit: int = 20) -> list[dict[str, Any]]:
         """Fetch the most recent prune audit entries.
 
         Useful for admin dashboard endpoints to visualise pruning

@@ -125,7 +125,9 @@ class MLflowService:
             logger.exception("Failed to get production model URI for %s", model_name)
             return None
 
-    def promote_to_production(self, model_name: str = "match-scorer", version: str | None = None) -> bool:
+    def promote_to_production(
+        self, model_name: str = "match-scorer", version: str | None = None
+    ) -> bool:
         """Promote a model version to the Production stage.
 
         Transitions any previously-staged version to Production.

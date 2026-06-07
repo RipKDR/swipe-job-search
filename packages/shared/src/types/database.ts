@@ -208,6 +208,7 @@ export type Database = {
           sender_id: string;
           body: string;
           created_at: string;
+          read_at: string | null;
         };
         Insert: {
           id?: string;
@@ -215,6 +216,7 @@ export type Database = {
           sender_id: string;
           body: string;
           created_at?: string;
+          read_at?: string | null;
         };
         Update: {
           id?: string;
@@ -222,6 +224,7 @@ export type Database = {
           sender_id?: string;
           body?: string;
           created_at?: string;
+          read_at?: string | null;
         };
         Relationships: [];
       };
@@ -500,6 +503,42 @@ export type Database = {
           expo_push_token?: string;
           platform?: 'ios' | 'android';
           last_used_at?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      message_attachments: {
+        Row: {
+          id: string;
+          message_id: string;
+          mime_type: string;
+          storage_path: string;
+          file_size: number;
+          width: number | null;
+          height: number | null;
+          duration_seconds: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          message_id: string;
+          mime_type: string;
+          storage_path: string;
+          file_size: number;
+          width?: number | null;
+          height?: number | null;
+          duration_seconds?: number | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          message_id?: string;
+          mime_type?: string;
+          storage_path?: string;
+          file_size?: number;
+          width?: number | null;
+          height?: number | null;
+          duration_seconds?: number | null;
           created_at?: string;
         };
         Relationships: [];

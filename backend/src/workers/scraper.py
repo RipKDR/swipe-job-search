@@ -239,9 +239,7 @@ def scrape_all_sources(self) -> list[dict[str, Any]]:
         from src.core.config import get_settings
 
         settings = get_settings()
-        supabase = create_client(
-            settings.supabase_url, settings.supabase_service_key
-        )
+        supabase = create_client(settings.supabase_url, settings.supabase_service_key)
 
         result = (
             supabase.table("scrape_sources")
@@ -250,9 +248,7 @@ def scrape_all_sources(self) -> list[dict[str, Any]]:
             .execute()
         )
 
-        sources: list[dict[str, Any]] = (
-            result.data if hasattr(result, "data") else []
-        )
+        sources: list[dict[str, Any]] = result.data if hasattr(result, "data") else []
 
         if not sources:
             logger.info("scrape_all_sources_no_sources")

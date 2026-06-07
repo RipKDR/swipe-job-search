@@ -1,25 +1,27 @@
-import { useState } from 'react';
-import { View, Text, Pressable } from '@/components/tw';
-import { KeyboardAvoidingView, Platform } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useQueryClient } from '@tanstack/react-query';
-import { usePostHog } from '@/hooks/usePostHog';
-import { useAuth } from '@/hooks/useAuth';
-import { useChat } from '@/hooks/useChat';
-import { useMatchDetail } from '@/hooks/useMatchInbox';
-import { shouldConfirmUnmatch, useHireConfirm } from '@/hooks/useHireConfirm';
-import { MessageList } from '@/components/chat/MessageList';
-import { MessageInput } from '@/components/chat/MessageInput';
-import { HireBar } from '@/components/chat/HireBar';
-import { PostHireSurvey } from '@/components/forms/PostHireSurvey';
-import { UnmatchSheet } from '@/components/chat/UnmatchSheet';
-import { ReportSheet } from '@/components/moderation/ReportSheet';
-import { BlockConfirm } from '@/components/moderation/BlockConfirm';
-import { blockUser, submitReport, type ReportReason } from '@/lib/moderation';
-import { AmbientBackground } from '@/components/ui/AmbientBackground';
-import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { getErrorMessage } from '@/lib/errors';
-import { contentMaxWidthChat, screenPadding } from '@/lib/responsive-layout';
+import { useState } from 'react'
+import { View, Text, Pressable } from '@/components/tw'
+import { KeyboardAvoidingView, Platform } from 'react-native'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useQueryClient, useQuery } from '@tanstack/react-query'
+import { usePostHog } from '@/hooks/usePostHog'
+import { useAuth } from '@/hooks/useAuth'
+import { useChat, fetchMessageAttachments, uploadMessageAttachment, type MessageAttachment } from '@/hooks/useChat'
+import { useMatchDetail } from '@/hooks/useMatchInbox'
+import { shouldConfirmUnmatch, useHireConfirm } from '@/hooks/useHireConfirm'
+import { MessageList } from '@/components/chat/MessageList'
+import { MessageInput } from '@/components/chat/MessageInput'
+import { TypingIndicator } from '@/components/chat/TypingIndicator'
+import { HireBar } from '@/components/chat/HireBar'
+import { PostHireSurvey } from '@/components/forms/PostHireSurvey'
+import { UnmatchSheet } from '@/components/chat/UnmatchSheet'
+import { ReportSheet } from '@/components/moderation/ReportSheet'
+import { BlockConfirm } from '@/components/moderation/BlockConfirm'
+import { blockUser, submitReport, type ReportReason } from '@/lib/moderation'
+import { AmbientBackground } from '@/components/ui/AmbientBackground'
+import { LoadingScreen } from '@/components/ui/LoadingScreen'
+import { getErrorMessage } from '@/lib/errors'
+import { contentMaxWidthChat, screenPadding } from '@/lib/responsive-layout'
+import type { PickedAttachment } from '@/components/chat/types'
 
 function ChatAction({ label, onPress, tone }: { label: string; onPress: () => void; tone?: 'danger' | 'muted' }) {
   const color = tone === 'danger' ? 'text-rose-300' : 'text-slate-400';
@@ -38,7 +40,16 @@ export default function ChatScreen() {
   const { user, profile } = useAuth();
   const posthog = usePostHog();
   const { data: match, isLoading: matchLoading, refetch: refetchMatch } = useMatchDetail(matchId ?? '');
-  const { messages, isLoading: messagesLoading, send, canSend } = useChat(
+  const { 
+    messages, 
+    isLoading: messagesLoading, 
+    send, 
+    sendMedia, 
+    canSend, 
+    typingUsers, 
+    sendTyping, 
+    readReceipts 
+  } = useChat(
     matchId ?? '',
     match?.status ?? 'chatting',
   );
@@ -49,6 +60,23 @@ export default function ChatScreen() {
   const [showBlock, setShowBlock] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [surveyDone, setSurveyDone] = useState(false);
+
+  // Fetch attachments for current messages
+  const attachmentsQuery = useQuery({
+    queryKey: ['chat-attachments', matchId, messages.map(m => m.id).sort().join(',')],
+    queryFn: async () => {
+      const ids = messages.map(m => m.id);
+      if (ids.length === 0) return {} as Record<string, MessageAttachment[]>;
+      const atts = await fetchMessageAttachments(ids);
+      const map: Record<string, MessageAttachment[]> = {};
+      atts.forEach((a) => {
+        if (!map[a.message_id]) map[a.message_id] = [];
+        map[a.message_id].push(a);
+      });
+      return map;
+    },
+    enabled: messages.length > 0,
+  });
 
   const handleSurveySettled = () => {
     setSurveyDone(true);
@@ -116,6 +144,48 @@ export default function ChatScreen() {
     router.back();
   };
 
+  const handleSendMedia = async (body: string, picked: PickedAttachment[]) => {
+    if (!user) throw new Error('Not authenticated');
+    try {
+      const uploaded = await Promise.all(
+        picked.map(async (p) => {
+          const res = await fetch(p.uri);
+          const blob = await res.blob();
+          const { path, fileSize } = await uploadMessageAttachment(
+            matchId,
+            user.id,
+            blob,
+            p.mimeType,
+            { width: p.width, height: p.height, duration: p.duration }
+          );
+          return {
+            mime_type: p.mimeType,
+            storage_path: path,
+            file_size: fileSize,
+            width: p.width,
+            height: p.height,
+            duration_seconds: p.duration,
+          };
+        })
+      );
+
+      await sendMedia.mutateAsync({ body: body.trim(), attachments: uploaded });
+      posthog.capture('message_sent_with_media', { 
+        match_id: matchId, 
+        attachment_count: uploaded.length,
+        types: uploaded.map(u => u.mime_type.split('/')[0])
+      });
+    } catch (error) {
+      posthog.capture('$exception', {
+        $exception_message: getErrorMessage(error, 'send media failed'),
+        $exception_type: error instanceof Error ? error.name : 'UnknownError',
+        context: 'chat_send_media',
+        match_id: matchId,
+      });
+      throw error;
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-slate-950"
@@ -146,7 +216,11 @@ export default function ChatScreen() {
         messages={messages}
         currentUserId={user.id}
         isLoading={matchLoading || messagesLoading}
+        readReceipts={readReceipts}
+        attachmentsMap={attachmentsQuery.data}
       />
+
+      <TypingIndicator typingUsers={typingUsers.length} currentUserId={user.id} />
 
       {/* Candidate salary survey — shown once after hire is confirmed by both parties */}
       {match && profile?.role === 'candidate' && match.status === 'hired' && !surveyDone ? (
@@ -178,21 +252,23 @@ export default function ChatScreen() {
 
       <MessageInput
         disabled={!canSend || match?.status === 'unmatched'}
-        loading={send.isPending}
+        loading={send.isPending || sendMedia.isPending}
         onSend={async (body) => {
           try {
-            await send.mutateAsync(body);
-            posthog.capture('message_sent', { match_id: matchId });
+            await send.mutateAsync(body)
+            posthog.capture('message_sent', { match_id: matchId })
           } catch (error) {
             posthog.capture('$exception', {
               $exception_message: getErrorMessage(error, 'send message failed'),
               $exception_type: error instanceof Error ? error.name : 'UnknownError',
               context: 'chat_send_message',
               match_id: matchId,
-            });
-            throw error;
+            })
+            throw error
           }
         }}
+        onSendMedia={handleSendMedia}
+        onTyping={sendTyping}
       />
 
       <UnmatchSheet

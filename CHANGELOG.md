@@ -7,6 +7,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-06-07 — Phase 4: Chat media, read receipts, jobs restructure)
+
+- **Chat media attachments:** Full attachment system — upload images/video/docs from
+  chat, signed URL display, `message_attachments` table with RLS, storage bucket
+  wiring (`chat-media`). New components: `MediaPicker`, `AttachmentPreview`,
+  `AttachmentImage`, `AttachmentVideo`, `AttachmentDocument`, `TypingIndicator`.
+- **Read receipts:** `read_at` column on `messages`, realtime subscription for
+  read-receipt updates, auto-mark-read on chat open.
+- **Typing indicators:** Broadcast-based typing status with debounce (800ms) and
+  TTL cleanup (3s).
+- **Jobs screen restructure:** Replaced flat `jobs.tsx` with router-based
+  `jobs/` stack (`_layout.tsx` + `index.tsx`) supporting `[id]/edit` and
+  `[id]/interested` nested routes. Stats summary bar with active jobs, interested
+  count, matches. Job pause/reactivate toggle with expiry extension.
+- **Database types:** Added `message_attachments` table and `read_at` column to
+  `messages` in both `packages/shared` and local `database.types.ts`.
+- **Fix useChat.ts:** Corrected variable name bug (`return data` → `return message`)
+  in `createMessageWithAttachments`.
+- **Fix MessageInput.tsx:** `useRef` initial value for React 19 compatibility.
+- **Fix MediaPicker.tsx:** Removed dead `Image` import; added type shim for
+  `expo-document-picker`.
+- **Test fixtures:** Updated `useChat.test.ts` with `read_at` field on all test
+  message objects; added type imports.
+
+### Added (2026-06-06 — Phase 3: Infra/ML/Ops/Docs delivery)
+
+- **Terraform hardening:** Fixed EKS alarm namespace (AWS/ECS → ContainerInsights),
+  added per-queue worker IAM roles (backend_processing, backend_notifications),
+  exposed missing outputs, added monitoring module accessors.
+- **Helm chart productionization:** Split per-queue deployments (worker-processing,
+  worker-notifications, worker-scraper) with per-queue Celery configs; added
+  PodDisruptionBudget, resource requests/limits, HPA, topologySpreadConstraints;
+  created `values-staging.yaml` and `values-production.yaml` with environment
+  overrides; split ServiceAccounts for IRSA.
+- **Prometheus metrics middleware:** Request counter + duration histogram on FastAPI
+  (`/metrics` endpoint); expanded prometheus scrape targets for all workers;
+  5xx ALB alarm in monitoring module.
+- **MLflowService:** Thin wrapper for model tracking, registry, and promotion from
+  Staging to Production; production URI retrieval.
+- **ML training pipeline:** `run_training_pipeline()` Celery task with Optuna
+  hyper-parameter optimisation, XGBoost training, NDCG evaluation, promotion gate
+  (default 0.3). Terraform workspace module for MLflow (RDS, S3, KMS).
+- **Scraper worker:** Full implementation replacing NotImplementedError stub.
+  Reads scrape_sources from Supabase, dispatches to Seek/Indeed/Jora stub adapters,
+  chains to process_raw_job via Celery, records success/failure in
+  ScraperHealthMonitor, respects source quarantine.
+- **Prune audit logging:** DataPruner now writes audit records to Supabase
+  `prune_audit` table; `get_prune_summary()` for admin API consumption.
+- **Celery beat schedule:** Explicit schedule with 3 tasks — verify-and-prune-jobs
+  (6h), scrape-all-sources (1h), retrain-match-model (24h).
+- **CI/CD pipeline:** Added Python backend test job (ruff lint + mypy + pytest)
+  in ci.yml; full staging→production CD pipeline with terraform validate, docker
+  build+scan, helm deploy, smoke test, manual approval gate; release workflow
+  with auto-changelog and version-tagged Docker images.
+- **PR review workflow:** Python lint + type-check job for PR reviews.
+- **Docs cover generator:** Added "Generated Assets" section to docs/README.md
+  with cover image regeneration instructions.
+- **Dockerfile:** Multi-stage production/dev build with HEALTHCHECK.
+
+### Added (2026-06-06 — Phase 2: Backend data/security hardening)
+
+- **Backend contracts ADR:** `docs/adr/2026-05-30-backend-contracts.md` — canonical
+  schemas, cache key naming convention, event versioning.
+- **Event versioning:** Added `version` field to `BaseEvent`; `EventSubscriber`
+  version checking with `_KNOWN_VERSIONS` dict.
+- **Durable event outbox:** `backend/src/services/outbox.py` — Supabase-backed
+  outbox with emit, fetch_pending, mark_delivered, mark_failed, fetch_failed,
+  backfill. Migration `202606060001_event_outbox.sql` with status enum + indexes.
+- **`EventPublisher.emit_durable()`:** Writes events through outbox before publishing.
+- **Vector store versioning:** `_version` payload field on Qdrant points;
+  `reindex_all()`, `count_stale_points()`, `get_versions_for_cache_invalidation()`.
+- **Redis rate limiter:** Sliding-window sorted-set implementation; auto-selection
+  via `RATE_LIMITER_BACKEND=redis` env var.
+- **Cache fix:** Replaced deprecated `setex` with `set(..., ex=ttl)`.
+- **Worker topology:** Per-queue Celery workers (default, scraper, processing,
+  notifications) with `task_reject_on_worker_lost`, explicit retry/backoff
+  policies. Updated docker-compose.yml.
+- **Apple sign-in enabled:** `APPLE_AUTH_ENABLED = true` in login-config.ts.
+- **Logout cleanup:** `signOutAndRedirect` now clears SecureStore tokens + Supabase
+  session + TanStack Query cache.
+- **Callback robustification:** Handles OAuth cancellation, provider errors,
+  stale direct visits, improved error messages.
+
+### Changed
+
+- **Backend tests:** 281 passing (was 266, +15 new MLflow/training tests).
+- **Mobile tests:** 209 passing (1 pre-existing JobForm failure, unrelated).
+- **Mobile typecheck:** 0 TypeScript errors.
+- **MLflow tracking URI:** Default changed from `file:./mlruns` to
+  `sqlite:///mlruns.db` to avoid MLflow 2.18+ filesystem deprecation.
+- **Dockerfile:** Proper layer caching (deps first, source second), multi-stage
+  production/dev targets, HEALTHCHECK.
+
 ### Added (2026-05-28 U3 — Auth and session management)
 
 - **PKCE auth callback:** `lib/authCallback.ts` with `exchangeCodeForSession`, token fallback, URL parsing, and retry UI on `(auth)/callback`.

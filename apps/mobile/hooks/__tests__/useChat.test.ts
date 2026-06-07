@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { ChatMessage } from '../useChat'
 
 const mockFrom = vi.fn()
 const mockChannel = vi.fn()
@@ -60,6 +61,7 @@ describe('useChat', () => {
         sender_id: 'user-1',
         body: 'Hello',
         created_at: '2026-05-28T00:00:00Z',
+        read_at: null,
       },
       error: null,
     })
@@ -97,22 +99,24 @@ describe('useChat', () => {
   it('AE3: realtime handler appends incoming message', async () => {
     const { applyRealtimeMessage } = await import('../useChat')
 
-    const existing = [
+    const existing: ChatMessage[] = [
       {
         id: 'msg-1',
         match_id: 'match-1',
         sender_id: 'user-1',
         body: 'Hi',
         created_at: '2026-05-28T00:00:00Z',
+        read_at: null,
       },
     ]
 
-    const incoming = {
+    const incoming: ChatMessage = {
       id: 'msg-2',
       match_id: 'match-1',
       sender_id: 'user-2',
       body: 'Hey there',
       created_at: '2026-05-28T00:01:00Z',
+      read_at: null,
     }
 
     const next = applyRealtimeMessage(existing, incoming)
@@ -124,22 +128,24 @@ describe('useChat', () => {
   it('AE3: realtime handler deduplicates by message id', async () => {
     const { applyRealtimeMessage } = await import('../useChat')
 
-    const existing = [
+    const existing: ChatMessage[] = [
       {
         id: 'msg-1',
         match_id: 'match-1',
         sender_id: 'user-1',
         body: 'Hi',
         created_at: '2026-05-28T00:00:00Z',
+        read_at: null,
       },
     ]
 
-    const duplicate = {
+    const duplicate: ChatMessage = {
       id: 'msg-1',
       match_id: 'match-1',
       sender_id: 'user-1',
       body: 'Hi',
       created_at: '2026-05-28T00:00:00Z',
+      read_at: null,
     }
 
     const next = applyRealtimeMessage(existing, duplicate)
@@ -156,6 +162,7 @@ describe('useChat', () => {
           sender_id: 'user-1',
           body: 'Hi',
           created_at: '2026-05-28T00:00:00Z',
+          read_at: null,
         },
       ],
       error: null,

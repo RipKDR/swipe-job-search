@@ -39,8 +39,8 @@ def setup_telemetry(service_name: str = "hi-hired-backend"):
     # If no OTLP endpoint configured, log a warning and return a no-op tracer.
     if not settings.otlp_endpoint:
         logger.warning(
-            "OTLP_ENDPOINT not set — telemetry is disabled. "
-            "Set OTLP_ENDPOINT in your environment or .env file to enable tracing."
+            "HH_OTLP_ENDPOINT not set — telemetry is disabled. "
+            "Set HH_OTLP_ENDPOINT in your environment or .env file to enable tracing."
         )
         from opentelemetry import trace as otel_trace
 

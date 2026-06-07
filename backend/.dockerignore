@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.eggs/
+dist/
+build/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tests (not needed in prod image)
+tests/
+.mypy_cache/
+.ruff_cache/
+
+# Docs
+docs/
+
+# Infra
+infra/
+plans/
+
+# Mobile
+apps/
+packages/
+
+# CI
+.github/

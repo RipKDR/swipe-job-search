@@ -28,8 +28,6 @@ from __future__ import annotations
 import os
 import time
 from collections.abc import Awaitable, Callable
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
@@ -147,6 +145,7 @@ class RedisRateLimiter:
     async def _get_redis(self):
         if self._redis is None:
             from redis import asyncio as aioredis
+
             self._redis = aioredis.from_url(self._redis_url, decode_responses=True)
         return self._redis
 

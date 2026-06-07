@@ -18,8 +18,7 @@ In production, the typical pattern is:
 
 from __future__ import annotations
 
-import uuid
-from typing import Any, Optional
+from typing import Any
 
 import structlog
 from redis import asyncio as aioredis
@@ -86,8 +85,7 @@ class EventPublisher:
         """
         if self._outbox is None:
             raise RuntimeError(
-                "emit_durable requires a Supabase client. "
-                "Pass supabase= to EventPublisher()."
+                "emit_durable requires a Supabase client. Pass supabase= to EventPublisher()."
             )
         return await self._outbox.emit(
             event_type=event.event_type,

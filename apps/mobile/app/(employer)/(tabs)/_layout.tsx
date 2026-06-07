@@ -35,18 +35,6 @@ export default function EmployerTabsLayout() {
           tabBarIcon: ({ color }) => <TabIcon emoji="👤" color={color} />,
         }}
       />
-      <Tabs.Screen
-        name="jobs/[id]/interested"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="jobs/[id]/edit"
-        options={{
-          href: null,
-        }}
-      />
     </Tabs>
   );
 }

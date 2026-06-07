@@ -8,6 +8,7 @@ import { JobForm, type JobFormValues } from '@/components/employer/JobForm';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { buildJobInsertPayload, uploadJobPhoto } from '@/lib/job-submit';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export default function PostJobScreen() {
   const router = useRouter();
@@ -15,22 +16,54 @@ export default function PostJobScreen() {
   const posthog = usePostHog();
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [noCircle, setNoCircle] = useState(false);
+
+  const ensureCircle = async (employerId: string): Promise<string | null> => {
+    // First, check for existing circle membership
+    const { data: membership, error: circleError } = await supabase
+      .from('circle_members')
+      .select('circle_id')
+      .eq('profile_id', employerId)
+      .limit(1)
+      .maybeSingle();
+
+    if (circleError) throw circleError;
+    if (membership?.circle_id) return membership.circle_id;
+
+    // No circle found - try to get/assign default circle
+    const { data: defaultCircle, error: defaultError } = await (supabase as any)
+      .from('circles')
+      .select('id')
+      .eq('is_default', true)
+      .limit(1)
+      .maybeSingle();
+
+    if (defaultError) throw defaultError;
+    if (!defaultCircle) {
+      setNoCircle(true);
+      return null;
+    }
+
+    // Assign to default circle
+    const { error: insertError } = await (supabase as any)
+      .from('circle_members')
+      .insert({ profile_id: employerId, circle_id: defaultCircle.id })
+      .select('circle_id')
+      .maybeSingle();
+
+    if (insertError) throw insertError;
+    return defaultCircle.id;
+  };
 
   const handleSubmit = async (values: JobFormValues) => {
     if (!profile?.id) throw new Error('You must be signed in as an employer');
 
     setSubmitting(true);
     setFeedback(null);
+    setNoCircle(false);
     try {
-      const { data: membership, error: circleError } = await supabase
-        .from('circle_members')
-        .select('circle_id')
-        .eq('profile_id', profile.id)
-        .limit(1)
-        .maybeSingle();
-
-      if (circleError) throw circleError;
-      if (!membership?.circle_id) throw new Error('No circle assigned to your employer profile');
+      const circleId = await ensureCircle(profile.id);
+      if (!circleId) return; // noCircle will be true
 
       let photoUrl: string | null = null;
       if (values.photoUri.trim()) {
@@ -42,7 +75,7 @@ export default function PostJobScreen() {
       const jobPayload = buildJobInsertPayload({
         values,
         employerId: profile.id,
-        circleId: membership.circle_id,
+        circleId,
         photoUrl,
         expiresAt,
       });
@@ -63,6 +96,21 @@ export default function PostJobScreen() {
       setSubmitting(false);
     }
   };
+
+  if (noCircle) {
+    return (
+      <AppScreen centered={false} maxWidth="lg">
+        <ScreenHeader title="Post a job" onBack={() => router.back()} />
+        <EmptyState
+          emoji="📍"
+          title="No service area assigned"
+          description="Your business needs to be assigned to a service area before posting jobs. This usually happens automatically after onboarding. Please try again in a moment, or contact support if the issue persists."
+          actionLabel="Go back"
+          onAction={() => router.back()}
+        />
+      </AppScreen>
+    );
+  }
 
   return (
     <AppScreen scroll centered maxWidth="lg">
