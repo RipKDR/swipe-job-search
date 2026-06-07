@@ -14,15 +14,9 @@ export default function JobsStackLayout() {
         }}
       />
       <Stack.Screen
-        name="[id]/interested"
+        name="[id]"
         options={{
-          title: 'Interested Candidates',
-        }}
-      />
-      <Stack.Screen
-        name="[id]/edit"
-        options={{
-          title: 'Edit Job',
+          title: 'Job Details',
         }}
       />
     </Stack>

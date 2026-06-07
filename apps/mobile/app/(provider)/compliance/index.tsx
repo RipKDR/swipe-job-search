@@ -1,3 +1,4 @@
+import { usePostHog } from '@/hooks/usePostHog'
 import { AppScreen } from '@/components/ui/AppScreen'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { LoadingScreen } from '@/components/ui/LoadingScreen'
@@ -41,6 +42,7 @@ const DEFAULT_API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:80
 
 export default function ComplianceScreen() {
   const { profile } = useAuth()
+  const posthog = usePostHog()
   const [reports, setReports] = useState<ComplianceReport[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -90,6 +92,10 @@ export default function ComplianceScreen() {
     }
 
     setGenerating(true)
+    posthog.capture('compliance_report_generation_started', {
+      candidate_id: candidateId.trim(),
+      period_days: days,
+    })
     try {
       const { data: sessionData } = await supabase.auth.getSession()
       const token = sessionData?.session?.access_token
@@ -128,9 +134,17 @@ export default function ComplianceScreen() {
 
       setShowForm(false)
       setCandidateId('')
+      posthog.capture('compliance_report_generated', {
+        candidate_id: candidateId.trim(),
+        period_days: days,
+        report_type: days <= 7 ? 'weekly_summary' : days <= 14 ? 'fortnightly' : 'monthly',
+      })
       Alert.alert('Report Generated', 'The compliance report has been generated successfully.')
       await fetchReports()
     } catch (err) {
+      posthog.capture('compliance_report_generation_failed', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+      })
       Alert.alert('Generation Failed', err instanceof Error ? err.message : 'Unknown error')
     } finally {
       setGenerating(false)
@@ -152,7 +166,10 @@ export default function ComplianceScreen() {
         <View className="px-4 mt-2 mb-4">
           <Pressable
             className="bg-indigo-600 py-3 px-4 rounded-xl active:opacity-80"
-            onPress={() => setShowForm(!showForm)}
+          onPress={() => {
+            posthog.capture('compliance_report_form_toggled', { show: !showForm })
+            setShowForm(!showForm)
+          }}
             accessibilityRole="button"
             accessibilityLabel={showForm ? 'Cancel compliance report generation' : 'Generate a compliance report'}
             accessibilityState={{ expanded: showForm }}
@@ -244,6 +261,7 @@ export default function ComplianceScreen() {
 }
 
 function ReportCard({ report }: { report: ComplianceReport }) {
+  const posthog = usePostHog()
   const statusColor =
     report.status === 'completed'
       ? 'text-emerald-400'
@@ -300,6 +318,11 @@ function ReportCard({ report }: { report: ComplianceReport }) {
   const handleToggle = () => {
     const next = !expanded
     setExpanded(next)
+    posthog.capture('compliance_report_card_toggled', {
+      report_id: report.id,
+      expanded: next,
+      status: report.status,
+    })
     if (next) fetchRows()
   }
 
@@ -400,6 +423,10 @@ function ReportCard({ report }: { report: ComplianceReport }) {
           accessibilityRole="button"
           accessibilityLabel="Download compliance report PDF"
           onPress={async () => {
+            posthog.capture('compliance_report_pdf_download_started', {
+              report_id: report.id,
+              status: report.status,
+            })
             try {
               const { data: sessionData } = await supabase.auth.getSession()
               const token = sessionData?.session?.access_token
