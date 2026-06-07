@@ -3,19 +3,17 @@ import { FlatList, RefreshControl, View } from 'react-native';
 import { Text } from '@/components/tw';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Button } from '@/components/ui/Button';
 import { JobListItem } from '@/components/employer/JobListItem';
 import { useMyJobs, type MyJobItem } from '@/hooks/useMyJobs';
 import { useMatchInbox } from '@/hooks/useMatchInbox';
-import { useAuth } from '@/hooks/useAuth';
-import { usePostHog } from '@/hooks/usePostHog';
 import { useTheme } from '@/hooks/useTheme';
+import { usePostHog } from '@/hooks/usePostHog';
+import { useAuth } from '@/hooks/useAuth';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { TabWebShell } from '@/components/ui/TabWebShell';
-import { useListColumns } from '@/hooks/useListColumns';
 import { supabase } from '@/lib/supabase';
 import type { Database } from '@hi-hired/shared';
 
@@ -58,38 +56,21 @@ export default function JobsScreen() {
   const profileId = profile?.id;
   const jobs: MyJobItem[] = jobsData ?? [];
   const matches = matchesData as { status: string }[];
-  const numColumns = useListColumns(2);
+
   const [statusUpdatingJobId, setStatusUpdatingJobId] = useState<string | null>(null);
   const [statusFeedback, setStatusFeedback] = useState<string | null>(null);
 
-  const totalInterested = jobs.reduce(
-    (sum: number, job: MyJobItem) => sum + (job.interestedCount || 0),
-    0,
-  );
-  const activeMatches = matches.filter(
-    (match: { status: string }) => match.status === 'chatting' || match.status === 'hire_pending',
-  ).length;
-  const activeJobs = jobs.filter(
-    (job: MyJobItem) => job.status === 'active' && (!job.expires_at || new Date(job.expires_at) > new Date())
-  ).length;
+  const activeJobs = jobs.filter((j) => j.status === 'active').length;
+  const totalInterested = jobs.reduce((sum, j) => sum + (j.interestedCount || 0), 0);
+  const activeMatches = matches.filter((m) => m.status === 'chatting' || m.status === 'hire_pending').length;
 
-  const handlePostJob = useCallback(() => {
-    router.push('/(employer)/(tabs)/post-job');
+  const handleOpenInterested = useCallback((jobId: string) => {
+    router.push(`./${jobId}/interested` as const);
   }, [router]);
 
-  const handleOpenInterested = useCallback(
-    (jobId: string) => {
-      router.push(`/(employer)/(tabs)/jobs/${jobId}/interested` as any);
-    },
-    [router],
-  );
-
-  const handleEditJob = useCallback(
-    (jobId: string) => {
-      router.push(`/(employer)/(tabs)/jobs/${jobId}/edit` as any);
-    },
-    [router],
-  );
+  const handleEditJob = useCallback((jobId: string) => {
+    router.push(`./${jobId}/edit` as const);
+  }, [router]);
 
   const handleToggleStatus = useCallback(
     async (job: MyJobItem) => {
@@ -147,11 +128,25 @@ export default function JobsScreen() {
         statusUpdating={statusUpdatingJobId === item.id}
       />
     ),
-    [handleEditJob, handleOpenInterested, handleToggleStatus, statusUpdatingJobId],
+    [handleOpenInterested, handleEditJob, handleToggleStatus, statusUpdatingJobId],
   );
 
   if (isLoading) {
     return <LoadingScreen message="Loading your jobs…" />;
+  }
+
+  if (error) {
+    return (
+      <AppScreen>
+        <ScreenHeader title="My jobs" />
+        <EmptyState
+          title="Could not load jobs"
+          description="Please try again."
+          actionLabel="Retry"
+          onAction={() => refetch()}
+        />
+      </AppScreen>
+    );
   }
 
   return (
@@ -162,52 +157,30 @@ export default function JobsScreen() {
           subtitle={`${activeJobs} active · ${activeJobs === 0 && jobs.length > 0 ? `${jobs.length - activeJobs} inactive` : ''}`}
         />
 
-        {/* Stats summary */}
         <View className="flex-row gap-3 mb-5">
           <StatCard label="Active jobs" value={activeJobs} />
           <StatCard label="Interested" value={totalInterested} accent />
           <StatCard label="Matches" value={activeMatches} />
         </View>
 
-        <Button
-          title="Post new job"
-          onPress={handlePostJob}
-          className="mb-4"
-          fullWidth
-        />
-
         {statusFeedback ? (
           <Text className="text-slate-300 text-sm mb-4">{statusFeedback}</Text>
         ) : null}
 
-        {error ? (
+        {jobs.length === 0 ? (
           <EmptyState
-            emoji="⚠️"
-            title="Could not load jobs"
-            description="Check your connection and try again."
-            actionLabel="Retry"
-            onAction={() => refetch()}
-          />
-        ) : jobs.length === 0 ? (
-          <EmptyState
-            emoji="📋"
             title="No jobs yet"
-            description="Post your first casual role and start receiving interest from local candidates."
-            actionLabel="Post your first job"
-            onAction={() => router.push('/(employer)/(tabs)/post-job')}
+            description="Post your first job to start receiving applications."
+            actionLabel="Post a Job"
+            onAction={() => router.push('/(employer)/(tabs)/post-job' as any)}
           />
         ) : (
           <FlatList
-            key={`jobs-cols-${numColumns}`}
             data={jobs}
-            numColumns={numColumns}
-            keyExtractor={(job: MyJobItem) => job.id}
-            columnWrapperStyle={numColumns > 1 ? { gap: 12 } : undefined}
-            contentContainerStyle={{ gap: 12, paddingBottom: 40 }}
-            refreshControl={
-              <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor="#818cf8" />
-            }
+            keyExtractor={(item: MyJobItem) => item.id}
             renderItem={renderItem}
+            refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+            contentContainerStyle={{ paddingBottom: 40 }}
           />
         )}
       </TabWebShell>
