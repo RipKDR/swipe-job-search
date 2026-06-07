@@ -31,6 +31,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test fixtures:** Updated `useChat.test.ts` with `read_at` field on all test
   message objects; added type imports.
 
+### Added (2026-06-07 — Deep links for Matches + retention flows)
+
+- **Deep link support (hi-hired:// scheme):** FEATURE_DEEP_LINKS + parseDeepLink in
+  `lib/routing.ts` (deck, matches, saved, chat/:id). Root `_layout.tsx` listener
+  (Linking.getInitialURL + addEventListener) for cold-start + runtime nav (streak
+  at-risk → deck, match notifs → chat/matches per handoffs).
+- Chat target corrected to `/chat/${matchId}` (matches actual `app/chat/[matchId].tsx`
+  + `useMatchInbox` + `matches.tsx` pushes from MatchInboxList/MatchCelebration).
+- Source-driven from existing auth deep links (getAuthRedirectUrl) + Expo Router
+  patterns in CLAUDE.md + react-native-architecture skill + streak/matches handoff plans.
+- Verified: `pnpm --filter @hi-hired/mobile typecheck` exit 0; targeted tests (25 passed
+  in match/streak files, MatchCelebration.test green); end-to-end route consistency.
+- Per architect-developer-protocol (blueprint in plans/next-phases-*.md) + hi-hired-delivery-loop
+  (full audit first, agent_logs gate, 4-lens via pre-commit).
+- Model: grok-build-0.1 (xai-oauth). Commit: e9686161.
+
 ### Added (2026-06-06 — Phase 3: Infra/ML/Ops/Docs delivery)
 
 - **Terraform hardening:** Fixed EKS alarm namespace (AWS/ECS → ContainerInsights),
