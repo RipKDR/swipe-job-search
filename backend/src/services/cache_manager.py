@@ -189,7 +189,7 @@ class CacheManager:
         ttl = ttl if ttl is not None else self._redis_default_ttl
         try:
             r = await self._get_redis()
-            await r.setex(key, ttl, json.dumps(value, default=str))
+            await r.set(key, json.dumps(value, default=str), ex=ttl)
         except Exception:
             logger.exception("cache.redis_set_error", key=key)
 
