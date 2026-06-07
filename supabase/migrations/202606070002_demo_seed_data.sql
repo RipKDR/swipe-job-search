@@ -105,8 +105,9 @@ begin
 
   -- The auth trigger creates a base profile + notification_preferences row.
   -- We update in place rather than re-insert.
+  -- Note: 'provider' treated as 'employer' role (staffing agency/recruitment provider)
   update profiles set
-    role = 'provider',
+    role = 'employer',
     full_name = 'Asuria',
     suburb = 'Melbourne CBD',
     onboarding_completed_at = now()
