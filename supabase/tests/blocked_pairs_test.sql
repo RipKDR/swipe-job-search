@@ -70,9 +70,15 @@ begin
     raise exception 'FAIL: expected visible interested swipe before block, got %', v_visible_count;
   end if;
 
+  -- Block must be inserted as the blocker (candidate), so switch JWT context
+  perform set_config('request.jwt.claim.sub', v_candidate_id::text, true);
+
   insert into blocks (blocker_id, blocked_id)
   values (v_candidate_id, v_employer_id)
   on conflict (blocker_id, blocked_id) do nothing;
+
+  -- Switch back to employer to verify the blocked candidate is no longer visible
+  perform set_config('request.jwt.claim.sub', v_employer_id::text, true);
 
   select count(*) into v_visible_count
   from swipes
