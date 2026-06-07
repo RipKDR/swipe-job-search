@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from '@/components/tw';
+import { View, Text } from '@/components/tw';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -10,6 +10,8 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { JobCard } from './JobCard';
+import { BookmarkButton } from '@/components/bookmarks/BookmarkButton';
+import { ShareJobButton } from '@/components/share/ShareJobButton';
 import {
   computeRotation,
   computeOverlayOpacity,
@@ -35,10 +37,13 @@ async function isHapticsEnabled(): Promise<boolean> {
   return hapticsEnabledCache;
 }
 
-// ─── Super Apply 3/day counter helpers ───────────────────────────────────────
+// ─── Super Apply counter helpers (dynamic quota: 3 default, 5 with streak bonus) ──
 
 const SUPER_APPLY_COUNT_KEY = 'super_apply_count';
 const SUPER_APPLY_DATE_KEY = 'super_apply_date';
+const SUPER_APPLY_STREAK_BONUS_KEY = 'super_apply_streak_bonus';
+const DAILY_LIMIT_DEFAULT = 3;
+const DAILY_LIMIT_STREAK = 5;
 
 /**
  * Get today's date string in YYYY-MM-DD format for consistent date comparison.
@@ -49,8 +54,9 @@ function todayDateString(): string {
 }
 
 /**
- * Read the remaining super applies for today (max 3).
+ * Read the remaining super applies for today.
  * Returns 0 if the limit has been reached.
+ * Daily limit is 3 by default, 5 if the 7-day streak bonus is active.
  */
 async function getSuperApplyRemaining(): Promise<number> {
   try {
@@ -58,18 +64,22 @@ async function getSuperApplyRemaining(): Promise<number> {
     const storedDate = await AsyncStorage.getItem(SUPER_APPLY_DATE_KEY);
     const today = todayDateString();
 
+    // Determine daily limit based on streak bonus flag
+    const streakBonus = await AsyncStorage.getItem(SUPER_APPLY_STREAK_BONUS_KEY);
+    const dailyLimit = streakBonus === 'true' ? DAILY_LIMIT_STREAK : DAILY_LIMIT_DEFAULT;
+
     // If stored date doesn't match today, reset count
     if (storedDate !== today) {
       await AsyncStorage.setItem(SUPER_APPLY_COUNT_KEY, '0');
       await AsyncStorage.setItem(SUPER_APPLY_DATE_KEY, today);
-      return 3;
+      return dailyLimit;
     }
 
     const countStr = await AsyncStorage.getItem(SUPER_APPLY_COUNT_KEY);
     const used = countStr ? parseInt(countStr, 10) : 0;
-    return Math.max(0, 3 - used);
+    return Math.max(0, dailyLimit - used);
   } catch {
-    return 3; // Default to allowing on error
+    return DAILY_LIMIT_DEFAULT; // Default to allowing on error
   }
 }
 
@@ -348,9 +358,16 @@ export function SwipeCard({
 
   // Determine the current super apply remaining count for the counter text
   const [superRemaining, setSuperRemaining] = React.useState<number>(3);
+  const [superDailyLimit, setSuperDailyLimit] = React.useState<number>(3);
 
   React.useEffect(() => {
     getSuperApplyRemaining().then(setSuperRemaining);
+    // Also check the streak bonus to get the correct daily limit
+    import('@react-native-async-storage/async-storage').then(({ default: AsyncStorage }) => {
+      AsyncStorage.getItem(SUPER_APPLY_STREAK_BONUS_KEY).then((val) => {
+        setSuperDailyLimit(val === 'true' ? DAILY_LIMIT_STREAK : DAILY_LIMIT_DEFAULT);
+      });
+    }).catch(() => {});
   }, []);
 
   return (
@@ -373,6 +390,13 @@ export function SwipeCard({
           userLocation={userLocation}
           isInteractive={isInteractive}
         />
+
+        {/* Action buttons — absolute top-right, does not interfere with swipe gesture */}
+        {/* Bookmark uses 'header' variant here so it doesn't add its own absolute positioning */}
+        <View style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          <BookmarkButton jobId={job.id} variant="header" size={24} />
+          <ShareJobButton job={job} sharerName={undefined} variant="card" />
+        </View>
 
         {/* Live overlays */}
         <Animated.View
@@ -402,13 +426,13 @@ export function SwipeCard({
           <Text className="text-white text-3xl font-bold tracking-[4px]">SUPER</Text>
         </Animated.View>
 
-        {/* "1 of 3 used today" counter — shows on active up-swipe */}
+        {/* "1 of N used today" counter — shows on active up-swipe */}
         <Animated.View
           pointerEvents="none"
           style={[SUPER_COUNTER_STYLE, upOverlayStyle]}
         >
           <Text className="text-[#c2410f] text-sm font-semibold text-center">
-            {3 - superRemaining + 1} of 3 used today
+            {superDailyLimit - superRemaining + 1} of {superDailyLimit} used today
           </Text>
         </Animated.View>
       </Animated.View>

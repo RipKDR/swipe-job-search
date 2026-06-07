@@ -7,8 +7,14 @@ import { Button } from '@/components/ui/Button';
 import { ThemePicker } from '@/components/ui/ThemePicker';
 import { useAuth } from '@/hooks/useAuth';
 import { useEmployerProfile } from '@/hooks/useEmployerProfile';
+import { useSavedJobs } from '@/hooks/useSavedJobs';
 import { useTheme } from '@/providers/ThemeProvider';
 import { shareResume, type ResumeData } from '@/lib/resume-export';
+import { ActiveSeekerBadge } from '@/components/streak/ActiveSeekerBadge';
+import { InviteFriendRow } from '@/components/share/InviteFriendRow';
+import { ReferralRewardBanner } from '@/components/share/ReferralRewardBanner';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import * as Haptics from 'expo-haptics';
 
 function ProfileRow({ label, value }: { label: string; value: string }) {
@@ -67,6 +73,48 @@ export function ProfileScreen() {
     profile?.role === 'employer' ? profile.id : undefined,
   );
 
+  // Streak badge state (only for candidates)
+  const [streakBadgeEarned, setStreakBadgeEarned] = useState(false);
+  const [streakCount, setStreakCount] = useState(0);
+
+  useEffect(() => {
+    if (profile?.role !== 'candidate') return;
+
+    // Fetch streak data from the streaks table
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const streakQuery = (supabase.from('streaks' as any) as any)
+      .select('current_streak, longest_streak')
+      .eq('user_id', profile.id)
+      .maybeSingle();
+
+    streakQuery.then(({ data, error }: { data: unknown; error: { message: string } | null }) => {
+      if (error) {
+        console.warn('[profile] streak fetch failed:', error.message);
+        return;
+      }
+      const typed = data as { current_streak: number; longest_streak: number } | null;
+      if (typed) {
+        setStreakCount(typed.current_streak);
+        // Badge earned if longest streak >= 30
+        if (typed.longest_streak >= 30) {
+          setStreakBadgeEarned(true);
+          return;
+        }
+      }
+      // Also check the profiles column as a fallback
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase.from('profiles') as any)
+        .select('active_seeker_badge_earned')
+        .eq('id', profile.id)
+        .single()
+        .then(({ data: profileData }: { data: { active_seeker_badge_earned: boolean } | null }) => {
+          if (profileData?.active_seeker_badge_earned) {
+            setStreakBadgeEarned(true);
+          }
+        });
+    });
+  }, [profile]);
+
   const roleLabel =
     profile?.role === 'employer' ? 'Employer' : profile?.role === 'candidate' ? 'Job seeker' : '—';
 
@@ -100,6 +148,11 @@ export function ProfileScreen() {
     await shareResume(resumeData);
   };
 
+  const handleViewSaved = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+    router.push('/(candidate)/(tabs)/saved' as any);
+  };
+
   const handleViewPricing = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     router.push('/(candidate)/pricing' as any);
@@ -108,6 +161,8 @@ export function ProfileScreen() {
   const handleSignOut = () => {
     void signOut();
   };
+
+  const { savedJobs } = useSavedJobs();
 
   const isEmployer = profile?.role === 'employer';
 
@@ -159,6 +214,14 @@ export function ProfileScreen() {
         )}
 
         {/* Candidate-specific fields */}
+        {profile?.role === 'candidate' && (
+          <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <ActiveSeekerBadge
+              earned={streakBadgeEarned}
+              currentStreak={streakCount}
+            />
+          </View>
+        )}
         {profile?.role === 'candidate' && profile.skills?.length ? (
           <ProfileRow label="Skills" value={profile.skills.join(', ')} />
         ) : null}
@@ -169,6 +232,28 @@ export function ProfileScreen() {
           <ProfileRow label="Availability" value={profile.availability_text} />
         ) : null}
       </View>
+
+      {/* Referral reward banner — appears above actions */}
+      <View style={{ width: '100%', marginBottom: 4 }}>
+        <ReferralRewardBanner location="profile" />
+      </View>
+
+      {/* Invite friends section (only for candidates) */}
+      {profile?.role === 'candidate' && (
+        <View
+          style={{
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: colors.border,
+            backgroundColor: colors.elevated,
+            width: '100%',
+            marginBottom: 24,
+            overflow: 'hidden',
+          }}
+        >
+          <InviteFriendRow />
+        </View>
+      )}
 
       {/* Actions */}
       <View style={{
@@ -183,6 +268,13 @@ export function ProfileScreen() {
         <ActionButton label="Edit profile" emoji="✏️" onPress={handleEditProfile} />
         {profile?.role === 'candidate' && (
           <ActionButton label="Share my resume" emoji="📄" onPress={handleShareResume} />
+        )}
+        {profile?.role === 'candidate' && (
+          <ActionButton
+            label={`Saved Jobs${savedJobs.length > 0 ? ` (${savedJobs.length})` : ''}`}
+            emoji="🔖"
+            onPress={handleViewSaved}
+          />
         )}
         <ActionButton label="Plans & pricing" emoji="💎" onPress={handleViewPricing} />
       </View>

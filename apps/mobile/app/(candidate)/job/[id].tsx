@@ -6,6 +6,8 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
 import { usePostHog } from '@/hooks/usePostHog';
 import { useTheme } from '@/hooks/useTheme';
+import { BookmarkButton } from '@/components/bookmarks/BookmarkButton';
+import { ShareJobButton } from '@/components/share/ShareJobButton';
 import * as Haptics from 'expo-haptics';
 import type { Job } from '@hi-hired/shared';
 import { AppScreen } from '@/components/ui/AppScreen';
@@ -87,7 +89,7 @@ async function trackApplication(jobId: string) {
 export default function JobDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { colors } = useTheme();
   const posthog = usePostHog();
 
@@ -226,11 +228,15 @@ export default function JobDetail() {
         title={job.title}
         subtitle={[job.suburb, jobTypeLabel].filter(Boolean).join(' · ')}
         actions={
-          isExpired ? (
-            <Text className="text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: '#7f1d1d', color: '#fca5a5' }}>
-              Expired
-            </Text>
-          ) : undefined
+          <View className="flex-row items-center gap-3">
+            <ShareJobButton job={job} sharerName={profile?.full_name} variant="header" />
+            <BookmarkButton jobId={job.id} variant="header" size={24} />
+            {isExpired && (
+              <Text className="text-xs font-semibold px-2 py-1 rounded-full" style={{ backgroundColor: '#7f1d1d', color: '#fca5a5' }}>
+                Expired
+              </Text>
+            )}
+          </View>
         }
       />
 

@@ -30,17 +30,17 @@ export default function EmployerJobDetailScreen() {
   }
 
   const goToInterested = () => {
-    router.back();
+    router.push(`/employer/jobs/${jobId}/interested` as any);
     posthog.capture('employer_job_tab_changed', { job_id: jobId, tab: 'interested' });
   };
 
   const goToMatches = () => {
-    router.push('/(employer)/(tabs)/matches');
+    router.push('/employer/matches' as any);
     posthog.capture('employer_job_tab_changed', { job_id: jobId, tab: 'matches' });
   };
 
   const goToEdit = () => {
-    router.back();
+    router.push(`/employer/jobs/${jobId}/edit` as any);
   };
 
   return (
@@ -55,7 +55,6 @@ export default function EmployerJobDetailScreen() {
       />
 
       <View className={`w-full ${contentMaxWidthChat} ${screenPadding} gap-4`}>
-        {/* Stats row */}
         <View className="flex-row gap-3">
           <Pressable onPress={goToInterested} className="flex-1 rounded-2xl bg-slate-900 p-4 active:opacity-80">
             <Text className="text-2xl font-bold text-white">{job.interestedCount ?? 0}</Text>
@@ -67,7 +66,6 @@ export default function EmployerJobDetailScreen() {
           </Pressable>
         </View>
 
-        {/* Overview content */}
         <View className="gap-4 pt-2">
           <View>
             <Text className="text-slate-400 text-sm mb-1">Location</Text>

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { CandidateOnboardingSchema, type CandidateOnboarding } from "@hi-hired/shared";
 import { usePostHog } from "@/hooks/usePostHog";
 import { CandidateProfileForm } from "@/components/forms/CandidateProfileForm";
+import { ReferralCodeInput } from "@/components/share/ReferralCodeInput";
 import { Button } from "@/components/ui/Button";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { supabase } from "@/lib/supabase";
@@ -31,6 +32,8 @@ export default function CandidateProfile() {
     },
   });
 
+  const [referralCode, setReferralCode] = useState("");
+
   const onSubmit = async (data: CandidateOnboarding) => {
     if (!user) {
       Alert.alert("Error", "No authenticated user");
@@ -49,10 +52,26 @@ export default function CandidateProfile() {
       if (profileError) throw profileError;
       if (!updatedProfile) throw new Error("Profile update returned no row");
 
+      // Claim referral code if provided
+      if (referralCode.trim()) {
+        try {
+          const { error: claimError } = await (supabase as any).rpc('claim_referral', {
+            p_referral_code: referralCode.trim().toUpperCase(),
+          });
+          if (claimError) {
+            console.warn('[onboarding] Referral claim failed:', claimError);
+            // Non-blocking — don't block onboarding
+          }
+        } catch (claimErr) {
+          console.warn('[onboarding] Referral claim error:', claimErr);
+        }
+      }
+
       posthog.capture("candidate_onboarding_completed", {
         has_avatar: Boolean(data.avatar_url),
         skills_count: data.skills?.length ?? 0,
         work_rights: data.work_rights,
+        has_referral_code: Boolean(referralCode.trim()),
       });
       applyProfile(updatedProfile);
     } catch (error) {
@@ -168,6 +187,12 @@ export default function CandidateProfile() {
         form={form}
         avatarUploading={avatarUploading}
         onAvatarPick={handleAvatarPick}
+      />
+
+      {/* Referral code input — collapsible */}
+      <ReferralCodeInput
+        value={referralCode}
+        onChangeText={setReferralCode}
       />
     </OnboardingShell>
   );
