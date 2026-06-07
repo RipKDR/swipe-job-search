@@ -65,12 +65,14 @@ export default function JobsScreen() {
   const activeMatches = matches.filter((m) => m.status === 'chatting' || m.status === 'hire_pending').length;
 
   const handleOpenInterested = useCallback((jobId: string) => {
+    posthog.capture('job_interested_opened', { job_id: jobId });
     router.push(`./${jobId}/interested` as const);
-  }, [router]);
+  }, [router, posthog]);
 
   const handleEditJob = useCallback((jobId: string) => {
+    posthog.capture('job_edit_opened', { job_id: jobId });
     router.push(`./${jobId}/edit` as const);
-  }, [router]);
+  }, [router, posthog]);
 
   const handleToggleStatus = useCallback(
     async (job: MyJobItem) => {
@@ -172,7 +174,10 @@ export default function JobsScreen() {
             title="No jobs yet"
             description="Post your first job to start receiving applications."
             actionLabel="Post a Job"
-            onAction={() => router.push('/(employer)/(tabs)/post-job' as any)}
+            onAction={() => {
+              posthog.capture('job_post_from_empty_state', {});
+              router.push('/(employer)/(tabs)/post-job' as any);
+            }}
           />
         ) : (
           <FlatList
