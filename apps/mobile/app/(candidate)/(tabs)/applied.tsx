@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { FlatList, Pressable, View, Text, ActivityIndicator } from 'react-native';
+import { FlashList, Pressable, View, Text, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -217,13 +217,14 @@ export default function AppliedJobsScreen() {
               </View>
             )}
             {hasInterestedJobs && (
-              <FlatList
+              <FlashList
                 data={interestedJobs}
                 keyExtractor={keyExtractor}
                 contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: hasAppliedJobs ? 16 : 32, gap: 8 }}
                 renderItem={renderItem}
                 onRefresh={refetch}
                 refreshing={interestedFetching}
+                estimatedItemSize={120}
               />
             )}
 
@@ -235,13 +236,14 @@ export default function AppliedJobsScreen() {
               </View>
             )}
             {hasAppliedJobs && (
-              <FlatList
+              <FlashList
                 data={appliedJobs}
                 keyExtractor={keyExtractor}
                 contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, gap: 8 }}
                 renderItem={renderItem}
                 onRefresh={refetch}
                 refreshing={appliedFetching}
+                estimatedItemSize={120}
               />
             )}
           </>

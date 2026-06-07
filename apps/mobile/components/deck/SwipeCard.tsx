@@ -4,6 +4,7 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  withTiming,
   runOnJS,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -20,6 +21,7 @@ import {
   shouldSwipe,
   shouldSwipeUp,
 } from '@/lib/swipe-engine';
+import { useAccessibilityPreferences } from '@/hooks/useAccessibilityPreferences';
 import type { Job } from '@hi-hired/shared';
 
 /** Cache for haptics enabled preference — avoids AsyncStorage read on every swipe. */
@@ -134,24 +136,28 @@ const STACK_CONFIG = {
 } as const;
 
 /** Shared style base for PASS/APPLY swipe overlays. */
-const OVERLAY_BADGE_STYLE = {
+const getOverlayBadgeStyle = (highContrast: boolean) => ({
   position: 'absolute',
   top: '33%',
   paddingHorizontal: 16,
   paddingVertical: 4,
   borderRadius: 9999,
-} as const;
+  borderWidth: highContrast ? 3 : 0,
+  borderColor: highContrast ? '#fff' : 'transparent',
+}) as const;
 
 /** Style for the SUPER overlay badge (orange). */
-const SUPER_OVERLAY_STYLE = {
+const getSuperOverlayStyle = (highContrast: boolean) => ({
   position: 'absolute',
   top: '20%',
   alignSelf: 'center',
   paddingHorizontal: 20,
   paddingVertical: 6,
   borderRadius: 9999,
-  backgroundColor: '#c2410f',
-} as const;
+  backgroundColor: highContrast ? '#fff' : '#c2410f',
+  borderWidth: highContrast ? 3 : 0,
+  borderColor: highContrast ? '#000' : 'transparent',
+}) as const;
 
 /** Style for the counter text shown during up-swipe. */
 const SUPER_COUNTER_STYLE = {
@@ -239,6 +245,25 @@ export function SwipeCard({
 
   const isTop = index === 0;
 
+  // Accessibility preferences — reduced motion + high contrast
+  const { reduceMotion, highContrast } = useAccessibilityPreferences();
+
+  // Spring configs: disabled animations use instant timing instead
+  const springConfig = React.useMemo(
+    () =>
+      reduceMotion
+        ? undefined // Will use withTiming instead
+        : { damping: 15, stiffness: 100 },
+    [reduceMotion]
+  );
+  const snapBackConfig = React.useMemo(
+    () =>
+      reduceMotion
+        ? undefined
+        : { damping: 20, stiffness: 150 },
+    [reduceMotion]
+  );
+
   const handleSwipeComplete = React.useCallback(
     (direction: 'left' | 'right' | 'up') => {
       if (!mountedRef.current) return;
@@ -276,6 +301,18 @@ export function SwipeCard({
         // Reset up-scale boost immediately
         upScaleBoost.value = 1;
 
+        // Helper: choose animation based on reduced motion
+        const animate = (value: number, config?: { damping: number; stiffness: number }, callback?: () => void) => {
+          if (reduceMotion) {
+            // withTiming with duration 0 fires callback immediately
+            if (callback) {
+              runOnJS(callback)();
+            }
+            return withTiming(value, { duration: 0 });
+          }
+          return withSpring(value, config!, callback);
+        };
+
         // Check for up-swipe first (higher threshold, higher priority)
         const upDecision = shouldSwipeUp(e.translationY, sh, e.translationX, sw);
         if (upDecision) {
@@ -285,14 +322,14 @@ export function SwipeCard({
             if (remaining > 0 && mountedRef.current) {
               // Animate card upward and off screen
               const offY = -sh * 1.5;
-              translateY.value = withSpring(offY, { damping: 15, stiffness: 100 }, () => {
+              translateY.value = animate(offY, springConfig, () => {
                 runOnJS(handleSwipeComplete)('up');
               });
               runOnJS(incrementSuperApply)();
             } else {
               // Limit reached — snap back with a message
-              translateY.value = withSpring(0, { damping: 20, stiffness: 150 });
-              translateX.value = withSpring(0, { damping: 20, stiffness: 150 });
+              translateY.value = animate(0, snapBackConfig);
+              translateX.value = animate(0, snapBackConfig);
             }
           })();
           return;
@@ -304,20 +341,21 @@ export function SwipeCard({
         if (decision) {
           // Swipe past threshold — animate off screen
           const offX = decision.direction === 'right' ? swipeOffScreenSV.value : -swipeOffScreenSV.value;
-          translateX.value = withSpring(offX, { damping: 15, stiffness: 100 }, () => {
+          translateX.value = animate(offX, springConfig, () => {
             runOnJS(handleSwipeComplete)(decision.direction);
           });
         } else {
           // Snap back to center
-          translateX.value = withSpring(0, { damping: 20, stiffness: 150 });
-          translateY.value = withSpring(0, { damping: 20, stiffness: 150 });
+          translateX.value = animate(0, snapBackConfig);
+          translateY.value = animate(0, snapBackConfig);
         }
       });
-  }, [isTop]);
+  }, [isTop, reduceMotion, springConfig, snapBackConfig]);
 
   const cardAnimatedStyle = useAnimatedStyle(() => {
     const half = screenWidthHalfSV.value;
-    const rotation = computeRotation(translateX.value, half);
+    // Disable rotation during drag when reduced motion is enabled
+    const rotation = reduceMotion ? 0 : computeRotation(translateX.value, half);
 
     // Shadow intensifies during active swipe
     const shadowOpacity = Math.min(0.5, Math.abs(translateX.value) / half * 0.3 + 0.15);
@@ -403,27 +441,27 @@ export function SwipeCard({
           pointerEvents="none"
           style={[
             leftOverlayStyle,
-            { ...OVERLAY_BADGE_STYLE, left: 24, backgroundColor: '#475569' },
+            { ...getOverlayBadgeStyle(highContrast), left: 24, backgroundColor: highContrast ? '#000' : '#475569' },
           ]}
         >
-          <Text className="text-white text-2xl font-bold tracking-[3px]">PASS</Text>
+          <Text className={highContrast ? 'text-white text-2xl font-bold tracking-[3px]' : 'text-white text-2xl font-bold tracking-[3px]'}>PASS</Text>
         </Animated.View>
         <Animated.View
           pointerEvents="none"
           style={[
             rightOverlayStyle,
-            { ...OVERLAY_BADGE_STYLE, right: 24, backgroundColor: '#166534' },
+            { ...getOverlayBadgeStyle(highContrast), right: 24, backgroundColor: highContrast ? '#fff' : '#166534' },
           ]}
         >
-          <Text className="text-white text-2xl font-bold tracking-[3px]">APPLY</Text>
+          <Text className={highContrast ? 'text-black text-2xl font-bold tracking-[3px]' : 'text-white text-2xl font-bold tracking-[3px]'}>APPLY</Text>
         </Animated.View>
 
         {/* SUPER overlay badge — orange, top center, only shows on up-swipe */}
         <Animated.View
           pointerEvents="none"
-          style={[SUPER_OVERLAY_STYLE, upOverlayStyle]}
+          style={[getSuperOverlayStyle(highContrast), upOverlayStyle]}
         >
-          <Text className="text-white text-3xl font-bold tracking-[4px]">SUPER</Text>
+          <Text className={highContrast ? 'text-black text-3xl font-bold tracking-[4px]' : 'text-white text-3xl font-bold tracking-[4px]'}>SUPER</Text>
         </Animated.View>
 
         {/* "1 of N used today" counter — shows on active up-swipe */}

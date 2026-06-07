@@ -1,5 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable } from '@/components/tw';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import type { Job } from '@hi-hired/shared';
 import { formatDistance } from '@/lib/distance';
 import { useSalaryAggregate, formatSalaryAggregate } from '@/hooks/useSalaryAggregate';
@@ -11,6 +13,7 @@ import { fetchMatchScore } from '@/lib/forecast';
 import type { MatchScoreResult, UserProfileInput } from '@/lib/forecast';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useQuery } from '@tanstack/react-query';
+import { useAccessibilityPreferences } from '@/hooks/useAccessibilityPreferences';
 
 interface JobCardProps {
   job: Job;
@@ -35,6 +38,7 @@ interface JobCardProps {
  */
 export const JobCard = React.memo(function JobCard({ job, onPress, testID, userLocation, showMatchScore, userProfile, isInteractive = true }: JobCardProps) {
   const { colors } = useTheme();
+  const { fontScale, highContrast } = useAccessibilityPreferences();
   // Skip salary aggregate query on non-interactive (background) cards
   const { data: salaryAggregate } = useSalaryAggregate(isInteractive ? job.id : undefined);
   const salaryLabel = formatSalaryAggregate(salaryAggregate ?? null);
@@ -88,32 +92,48 @@ export const JobCard = React.memo(function JobCard({ job, onPress, testID, userL
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       style={{
-        backgroundColor: colors.surface,
+        backgroundColor: 'transparent',
         borderRadius: 24,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: colors.border,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 15,
-        elevation: 8,
       }}
     >
-      {/* Photo area */}
-      <View style={{ height: 224, backgroundColor: colors.photoBase, alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-        <Text style={{ color: colors.muted, fontSize: 12, letterSpacing: 3 }}>{job.suburb.toUpperCase()}</Text>
-        <Text style={{ color: colors.subtle, fontSize: 10, marginTop: 2 }}>{job.hours_text}</Text>
-        <View style={{ position: 'absolute', top: 16, right: 16, paddingHorizontal: 12, paddingVertical: 1, backgroundColor: colors.surface, borderRadius: 4 }} accessibilityLabel={`Job type: ${job.job_type}`}>
-          <Text style={{ color: colors.text, fontSize: 9, fontWeight: 'bold', letterSpacing: 2 }}>{job.job_type.replace('_', ' ').toUpperCase()}</Text>
+      {/* Glassmorphism background — subtle blur + gradient overlay */}
+      <BlurView
+        intensity={30}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          borderRadius: 24,
+        }}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.04)' }} />
+      </BlurView>
+
+      {/* Photo area with linear gradient depth */}
+      <View style={{ height: 224, position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.25)', 'rgba(0,0,0,0.45)']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        />
+        <Text style={{ color: 'rgba(255,255,255,0.95)', fontSize: 12 * fontScale, letterSpacing: 3, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}>{job.suburb.toUpperCase()}</Text>
+        <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 10 * fontScale, marginTop: 2, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 }}>{job.hours_text}</Text>
+        <View style={{ position: 'absolute', top: 16, right: 16, paddingHorizontal: 12, paddingVertical: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 4, backdropFilter: 'blur(8px)' }} accessibilityLabel={`Job type: ${job.job_type}`}>
+          <Text style={{ color: 'rgba(255,255,255,0.95)', fontSize: 9 * fontScale, fontWeight: 'bold', letterSpacing: 2 }}>{job.job_type.replace('_', ' ').toUpperCase()}</Text>
         </View>
         {showBadges && (
           <>
           <View style={{ position: 'absolute', bottom: 16, left: 16, right: 16, flexDirection: 'row', gap: 8 }}>
             {distanceText && (
-              <View style={{ paddingHorizontal: 10, paddingVertical: 4, backgroundColor: `${colors.accent}e6`, borderRadius: 999 }}>
-                <Text style={{ color: colors.surface, fontSize: 10, fontWeight: '600', letterSpacing: 1 }}>{distanceText}</Text>
-              </View>
+              <BlurView intensity={20} style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' }}>
+                <Text style={{ color: 'rgba(0,0,0,0.9)', fontSize: 10 * fontScale, fontWeight: '600', letterSpacing: 1 }}>{distanceText}</Text>
+              </BlurView>
             )}
             {commuteMinutes != null && <CommuteBadge minutes={commuteMinutes} />}
           </View>
@@ -128,23 +148,24 @@ export const JobCard = React.memo(function JobCard({ job, onPress, testID, userL
         )}
       </View>
 
-      <View style={{ padding: 20 }}>
+      {/* Glassmorphism content area */}
+      <BlurView intensity={25} style={{ padding: 20, backgroundColor: 'rgba(255,255,255,0.06)' }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={{ color: colors.text, fontSize: 21, lineHeight: 24, fontWeight: '600', letterSpacing: -0.4 }}>{job.title}</Text>
+            <Text style={{ color: colors.text, fontSize: 21 * fontScale, lineHeight: 24 * fontScale, fontWeight: '600', letterSpacing: -0.4 }}>{job.title}</Text>
             <SalaryDisplay payDisplay={job.pay_display} salaryLabel={salaryLabel} />
           </View>
-          <Text style={{ color: colors.muted, fontSize: 10, paddingTop: 4 }}>in circle</Text>
+          <Text style={{ color: colors.muted, fontSize: 10 * fontScale, paddingTop: 4 }}>in circle</Text>
         </View>
 
-        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 12 }}>{job.suburb} • {job.hours_text}</Text>
+        <Text style={{ color: colors.muted, fontSize: 12 * fontScale, marginTop: 12 }}>{job.suburb} • {job.hours_text}</Text>
 
         {job.description && (
-          <Text style={{ color: colors.text, fontSize: 14, lineHeight: 20, marginTop: 12 }} numberOfLines={2}>
+          <Text style={{ color: colors.text, fontSize: 14 * fontScale, lineHeight: 20 * fontScale, marginTop: 12 }} numberOfLines={2}>
             {job.description}
           </Text>
         )}
-      </View>
+      </BlurView>
     </Pressable>
   );
 });

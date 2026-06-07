@@ -32,7 +32,6 @@ export default function SavedJobsScreen() {
     isError,
     error,
     isFetching,
-    toggleBookmark,
     removeBookmark,
     refresh,
   } = useSavedJobs();

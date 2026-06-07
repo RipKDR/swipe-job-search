@@ -80,6 +80,10 @@ vi.mock('react-native', () => {
     StatusBar: (props: any): null => null,
     AppState: { addEventListener: vi.fn(() => ({ remove: vi.fn() })), currentState: 'active' },
     Dimensions: { get: () => ({ width: 375, height: 812 }), addEventListener: vi.fn(), removeEventListener: vi.fn() },
+    AccessibilityInfo: {
+      isReduceMotionEnabled: vi.fn().mockResolvedValue(false),
+      addEventListener: vi.fn(() => ({ remove: vi.fn() })),
+    },
   };
 });
 
@@ -98,6 +102,32 @@ vi.mock('expo-haptics', () => ({
   selectionAsync: vi.fn().mockResolvedValue(undefined),
   NotificationFeedbackType: { Success: 'success', Warning: 'warning' },
 }))
+
+// Mock expo-blur — BlurView with simple fallback
+vi.mock('expo-blur', () => ({
+  BlurView: ({ children, style, intensity }: any) =>
+    createElement('div', { style, 'data-blur-intensity': intensity }, children),
+}))
+
+// Mock expo-linear-gradient — LinearGradient with simple fallback
+vi.mock('expo-linear-gradient', () => ({
+  LinearGradient: ({ children, style, colors, start, end }: any) =>
+    createElement('div', { style, 'data-gradient-colors': colors, 'data-gradient-start': start, 'data-gradient-end': end }, children),
+}))
+
+// Mock expo-router — useRouter hook for navigation in tests
+vi.mock('expo-router', () => ({
+  useRouter: () => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn() }),
+  useLocalSearchParams: () => ({}),
+  useSegments: (): string[] => [],
+  Link: ({ children, href, asChild, ...props }: any): React.ReactElement =>
+    createElement('a', { ...props, href, 'data-href': href }, children),
+  Redirect: ({ to }: any): null => null,
+  Stack: ({ children }: any): React.ReactElement =>
+    createElement('div', { 'data-stack': 'true' }, children),
+  Tabs: ({ children }: any): React.ReactElement =>
+    createElement('div', { 'data-tabs': 'true' }, children),
+}) as any)
 
 // Mock expo to prevent Vite 8 type-stripping errors on expo/src/Expo.ts
 vi.mock('expo', () => ({}))
