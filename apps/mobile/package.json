@@ -89,8 +89,8 @@
     "start": "expo start",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "web": "bash scripts/web-dev.sh",
-    "web:dev": "mkdir -p .expo/tmp && TMPDIR=.expo/tmp expo start --web --port 8081"
+    "web": "node scripts/web-dev.cjs",
+    "web:dev": "node scripts/web-dev.cjs"
   },
   "version": "0.0.0"
 }

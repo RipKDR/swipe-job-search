@@ -32,7 +32,7 @@ export const CandidateOnboardingSchema = z.object({
   work_rights: z.enum(WORK_RIGHTS_VALUES, {
     error: 'Please select your work rights',
   }),
-  avatar_url: z.string().url().nullish(),
+  avatar_url: z.string().url().or(z.literal('')).nullish(),
 })
 
 export type CandidateOnboarding = z.infer<typeof CandidateOnboardingSchema>

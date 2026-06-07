@@ -62,7 +62,7 @@ const PLANS: PricingPlan[] = [
   },
 ];
 
-function FeatureRow({ text, included }: PlanFeature) {
+function FeatureRow({ text, included }: Readonly<PlanFeature>) {
   return (
     <View className="flex-row items-center py-1.5">
       <Text className={`text-base mr-3 ${included ? 'text-emerald-400' : 'text-slate-600'}`}>
@@ -75,7 +75,7 @@ function FeatureRow({ text, included }: PlanFeature) {
   );
 }
 
-function PricingCard({ plan, onSelect }: { plan: PricingPlan; onSelect: (id: string) => void }) {
+function PricingCard({ plan, onSelect }: Readonly<{ plan: PricingPlan; onSelect: (id: string) => void }>) {
 
   return (
     <View
@@ -103,8 +103,8 @@ function PricingCard({ plan, onSelect }: { plan: PricingPlan; onSelect: (id: str
       <Text className="text-slate-400 text-sm mb-4">{plan.description}</Text>
 
       <View className="border-t border-slate-800/50 pt-4 mb-5">
-        {plan.features.map((feature, i) => (
-          <FeatureRow key={i} {...feature} />
+        {plan.features.map((feature) => (
+          <FeatureRow key={feature.text} {...feature} />
         ))}
       </View>
 
