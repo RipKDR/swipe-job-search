@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import type { Href } from 'expo-router';
 
 export const ROUTES = {
   root: '/',
@@ -70,4 +71,40 @@ export function shouldRedirectForRoleMismatch(
   const requiredRole = getRequiredRoleForGroup(segmentGroup);
   if (!requiredRole) return false;
   return profileRole !== requiredRole;
+}
+
+/** Feature deep links per streak/matches handoffs (hi-hired:// scheme). */
+export const FEATURE_DEEP_LINKS = {
+  deck: 'hi-hired://deck',
+  matches: 'hi-hired://matches',
+  chat: (matchId: string) => `hi-hired://chat/${matchId}`,
+  saved: 'hi-hired://saved',
+} as const;
+
+export type FeatureDeepLink = typeof FEATURE_DEEP_LINKS[keyof typeof FEATURE_DEEP_LINKS] | ReturnType<typeof FEATURE_DEEP_LINKS.chat>;
+
+/**
+ * Parse a deep link URL into a router Href or null.
+ * Supports auth callbacks + feature links from streak at-risk / match notifs.
+ * Source: existing getAuthRedirectUrl + Expo Router patterns in auth flows.
+ */
+export function parseDeepLink(url: string | null): Href | null {
+  if (!url) return null;
+  if (url.includes('auth/callback') || url.startsWith('hi-hired://auth/callback')) {
+    return '/(auth)/callback' as Href;
+  }
+  if (url === FEATURE_DEEP_LINKS.deck || url.endsWith('/deck')) {
+    return ROUTES.candidateDeck as Href;
+  }
+  if (url === FEATURE_DEEP_LINKS.matches || url.endsWith('/matches')) {
+    return '/(candidate)/(tabs)/matches' as Href;
+  }
+  if (url === FEATURE_DEEP_LINKS.saved || url.endsWith('/saved')) {
+    return '/(candidate)/(tabs)/saved' as Href;
+  }
+  const chatMatch = url.match(/hi-hired:\/\/chat\/([0-9a-f-]+)/i);
+  if (chatMatch) {
+    return `/chat/${chatMatch[1]}` as Href;
+  }
+  return null;
 }

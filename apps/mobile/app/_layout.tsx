@@ -16,10 +16,11 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Slot, useGlobalSearchParams, usePathname, useRouter, useSegments, type Href } from 'expo-router';
 import { PostHogProvider, type PostHog } from 'posthog-react-native';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Platform } from 'react-native';
+import { Platform, Linking } from 'react-native';
 import '../global.css';
 
 import { queryClient } from '@/lib/queryClient';
+import { parseDeepLink } from '@/lib/routing';
 
 initSentry();
 initAnalytics();
@@ -70,6 +71,27 @@ function RootLayoutNav() {
 
   usePushRegistration();
   useNotificationObserver();
+
+  // Deep link handling for feature links (streak at-risk -> deck, matches/chat from notifs per handoffs).
+  // Uses parseDeepLink (source-driven from auth deep links + routing.ts).
+  useEffect(() => {
+    const handleDeepLink = (url: string | null) => {
+      const target = parseDeepLink(url);
+      if (target) {
+        router.replace(target);
+      }
+    };
+
+    Linking.getInitialURL().then(handleDeepLink).catch(() => {});
+
+    const subscription = Linking.addEventListener('url', (event: { url: string }) => {
+      handleDeepLink(event.url);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [router]);
 
   useEffect(() => {
     if (loading) return;
