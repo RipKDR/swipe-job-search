@@ -92,5 +92,5 @@
     "web": "node scripts/web-dev.cjs",
     "web:dev": "node scripts/web-dev.cjs"
   },
-  "version": "0.0.0"
+  "version": "1.0.0"
 }

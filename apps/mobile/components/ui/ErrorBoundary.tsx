@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable } from '@/components/tw';
+import { captureException } from '@/lib/sentry';
 
 type Props = { children: React.ReactNode; fallback?: React.ReactNode };
 type State = { hasError: boolean; error: Error | null };
@@ -13,6 +14,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('[ErrorBoundary]', error, info);
+    captureException(error, {
+      component: 'ErrorBoundary',
+      componentStack: info.componentStack ?? '',
+    });
   }
 
   render() {

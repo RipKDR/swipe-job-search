@@ -116,6 +116,7 @@ export default function AppliedJobsScreen() {
     isLoading: interestedLoading,
     isFetching: interestedFetching,
     error: interestedError,
+    refetch: refetchInterested,
   } = useQuery<SwipedJob[]>({
     queryKey: ['interested-jobs'],
     queryFn: fetchInterestedJobs,
@@ -127,6 +128,7 @@ export default function AppliedJobsScreen() {
     isLoading: appliedLoading,
     isFetching: appliedFetching,
     error: appliedError,
+    refetch: refetchApplied,
   } = useQuery<SwipedJob[]>({
     queryKey: ['applied-jobs'],
     queryFn: fetchAppliedJobs,
@@ -165,9 +167,9 @@ export default function AppliedJobsScreen() {
   );
 
   const refetch = useCallback(() => {
-    // TODO: Use queryClient to refetch both queries properly
-    // For now, pull-to-refresh triggers the query naturally
-  }, []);
+    void refetchInterested();
+    void refetchApplied();
+  }, [refetchInterested, refetchApplied]);
 
   if (isLoading) {
     return (

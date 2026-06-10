@@ -2,7 +2,7 @@ export default {
   expo: {
     name: "Hi-Hired",
     "slug": "hi-hired",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "platforms": [
       "ios",
       "android",
@@ -15,8 +15,8 @@ export default {
     "android": {
       "package": "com.hihired.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#0f172a"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6366f1"
       },
       "permissions": [
         "android.permission.RECORD_AUDIO",
@@ -36,7 +36,8 @@ export default {
       "eas": {
         "projectId": "e3d8894d-8177-4a4a-9dc5-2824f74a5d27"
       },
-      "router": {}
+      "router": {},
+      sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
     },
     "plugins": [
       "expo-dev-client",
