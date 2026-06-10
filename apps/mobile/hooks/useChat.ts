@@ -107,14 +107,14 @@ export async function createMessageWithAttachments({
   senderId: string
   body: string
   matchStatus: MatchStatus
-  attachments: Array<{
+  attachments: {
     mime_type: string
     storage_path: string
     file_size: number
     width?: number
     height?: number
     duration_seconds?: number
-  }>
+  }[]
 }): Promise<ChatMessage> {
   const trimmed = body.trim()
   if (!trimmed && attachments.length === 0) throw new Error('Message cannot be empty')
@@ -321,14 +321,14 @@ export function useChat(matchId: string, matchStatus: MatchStatus) {
       attachments,
     }: {
       body: string
-      attachments: Array<{
+      attachments: {
         mime_type: string
         storage_path: string
         file_size: number
         width?: number
         height?: number
         duration_seconds?: number
-      }>
+      }[]
     }) => {
       if (!user) throw new Error('useChat requires an authenticated user');
       return createMessageWithAttachments({

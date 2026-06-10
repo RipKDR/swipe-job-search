@@ -12,6 +12,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// ─── Imports ─────────────────────────────────────────────
+
+import { renderHook, act } from '@testing-library/react';
+import { useShareJob } from '../useShareJob';
+
 // ─── Hoisted test infrastructure ─────────────────────────
 
 const { mockRpc, mockShare, mockPostHog } = vi.hoisted(() => {
@@ -78,11 +83,6 @@ vi.mock('expo-haptics', () => ({
   ImpactFeedbackStyle: { Light: 'light', Medium: 'medium' },
   NotificationFeedbackType: { Success: 'success' },
 }));
-
-// ─── Imports ─────────────────────────────────────────────
-
-import { renderHook, act } from '@testing-library/react';
-import { useShareJob } from '../useShareJob';
 
 // ─── Helpers ─────────────────────────────────────────────
 

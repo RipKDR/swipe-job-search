@@ -11,6 +11,10 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// Now import after mocks are set up
+import { renderHook, act, waitFor } from '@testing-library/react';
+import { useStreak } from '@/hooks/useStreak';
+
 // ─── Hoisted test infrastructure (must be before vi.mock calls) ──────────
 
 const { storage, mockAsyncStorage, mockSupabaseFunctions } = vi.hoisted(() => {
@@ -84,10 +88,6 @@ vi.mock('@/lib/streak', async () => {
     getCurrentHourAEDT: () => mockHour,
   };
 });
-
-// Now import after mocks are set up
-import { renderHook, act, waitFor } from '@testing-library/react';
-import { useStreak } from '@/hooks/useStreak';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
