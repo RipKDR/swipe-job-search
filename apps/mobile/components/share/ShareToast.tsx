@@ -100,10 +100,12 @@ export function ShareToast({ visible, variant, onDismiss }: ShareToastProps) {
     >
       <Pressable
         onPress={() => {
-          translateY.value = withTiming(100, { duration: 200 });
-          toastOpacity.value = withTiming(0, { duration: 150 }, () => {
-            runOnJS(onDismiss)();
-          });
+          translateY.set(withTiming(100, { duration: 200 }));
+          toastOpacity.set(
+            withTiming(0, { duration: 150 }, () => {
+              runOnJS(onDismiss)();
+            }),
+          );
         }}
         className="flex-row items-center gap-3"
         accessibilityRole="button"

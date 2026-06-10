@@ -107,7 +107,7 @@ export function StreakBrokenSheet({
 
           {/* Body */}
           <Text className="text-base text-slate-300 text-center leading-6 mb-1">
-            That's okay — every day is a fresh start.
+            That&rsquo;s okay — every day is a fresh start.
           </Text>
 
           {previousStreak > 1 && (
@@ -118,7 +118,7 @@ export function StreakBrokenSheet({
 
           {previousStreak <= 1 && (
             <Text className="text-sm text-slate-400 text-center mb-4">
-              Still time to start fresh — 5 swipes, you've got this.
+              Still time to start fresh — 5 swipes, you&rsquo;ve got this.
             </Text>
           )}
 

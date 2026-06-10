@@ -169,7 +169,7 @@ export function useStreak(): UseStreakReturn {
 
       // 3. Fetch streak from Supabase (source of truth)
       // The 'streaks' table is added by migration 202606070003_streaks.sql
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const streakQuery = (supabase as any)
         .from('streaks')
         .select('current_streak, longest_streak, last_swipe_date')
@@ -232,6 +232,35 @@ export function useStreak(): UseStreakReturn {
   }, []);
 
   // ─── Core actions ───────────────────────────────────────────────────────
+
+  /** Internal helper to handle milestone detection. */
+  const handleMilestone = useCallback(
+    async (day: 7 | 30, serverStreak: number) => {
+      const today = getTodayDateAEDT();
+      if (day === 7) {
+        const alreadyShown = await AsyncStorage.getItem(
+          STORAGE_KEYS.MILESTONE_7 + today,
+        );
+        if (!alreadyShown) {
+          setStreakMilestone(7);
+          await AsyncStorage.setItem(STORAGE_KEYS.MILESTONE_7 + today, 'true');
+          setBonusEarned(true);
+          await AsyncStorage.setItem(SUPER_APPLY_STREAK_BONUS_KEY, 'true');
+        }
+      } else if (day === 30) {
+        const alreadyShown = await AsyncStorage.getItem(
+          STORAGE_KEYS.MILESTONE_30 + today,
+        );
+        if (!alreadyShown) {
+          setStreakMilestone(30);
+          await AsyncStorage.setItem(STORAGE_KEYS.MILESTONE_30 + today, 'true');
+          setActiveSeekerBadgeEarned(true);
+          await AsyncStorage.setItem(STORAGE_KEYS.BADGE_30_EARNED, 'true');
+        }
+      }
+    },
+    [],
+  );
 
   const incrementSwipes = useCallback(async () => {
     const today = getTodayDateAEDT();
@@ -318,36 +347,7 @@ export function useStreak(): UseStreakReturn {
 
     // At-risk auto-dismiss
     setAtRisk(false);
-  }, [todaySwipes, currentStreak]);
-
-  /** Internal helper to handle milestone detection. */
-  const handleMilestone = useCallback(
-    async (day: 7 | 30, serverStreak: number) => {
-      const today = getTodayDateAEDT();
-      if (day === 7) {
-        const alreadyShown = await AsyncStorage.getItem(
-          STORAGE_KEYS.MILESTONE_7 + today,
-        );
-        if (!alreadyShown) {
-          setStreakMilestone(7);
-          await AsyncStorage.setItem(STORAGE_KEYS.MILESTONE_7 + today, 'true');
-          setBonusEarned(true);
-          await AsyncStorage.setItem(SUPER_APPLY_STREAK_BONUS_KEY, 'true');
-        }
-      } else if (day === 30) {
-        const alreadyShown = await AsyncStorage.getItem(
-          STORAGE_KEYS.MILESTONE_30 + today,
-        );
-        if (!alreadyShown) {
-          setStreakMilestone(30);
-          await AsyncStorage.setItem(STORAGE_KEYS.MILESTONE_30 + today, 'true');
-          setActiveSeekerBadgeEarned(true);
-          await AsyncStorage.setItem(STORAGE_KEYS.BADGE_30_EARNED, 'true');
-        }
-      }
-    },
-    [],
-  );
+  }, [todaySwipes, currentStreak, handleMilestone]);
 
   const rollbackSwipe = useCallback(async () => {
     const newCount = Math.max(todaySwipes - 1, 0);

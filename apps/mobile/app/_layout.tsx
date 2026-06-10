@@ -8,7 +8,7 @@ import { useNotificationObserver, usePushRegistration } from '@/hooks/usePushReg
 import { initAnalytics } from '@/lib/analytics';
 import { posthog } from '@/lib/posthog';
 import { resolveAuthRedirect } from '@/lib/auth-gate';
-import { getRoleHomeRoute, shouldRedirectForRoleMismatch } from '@/lib/routing';
+import { getRoleHomeRoute, shouldRedirectForRoleMismatch , parseDeepLink } from '@/lib/routing';
 import { initSentry, wrapApp } from '@/lib/sentry';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
@@ -20,7 +20,6 @@ import { Platform, Linking } from 'react-native';
 import '../global.css';
 
 import { queryClient } from '@/lib/queryClient';
-import { parseDeepLink } from '@/lib/routing';
 
 initSentry();
 initAnalytics();

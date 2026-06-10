@@ -59,7 +59,7 @@ export function InviteFriendRow() {
           accessibilityLabel="Tap to retry loading referral code"
         >
           <Text className="text-sm text-red-400">
-            ⚠️ Couldn't load your referral code.{' '}
+            ⚠️ Couldn&rsquo;t load your referral code.{' '}
           </Text>
           <Text
             className="text-sm underline"
@@ -184,7 +184,7 @@ export function InviteFriendRow() {
           {/* Reward count */}
           {pendingRewards.length > 0 && (
             <Text className="text-xs mt-2 text-center" style={{ color: colors.accent }}>
-              🎉 You've earned {pendingRewards.length} reward
+              🎉 You&rsquo;ve earned {pendingRewards.length} reward
               {pendingRewards.length !== 1 ? 's' : ''}!
             </Text>
           )}
