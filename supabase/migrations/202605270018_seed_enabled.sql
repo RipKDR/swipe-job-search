@@ -1,13 +1,16 @@
--- Force-seed for local dev
--- This runs the seed data with app.settings.seed_enabled forced to true
+-- Seed for dev/staging — guarded so it never runs in production.
+-- Enable with: SELECT set_config('app.settings.seed_enabled', 'true', false);
+-- (or `alter database postgres set app.settings.seed_enabled = 'true'` locally).
 do $$
 declare
   v_default_circle_id uuid;
   v_employer1_id uuid;
   v_employer2_id uuid;
 begin
-  -- Force enable seed
-  perform set_config('app.settings.seed_enabled', 'true', false);
+  if coalesce(current_setting('app.settings.seed_enabled', true)::boolean, false) is not true then
+    raise notice 'Seed skipped: app.settings.seed_enabled is not true';
+    return;
+  end if;
 
   select id into v_default_circle_id from circles where is_default = true limit 1;
   if v_default_circle_id is null then
