@@ -36,7 +36,7 @@ export interface ReferralStats {
  * Type-safe table proxy for tables not yet in the Database type definitions.
  * Follows the existing pattern used in ProfileScreen.tsx for 'streaks' table.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const sb = supabase as any;
 
 export function useReferralRewards() {

@@ -63,9 +63,11 @@ export function BookmarkButton({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
       // Spring animation: scale up then back
-      scale.value = withSpring(1.2, { damping: 8, stiffness: 200 }, () => {
-        scale.value = withSpring(1, { damping: 12, stiffness: 180 });
-      });
+      scale.set(
+        withSpring(1.2, { damping: 8, stiffness: 200 }, () => {
+          scale.set(withSpring(1, { damping: 12, stiffness: 180 }));
+        }),
+      );
 
       // Toggle bookmark state
       await toggle();

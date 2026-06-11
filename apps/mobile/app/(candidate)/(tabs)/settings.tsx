@@ -3,10 +3,12 @@ import { View, Text, Pressable } from '@/components/tw';
 import { ScrollView, Alert, Linking, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import * as Haptics from 'expo-haptics';
 import { useRadiusPreference } from '@/hooks/useRadiusPreference';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useTheme } from '@/providers/ThemeProvider';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -63,6 +65,7 @@ export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const { radiusKm, setRadiusKm } = useRadiusPreference();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const { confirmDeleteAccount, isDeleting } = useDeleteAccount();
 
   // Load persisted preferences
   useEffect(() => {
@@ -117,20 +120,11 @@ export default function SettingsScreen() {
     ]);
   }, [router]);
 
-  const handleDeleteAccount = useCallback(() => {
-    Alert.alert(
-      'Delete account',
-      'This will permanently delete your account and all data. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Coming soon', 'Account deletion will be available in a future update.');
-          },
-        },
-      ],
+  const handleContactSupport = useCallback(() => {
+    Linking.openURL('mailto:support@hihired.com.au?subject=Hi-Hired%20support').catch(
+      () => {
+        Alert.alert('Contact support', 'Email us at support@hihired.com.au');
+      },
     );
   }, []);
 
@@ -245,15 +239,27 @@ export default function SettingsScreen() {
               </Text>
             </View>
           </Pressable>
-          <Pressable onPress={handleDeleteAccount} className="active:opacity-70">
+          <Pressable
+            onPress={confirmDeleteAccount}
+            disabled={isDeleting}
+            className="active:opacity-70"
+          >
             <View className="py-4 px-4">
-              <Text className="text-red-500/70 text-base">Delete account</Text>
+              <Text className="text-red-500/70 text-base">
+                {isDeleting ? 'Deleting account…' : 'Delete account'}
+              </Text>
             </View>
           </Pressable>
         </SettingSection>
 
-        {/* Legal */}
-        <SettingSection title="Legal">
+        {/* Support & Legal */}
+        <SettingSection title="Support & legal">
+          <Pressable onPress={handleContactSupport} className="active:opacity-70">
+            <View className="py-4 px-4 border-b border-slate-800/50 flex-row items-center justify-between">
+              <Text className="text-slate-300 text-base">Contact support</Text>
+              <Text className="text-slate-600 text-lg">›</Text>
+            </View>
+          </Pressable>
           <Pressable onPress={handlePrivacyPolicy} className="active:opacity-70">
             <View className="py-4 px-4 border-b border-slate-800/50 flex-row items-center justify-between">
               <Text className="text-slate-300 text-base">Privacy policy</Text>
@@ -270,7 +276,7 @@ export default function SettingsScreen() {
 
         {/* Version */}
         <Text className="text-slate-600 text-xs text-center pb-8">
-          Hi-Hired v1.0.0
+          Hi-Hired v{Constants.expoConfig?.version ?? '1.0.0'}
         </Text>
       </ScrollView>
     </AppScreen>

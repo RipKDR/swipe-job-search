@@ -65,6 +65,15 @@ export function StreakSuperApplyBonus({
     opacity: toastOpacity.value,
   }));
 
+  const dismiss = () => {
+    translateY.set(withTiming(100, { duration: 200 }));
+    toastOpacity.set(
+      withTiming(0, { duration: 150 }, () => {
+        runOnJS(onDismiss)();
+      }),
+    );
+  };
+
   if (!visible) return null;
 
   return (
@@ -97,12 +106,7 @@ export function StreakSuperApplyBonus({
       accessibilityLabel="Two bonus Super Applies added to your account for your 7-day streak."
     >
       <Pressable
-        onPress={() => {
-          translateY.value = withTiming(100, { duration: 200 });
-          toastOpacity.value = withTiming(0, { duration: 150 }, () => {
-            runOnJS(onDismiss)();
-          });
-        }}
+        onPress={dismiss}
         className="flex-row items-start gap-3"
         accessibilityRole="button"
         accessibilityLabel="Dismiss reward notification"
@@ -126,12 +130,7 @@ export function StreakSuperApplyBonus({
 
         {/* Close button */}
         <Pressable
-          onPress={() => {
-            translateY.value = withTiming(100, { duration: 200 });
-            toastOpacity.value = withTiming(0, { duration: 150 }, () => {
-              runOnJS(onDismiss)();
-            });
-          }}
+          onPress={dismiss}
           className="p-1"
           accessibilityRole="button"
           accessibilityLabel="Dismiss"

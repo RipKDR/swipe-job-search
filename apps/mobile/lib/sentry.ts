@@ -14,7 +14,8 @@ let sdkReady = false;
 export function initSentry(): void {
   if (initialized || Platform.OS === 'web') return;
 
-  const dsn = Constants.expoConfig?.extra?.sentryDsn;
+  const dsn =
+    process.env.EXPO_PUBLIC_SENTRY_DSN ?? Constants.expoConfig?.extra?.sentryDsn;
   if (!dsn) return;
 
   try {

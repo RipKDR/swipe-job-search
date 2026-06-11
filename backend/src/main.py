@@ -1,7 +1,6 @@
 """Hi-Hired Backend - FastAPI application entrypoint."""
 
 import logging
-import os
 import time
 
 from dotenv import load_dotenv

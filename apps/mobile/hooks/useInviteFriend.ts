@@ -16,11 +16,10 @@ import {
   SHARE_TEXT_TEMPLATES,
   buildInviteShareUrl,
 } from '@/lib/share';
-import { useQuery } from '@tanstack/react-query';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery , useMutation, useQueryClient } from '@tanstack/react-query';
 
 // Follow existing pattern: use `as any` for tables/RPCs not yet in Database types
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const sb = supabase as any;
 
 // ─── Hook ────────────────────────────────────────────────

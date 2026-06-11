@@ -47,7 +47,7 @@ export function SavedJobsEmpty({ onBrowse }: SavedJobsEmptyProps) {
         }}
       >
         Jobs you bookmark will appear here. Start browsing to save roles
-        you're interested in.
+        you&rsquo;re interested in.
       </Text>
 
       {onBrowse && (

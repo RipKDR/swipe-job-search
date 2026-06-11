@@ -6,6 +6,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Button } from '@/components/ui/Button';
 import { ThemePicker } from '@/components/ui/ThemePicker';
 import { useAuth } from '@/hooks/useAuth';
+import { useDeleteAccount } from '@/hooks/useDeleteAccount';
 import { useEmployerProfile } from '@/hooks/useEmployerProfile';
 import { useSavedJobs } from '@/hooks/useSavedJobs';
 import { useTheme } from '@/providers/ThemeProvider';
@@ -81,7 +82,7 @@ export function ProfileScreen() {
     if (profile?.role !== 'candidate') return;
 
     // Fetch streak data from the streaks table
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const streakQuery = (supabase.from('streaks' as any) as any)
       .select('current_streak, longest_streak')
       .eq('user_id', profile.id)
@@ -102,7 +103,7 @@ export function ProfileScreen() {
         }
       }
       // Also check the profiles column as a fallback
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       (supabase.from('profiles') as any)
         .select('active_seeker_badge_earned')
         .eq('id', profile.id)
@@ -162,6 +163,7 @@ export function ProfileScreen() {
     void signOut();
   };
 
+  const { confirmDeleteAccount, isDeleting } = useDeleteAccount();
   const { savedJobs } = useSavedJobs();
 
   const isEmployer = profile?.role === 'employer';
@@ -284,9 +286,20 @@ export function ProfileScreen() {
         <ThemePicker />
       </View>
 
-      {/* Sign out */}
+      {/* Sign out + delete account */}
       <View style={{ gap: 12, width: '100%' }}>
         <Button title="Sign out" variant="outline" fullWidth onPress={handleSignOut} />
+        <Pressable
+          onPress={confirmDeleteAccount}
+          disabled={isDeleting}
+          className="active:opacity-70 items-center py-3"
+          accessibilityRole="button"
+          accessibilityLabel="Delete account"
+        >
+          <Text className="text-red-500/70 text-sm">
+            {isDeleting ? 'Deleting account…' : 'Delete account'}
+          </Text>
+        </Pressable>
       </View>
     </AppScreen>
   );

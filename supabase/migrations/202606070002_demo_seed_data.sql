@@ -72,6 +72,13 @@ declare
   -- Temporary helper
   v_tmp_id uuid;
 begin
+  -- Guard: demo data must never reach production.
+  -- Enable with: SELECT set_config('app.settings.seed_enabled', 'true', false);
+  if coalesce(current_setting('app.settings.seed_enabled', true)::boolean, false) is not true then
+    raise notice 'Demo seed skipped: app.settings.seed_enabled is not true';
+    return;
+  end if;
+
   -- ====================================================================
   -- 1. DEFAULT CIRCLE
   -- ====================================================================

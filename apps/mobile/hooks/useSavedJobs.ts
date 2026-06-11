@@ -45,7 +45,7 @@ export interface UseSavedJobsReturn {
 
 async function fetchSavedJobs(userId: string): Promise<SavedJob[]> {
   // Use raw query with type casting since the bookmarks table isn't in Database types yet
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const { data, error } = await (supabase as any)
     .from('bookmarks')
     .select(`
@@ -76,7 +76,7 @@ async function fetchSavedJobs(userId: string): Promise<SavedJob[]> {
 
   // Resolve employer names via profiles table (batched)
   const employerIds = new Set<string>();
-  const rawData = (data ?? []) as Array<Record<string, unknown>>;
+  const rawData = (data ?? []) as Record<string, unknown>[];
 
   for (const b of rawData) {
     const job = (b as { jobs: Record<string, unknown> }).jobs as Record<string, unknown>;
@@ -88,14 +88,14 @@ async function fetchSavedJobs(userId: string): Promise<SavedJob[]> {
   // Fetch employer names in one query
   const employerNames: Record<string, string> = {};
   if (employerIds.size > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: profiles } = await (supabase as any)
       .from('profiles')
       .select('id, full_name')
       .in('id', Array.from(employerIds));
 
     if (profiles) {
-      for (const p of profiles as Array<{ id: string; full_name: string | null }>) {
+      for (const p of profiles as { id: string; full_name: string | null }[]) {
         if (p.full_name) {
           employerNames[p.id] = p.full_name;
         }
@@ -163,7 +163,7 @@ export function useSavedJobs(): UseSavedJobsReturn {
   const toggleMutation = useMutation({
     mutationFn: async (jobId: string) => {
       if (!userId) throw new Error('Not authenticated');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const { data, error } = await (supabase.rpc as any)('toggle_bookmark', {
         p_job_id: jobId,
       });
@@ -201,7 +201,7 @@ export function useSavedJobs(): UseSavedJobsReturn {
   const removeMutation = useMutation({
     mutationFn: async (jobId: string) => {
       if (!userId) throw new Error('Not authenticated');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       const { error } = await (supabase as any)
         .from('bookmarks')
         .delete()

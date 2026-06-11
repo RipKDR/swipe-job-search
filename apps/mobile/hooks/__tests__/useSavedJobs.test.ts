@@ -11,6 +11,13 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// ─── Imports (after mocks) ────────────────────────────────────────────────
+
+import { useSavedJobs } from '../useSavedJobs';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { renderHook, act, waitFor } from '@testing-library/react';
+import React from 'react';
+
 // ─── Hoisted test infrastructure (must be before vi.mock calls) ──────────
 
 const { mockRpc, mockFrom } = vi.hoisted(() => {
@@ -57,13 +64,6 @@ vi.mock('@/hooks/useAuth', () => ({
 vi.mock('@/hooks/usePostHog', () => ({
   usePostHog: () => ({ capture: vi.fn() }),
 }));
-
-// ─── Imports (after mocks) ────────────────────────────────────────────────
-
-import { useSavedJobs } from '../useSavedJobs';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook, act, waitFor } from '@testing-library/react';
-import React from 'react';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
