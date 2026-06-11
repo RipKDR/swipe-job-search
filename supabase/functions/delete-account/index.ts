@@ -25,8 +25,12 @@ serve(async (req: Request) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('[delete-account] missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+      return jsonResponse({ error: 'Service misconfigured' }, 500);
+    }
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
     // 1. Authenticate the caller — the JWT is the only identity we trust.
