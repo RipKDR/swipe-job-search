@@ -20,13 +20,9 @@ export function useDeleteAccount() {
     setIsDeleting(true);
     try {
       const { data, error } = await supabase.functions.invoke('delete-account');
-      const responseError =
-        error ?? ((data as { error?: string } | null)?.error || null);
-      if (responseError) {
-        throw new Error(
-          typeof responseError === 'string' ? responseError : responseError.message,
-        );
-      }
+      if (error) throw error;
+      const bodyError = (data as { error?: string } | null)?.error;
+      if (bodyError) throw new Error(bodyError);
 
       // The auth user no longer exists; clear the locally stored session.
       await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
