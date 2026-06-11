@@ -206,7 +206,7 @@ def send_match_notification(
 
     title = "New Job Match!" if match_type == "mutual" else "Job Recommendation"
     body = (
-        f"A job you matched with has been confirmed!"
+        "A job you matched with has been confirmed!"
         if match_type == "mutual"
         else "We found a new job that matches your profile."
     )
