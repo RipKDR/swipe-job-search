@@ -110,7 +110,7 @@ serve(async (req: Request) => {
       return jsonResponse({ error: 'Failed to delete auth user' }, 500);
     }
 
-    console.log(`[delete-account] account ${userId} deleted`);
+    console.log('[delete-account] account deleted');
     return jsonResponse({ success: true }, 200);
   } catch (err) {
     console.error('[delete-account] unhandled error:', err);
