@@ -237,26 +237,18 @@ export function useStreak(): UseStreakReturn {
   const handleMilestone = useCallback(
     async (day: 7 | 30) => {
       const today = getTodayDateAEDT();
+      const storageKey = day === 7 ? STORAGE_KEYS.MILESTONE_7 : STORAGE_KEYS.MILESTONE_30;
+      const alreadyShown = await AsyncStorage.getItem(storageKey + today);
+      if (alreadyShown) return;
+
+      setStreakMilestone(day);
+      await AsyncStorage.setItem(storageKey + today, 'true');
       if (day === 7) {
-        const alreadyShown = await AsyncStorage.getItem(
-          STORAGE_KEYS.MILESTONE_7 + today,
-        );
-        if (!alreadyShown) {
-          setStreakMilestone(7);
-          await AsyncStorage.setItem(STORAGE_KEYS.MILESTONE_7 + today, 'true');
-          setBonusEarned(true);
-          await AsyncStorage.setItem(SUPER_APPLY_STREAK_BONUS_KEY, 'true');
-        }
-      } else if (day === 30) {
-        const alreadyShown = await AsyncStorage.getItem(
-          STORAGE_KEYS.MILESTONE_30 + today,
-        );
-        if (!alreadyShown) {
-          setStreakMilestone(30);
-          await AsyncStorage.setItem(STORAGE_KEYS.MILESTONE_30 + today, 'true');
-          setActiveSeekerBadgeEarned(true);
-          await AsyncStorage.setItem(STORAGE_KEYS.BADGE_30_EARNED, 'true');
-        }
+        setBonusEarned(true);
+        await AsyncStorage.setItem(SUPER_APPLY_STREAK_BONUS_KEY, 'true');
+      } else {
+        setActiveSeekerBadgeEarned(true);
+        await AsyncStorage.setItem(STORAGE_KEYS.BADGE_30_EARNED, 'true');
       }
     },
     [],
@@ -324,7 +316,6 @@ export function useStreak(): UseStreakReturn {
         await handleMilestone(effectiveStreak);
       }
     }
-
 
     setAtRisk(false);
   }, [todaySwipes, currentStreak, handleMilestone]);

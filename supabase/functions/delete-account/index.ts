@@ -15,12 +15,13 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.106.2';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
+function jsonResponse(body: Record<string, unknown>, status: number): Response {
+  return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
+}
+
 serve(async (req: Request) => {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: JSON_HEADERS,
-    });
+    return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
   try {
@@ -32,10 +33,7 @@ serve(async (req: Request) => {
     const authHeader = req.headers.get('Authorization') ?? '';
     const jwt = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
     if (!jwt) {
-      return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
-        status: 401,
-        headers: JSON_HEADERS,
-      });
+      return jsonResponse({ error: 'Missing Authorization header' }, 401);
     }
 
     const {
@@ -44,10 +42,7 @@ serve(async (req: Request) => {
     } = await admin.auth.getUser(jwt);
 
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
-        status: 401,
-        headers: JSON_HEADERS,
-      });
+      return jsonResponse({ error: 'Invalid or expired token' }, 401);
     }
 
     const userId = user.id;
@@ -101,32 +96,20 @@ serve(async (req: Request) => {
     });
     if (purgeError) {
       console.error('[delete-account] purge_user_data failed:', purgeError.message);
-      return new Response(JSON.stringify({ error: 'Failed to delete account data' }), {
-        status: 500,
-        headers: JSON_HEADERS,
-      });
+      return jsonResponse({ error: 'Failed to delete account data' }, 500);
     }
 
     // 4. Delete the auth user (sessions are revoked as part of this).
     const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
     if (deleteError) {
       console.error('[delete-account] auth deleteUser failed:', deleteError.message);
-      return new Response(JSON.stringify({ error: 'Failed to delete auth user' }), {
-        status: 500,
-        headers: JSON_HEADERS,
-      });
+      return jsonResponse({ error: 'Failed to delete auth user' }, 500);
     }
 
     console.log(`[delete-account] account ${userId} deleted`);
-    return new Response(JSON.stringify({ success: true }), {
-      status: 200,
-      headers: JSON_HEADERS,
-    });
+    return jsonResponse({ success: true }, 200);
   } catch (err) {
     console.error('[delete-account] unhandled error:', err);
-    return new Response(JSON.stringify({ error: 'Internal error' }), {
-      status: 500,
-      headers: JSON_HEADERS,
-    });
+    return jsonResponse({ error: 'Internal error' }, 500);
   }
 });
