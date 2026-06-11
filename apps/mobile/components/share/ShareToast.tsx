@@ -68,6 +68,15 @@ export function ShareToast({ visible, variant, onDismiss }: ShareToastProps) {
     opacity: toastOpacity.value,
   }));
 
+  const dismiss = () => {
+    translateY.set(withTiming(100, { duration: 200 }));
+    toastOpacity.set(
+      withTiming(0, { duration: 150 }, () => {
+        runOnJS(onDismiss)();
+      }),
+    );
+  };
+
   if (!visible) return null;
 
   return (
@@ -99,14 +108,7 @@ export function ShareToast({ visible, variant, onDismiss }: ShareToastProps) {
       accessibilityRole="alert"
     >
       <Pressable
-        onPress={() => {
-          translateY.set(withTiming(100, { duration: 200 }));
-          toastOpacity.set(
-            withTiming(0, { duration: 150 }, () => {
-              runOnJS(onDismiss)();
-            }),
-          );
-        }}
+        onPress={dismiss}
         className="flex-row items-center gap-3"
         accessibilityRole="button"
         accessibilityLabel={`${config.message} Tap to dismiss`}

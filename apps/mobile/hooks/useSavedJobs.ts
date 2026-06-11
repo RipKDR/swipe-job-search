@@ -249,9 +249,7 @@ export function useSavedJobs(): UseSavedJobsReturn {
     [removeMutation],
   );
 
-  const refresh = useCallback(async () => {
-    await refetch();
-  }, [refetch]);
+  const refresh = refetch;
 
   return {
     savedJobs,
